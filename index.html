@@ -24,7 +24,6 @@ body.dark-mode {
   color: #ffffff;
 }
 
-/* Header and Navigation */
 .fixed-header {
   position: fixed;
   top: 0;
@@ -82,6 +81,7 @@ body.dark-mode .fixed-header {
   font-family: inherit;
   position: relative;
   z-index: 1100;
+  text-align: center;
 }
 
 body.dark-mode .hamburger-btn {
@@ -97,7 +97,6 @@ body.dark-mode .hamburger-btn {
   transform: rotate(90deg);
 }
 
-/* Buttons */
 button {
   background: #000000;
   color: #ffffff;
@@ -114,6 +113,10 @@ button {
   transform: translateY(0);
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 body.dark-mode button {
@@ -173,6 +176,10 @@ body.dark-mode button:hover {
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .save-btn:hover:not(:disabled) {
@@ -189,7 +196,6 @@ body.dark-mode button:hover {
   opacity: 0.6;
 }
 
-/* Sidebar */
 .sidebar {
   position: fixed;
   top: 0;
@@ -240,9 +246,12 @@ body.dark-mode .sidebar.open {
   transition: all 0.3s ease;
   color: #000000;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 body.dark-mode .sidebar-menu button, body.dark-mode .sidebar-menu .currency-selector {
@@ -338,6 +347,9 @@ body.dark-mode .tabs {
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 body.dark-mode .tab {
@@ -369,7 +381,6 @@ body.dark-mode .tab.active {
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Cards and Containers */
 .card {
   background: #ffffff;
   border-radius: 16px;
@@ -486,7 +497,6 @@ body.dark-mode .bill-info small {
   gap: 8px;
 }
 
-/* Overview Grid */
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -518,7 +528,6 @@ body.dark-mode .stat-label {
   color: #999;
 }
 
-/* Person Overview */
 .person-overview {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -568,7 +577,6 @@ body.dark-mode .info-value {
   color: #ffffff;
 }
 
-/* Form Elements */
 .form-group {
   margin-bottom: 20px;
 }
@@ -633,7 +641,6 @@ body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0;
 }
 
-/* Payment Transfers */
 .payment-transfers {
   background: #f5f5f5;
   border-radius: 12px;
@@ -670,7 +677,6 @@ body.dark-mode .transfer-item {
   margin-bottom: 24px;
 }
 
-/* Debt Overview */
 .debt-overview {
   background: #f5f5f5;
   border-radius: 8px;
@@ -697,7 +703,6 @@ body.dark-mode .debt-overview {
   font-size: 1.1em;
 }
 
-/* Bills Section */
 .bills-section {
   margin-bottom: 24px;
 }
@@ -728,7 +733,6 @@ body.dark-mode .bills-group-header {
   color: #ffffff;
 }
 
-/* History Table */
 .history-table-wrapper {
   width: 100%;
   max-width: 100%;
@@ -780,7 +784,6 @@ body.dark-mode .history-table th {
   color: #000000;
 }
 
-/* Calendar */
 .calendar-container {
   background: #f5f5f5;
   border-radius: 12px;
@@ -830,6 +833,7 @@ body.dark-mode .calendar-container h4 {
   font-weight: bold !important;
   padding: 0 !important;
   cursor: pointer !important;
+  text-align: center !important;
 }
 
 body.dark-mode .calendar-btn {
@@ -1019,7 +1023,6 @@ body.dark-mode .bill-name {
   display: flex;
 }
 
-/* Event Dots */
 .event-dots {
   display: flex;
   gap: 4px;
@@ -1050,7 +1053,6 @@ body.dark-mode .bill-name {
   background-color: #8e1600;
 }
 
-/* Day Events */
 .day-events-container {
   max-height: 60vh;
   overflow-y: auto;
@@ -1175,7 +1177,6 @@ body.dark-mode .month-total {
   color: #ffffff;
 }
 
-/* Color Styling */
 .color-palette {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
@@ -1272,7 +1273,6 @@ body.dark-mode .person-color-dot {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Animations */
 @keyframes slideInUp {
   from {
     opacity: 0;
@@ -1350,7 +1350,6 @@ body.dark-mode .person-color-dot {
   animation-delay: 0.5s;
 }
 
-/* Media Queries */
 @media (max-width: 1200px) {
   .overview-grid {
     grid-template-columns: repeat(4, 1fr);
@@ -1488,7 +1487,6 @@ body.dark-mode .person-color-dot {
   }
 }
 
-
 </style>
 </head><body>
 <div class="fixed-header">
@@ -1496,8 +1494,7 @@ body.dark-mode .person-color-dot {
     <div class="header-left"><button id="hamburgerBtn" class="hamburger-btn">☰</button></div>
     <div class="greeting" id="greeting">Hello, Welcome!</div>
     <div class="header-right" style="padding-top: 8px;">
-      <button id="saveBtn" class="save-btn changed">Save</button>
-      <button id="importExportBtn" class="save-btn" onclick="showImportExportModal()">IMPORT/EXPORT</button>
+      <button id="importExportBtn" class="save-btn" onclick="showImportExportModal()">SAVE/IMPORT</button>
     </div>
   </div>
   <div id="sidebar" class="sidebar">
@@ -2343,32 +2340,137 @@ function showImportExportModal() {
     }
     
     modalContent.innerHTML = `
-        <h3 style="margin-bottom:20px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};text-align:center;">IMPORT / EXPORT YOUR BUDGET</h3>
+        <h3 style="margin-bottom:10px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};text-align:center;">SAVE/IMPORT</h3>
         
-        <div class="form-group">
-            <h4 style="margin-bottom:10px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};">Import your budget</h4>
-            <p style="margin-bottom:15px;font-size:14px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};">Paste your previously generated code here to access and edit the latest version of your budget.</p>
-            <textarea id="importDataField" style="height:100px;font-family:monospace;font-size:12px;" placeholder="Paste your code here..."></textarea>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:20px;margin-bottom:20px;">
-            <button id="importDataBtn" style="flex:1;">Import Data</button>
-            <button id="cancelImportBtn" style="flex:1;background:#666;">Cancel</button>
+        <p style="text-align:center;margin-bottom:25px;padding:10px;background-color:${document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5'};border-radius:5px;font-size:14px;color:${document.body.classList.contains('dark-mode') ? '#ff9' : '#800'};">
+            For security all data is deleted unless you export or save your data. Remember to save/export your changes before you leave.
+        </p>
+        
+        <div style="display:flex;flex-direction:column;gap:20px;margin-bottom:20px;">
+            <div>
+                <button id="importBtn" style="width:100%;height:60px;font-size:16px;font-weight:bold;">IMPORT</button>
+                <p style="margin-top:5px;font-size:13px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};">
+                    Import your previously generated .txt file to view your budget.
+                </p>
+            </div>
+            
+            <div>
+                <button id="exportBtn" style="width:100%;height:60px;font-size:16px;font-weight:bold;">EXPORT</button>
+                <p style="margin-top:5px;font-size:13px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};">
+                    Generate a unique .txt file with an encoded key so you can import your data later. You can save this file onto a cloud service to pick up from where you left off from another device or so two or more people can centrally manage a budget.
+                </p>
+            </div>
+            
+            <div>
+                <button id="saveLocalFileBtn" style="width:100%;height:60px;font-size:16px;font-weight:bold;">SAVE LOCAL FILE</button>
+                <p style="margin-top:5px;font-size:13px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};">
+                    Save a .html file to your desktop or phone to view later. Every time you resave the file all the changes you make will be encoded into your .html file so your data can't be accessed unless you have the .html file.
+                </p>
+            </div>
         </div>
         
-        <div class="form-group" style="margin-top:30px;">
-            <h4 style="margin-bottom:10px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};">Export your budget</h4>
-            <p style="margin-bottom:15px;font-size:14px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};">A new encrypted code is generated every time you make changes to your budget. Come here to export your latest code and save it somewhere safe so you can import it later. Copy/paste it somewhere safe each time you make edits. Come back here and paste your code to view/edit your budget.</p>
-            <textarea id="exportDataField" style="height:100px;font-family:monospace;font-size:12px;cursor:pointer;" readonly></textarea>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:20px;">
-            <button id="copyExportBtn" style="flex:1;">Copy Code</button>
-            <button id="regenerateExportBtn" style="flex:1;">Regenerate Code</button>
+        <div style="margin-top:20px;text-align:center;">
+            <button id="closeModalBtn" style="background:#666;width:150px;">Close</button>
         </div>
     `;
     
-    generateExportCode();
+    $('importBtn').addEventListener('click', () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.txt';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+        
+        fileInput.click();
+        
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                document.body.removeChild(fileInput);
+                return;
+            }
+            
+            if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
+                document.body.removeChild(fileInput);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const fileContent = e.target.result;
+                    const importData = JSON.parse(atob(fileContent.trim()));
+                    
+                    if (!importData.people || !importData.bills) {
+                        throw new Error('Invalid import data format');
+                    }
+                    
+                    data.people = importData.people || [];
+                    data.bills = importData.bills || [];
+                    data.currency = importData.currency || 'USD';
+                    data.darkMode = importData.darkMode || false;
+                    data.weightedBills = importData.weightedBills || false;
+                    data.paycheckHistory = importData.paycheckHistory || [];
+                    data.billHistory = importData.billHistory || [];
+                    data.eventHistory = importData.eventHistory || [];
+                    data.billPayments = importData.billPayments || [];
+                    data.lastProcessedDate = importData.lastProcessedDate || null;
+                    data.peopleIncomeSettings = importData.peopleIncomeSettings || {};
+                    
+                    nextPersonId = Math.max(1, ...data.people.map(p => p.id + 1));
+                    nextBillId = Math.max(1, ...data.bills.map(b => b.id + 1));
+                    nextIncomeId = Math.max(1, ...data.people.map(p => (p.incomeHistory || []).map(i => i.id + 1)).flat());
+                    nextEventId = Math.max(1, ...data.eventHistory.map(e => e.id + 1));
+                    nextPaycheckId = Math.max(1, ...data.paycheckHistory.map(p => p.id + 1));
+                    
+                    document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
+                    document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
+                    
+                    if (data.darkMode) {
+                        document.body.classList.add('dark-mode');
+                    } else {
+                        document.body.classList.remove('dark-mode');
+                    }
+                    
+                    $('currencySelect').value = data.currency;
+                    $('weightedBillsSidebar').checked = data.weightedBills;
+                    
+                    data.people.forEach(person => createPersonTab(person));
+                    attachPersonEventListeners();
+                    updateGreeting();
+                    updateBillPayerOptions();
+                    updateBillsList();
+                    updateHistoryDisplay();
+                    updateOverview();
+                    toggleBillTypeVisibility();
+                    updateTabsVisibility();
+                    
+                    data.eventHistory.push({
+                        id: nextEventId++,
+                        date: new Date().toISOString().split('T')[0],
+                        event: 'Data Imported',
+                        description: 'Imported data from a budget file'
+                    });
+                    
+                    saveDataToLocalStorage();
+                    hideModal();
+                    showTab('overview');
+                    
+                    alert('Data imported successfully!');
+                    
+                } catch (e) {
+                    console.error('Import error:', e);
+                    alert('Failed to import data. The file may be invalid or corrupted.');
+                }
+                
+                document.body.removeChild(fileInput);
+            };
+            
+            reader.readAsText(file);
+        });
+    });
     
-    function generateExportCode() {
+    $('exportBtn').addEventListener('click', () => {
         const exportData = {
             people: data.people,
             bills: data.bills,
@@ -2384,109 +2486,67 @@ function showImportExportModal() {
         };
         
         const exportString = btoa(JSON.stringify(exportData));
-        $('exportDataField').value = exportString;
-    }
-    
-    $('exportDataField').addEventListener('click', copyExportCode);
-    
-    function copyExportCode() {
-        const exportField = $('exportDataField');
-        exportField.select();
-        document.execCommand('copy');
+        const blob = new Blob([exportString], { type: 'text/plain' });
         
-        const copyBtn = $('copyExportBtn');
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = 'COPIED';
-        copyBtn.style.backgroundColor = '#4CAF50';
-        
-        setTimeout(() => {
-            copyBtn.textContent = originalText;
-            copyBtn.style.backgroundColor = '';
-        }, 1500);
-    }
-    
-    $('copyExportBtn').addEventListener('click', copyExportCode);
-    
-    $('regenerateExportBtn').addEventListener('click', generateExportCode);
-    
-    $('importDataBtn').addEventListener('click', () => {
-        const importString = $('importDataField').value.trim();
-        if (!importString) {
-            alert('Please enter an import code.');
-            return;
-        }
-        
-        try {
-            const importData = JSON.parse(atob(importString));
-            
-            if (!importData.people || !importData.bills) {
-                throw new Error('Invalid import data format');
+        if ('showSaveFilePicker' in window) {
+            async function saveWithFilePicker() {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: 'budget_data.txt',
+                        types: [{
+                            description: 'Text Files',
+                            accept: { 'text/plain': ['.txt'] }
+                        }]
+                    });
+                    
+                    const writable = await handle.createWritable();
+                    await writable.write(exportString);
+                    await writable.close();
+                    
+                    data.eventHistory.push({
+                        id: nextEventId++,
+                        date: new Date().toISOString().split('T')[0],
+                        event: 'Data Exported',
+                        description: 'Exported budget data to text file'
+                    });
+                    
+                    saveDataToLocalStorage();
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Error saving file:', err);
+                        alert('Error saving file. Please try again.');
+                    }
+                }
             }
             
-            if (!confirm('This will replace all your current data. Are you sure you want to continue?')) {
-                return;
-            }
-            
-            data.people = importData.people || [];
-            data.bills = importData.bills || [];
-            data.currency = importData.currency || 'USD';
-            data.darkMode = importData.darkMode || false;
-            data.weightedBills = importData.weightedBills || false;
-            data.paycheckHistory = importData.paycheckHistory || [];
-            data.billHistory = importData.billHistory || [];
-            data.eventHistory = importData.eventHistory || [];
-            data.billPayments = importData.billPayments || [];
-            data.lastProcessedDate = importData.lastProcessedDate || null;
-            data.peopleIncomeSettings = importData.peopleIncomeSettings || {};
-            
-            nextPersonId = Math.max(1, ...data.people.map(p => p.id + 1));
-            nextBillId = Math.max(1, ...data.bills.map(b => b.id + 1));
-            nextIncomeId = Math.max(1, ...data.people.map(p => (p.incomeHistory || []).map(i => i.id + 1)).flat());
-            nextEventId = Math.max(1, ...data.eventHistory.map(e => e.id + 1));
-            nextPaycheckId = Math.max(1, ...data.paycheckHistory.map(p => p.id + 1));
-            
-            document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
-            document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
-            
-            if (data.darkMode) {
-                document.body.classList.add('dark-mode');
-            } else {
-                document.body.classList.remove('dark-mode');
-            }
-            
-            $('currencySelect').value = data.currency;
-            $('weightedBillsSidebar').checked = data.weightedBills;
-            
-            data.people.forEach(person => createPersonTab(person));
-            attachPersonEventListeners();
-            updateGreeting();
-            updateBillPayerOptions();
-            updateBillsList();
-            updateHistoryDisplay();
-            updateOverview();
-            toggleBillTypeVisibility();
-            updateTabsVisibility();
+            saveWithFilePicker();
+        } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'budget_data.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
             
             data.eventHistory.push({
                 id: nextEventId++,
                 date: new Date().toISOString().split('T')[0],
-                event: 'Data Imported',
-                description: 'Imported data from a share code'
+                event: 'Data Exported',
+                description: 'Exported budget data to text file'
             });
             
             saveDataToLocalStorage();
-            hideModal();
-            showTab('overview');
-            
-            alert('Data imported successfully!');
-            
-        } catch (e) {
-            console.error('Import error:', e);
-            alert('Failed to import data. The code may be invalid or corrupted.');
         }
     });
     
-    $('cancelImportBtn').addEventListener('click', hideModal);
+    $('saveLocalFileBtn').addEventListener('click', () => {
+        hideModal();
+        saveDataToFile();
+    });
+    
+    $('closeModalBtn').addEventListener('click', hideModal);
     
     showModal();
 }
@@ -3536,21 +3596,10 @@ function markAsChanged() {
     const currentDataString = JSON.stringify(data);
     const originalDataString = JSON.stringify(originalEmbeddedData);
     hasChanges = currentDataString !== originalDataString;
-    const saveBtn = $('saveBtn');
-    if (hasChanges) {
-        saveBtn.disabled = false;
-        saveBtn.classList.add('changed');
-    } else {
-        saveBtn.disabled = true;
-        saveBtn.classList.remove('changed');
-    }
 }
 
 function clearChanges() {
     hasChanges = false;
-    const saveBtn = $('saveBtn');
-    saveBtn.disabled = true;
-    saveBtn.classList.remove('changed');
     localStorage.removeItem(STORAGE_KEY);
     originalEmbeddedData = JSON.parse(JSON.stringify(data));
 }
@@ -6049,7 +6098,6 @@ function attachEventListeners() {
     data.people.forEach(person => createPersonTab(person));
     
     $('hamburgerBtn').addEventListener('click', toggleSidebar);
-    $('saveBtn').addEventListener('click', saveDataToFile);
     $('addNewPersonBtn').addEventListener('click', addNewPerson);
     $('toggleDarkModeBtn').addEventListener('click', toggleDarkMode);
     $('currencySelect').addEventListener('change', updateCurrency);
