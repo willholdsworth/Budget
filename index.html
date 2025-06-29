@@ -20,7 +20,7 @@ body {
 }
 
 body.dark-mode {
-  background: #1a1a1a;
+  background: #0a0a0a;
   color: #ffffff;
 }
 
@@ -37,7 +37,7 @@ body.dark-mode {
 }
 
 body.dark-mode .fixed-header {
-  background: #1a1a1a;
+  background: #000000;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.3);
 }
 
@@ -165,6 +165,7 @@ body.dark-mode button:hover {
 .btn-small {
   padding: 6px 12px;
   font-size: 12px;
+  border-radius: 30px;
 }
 
 .save-btn {
@@ -172,7 +173,7 @@ body.dark-mode button:hover {
   color: #ffffff;
   border: none;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: 30px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -195,11 +196,13 @@ body.dark-mode button:hover {
 
 .save-btn.changed {
   background: #8e1600;
+  border-radius: 30px;
 }
 
 .save-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+  border-radius: 30px;
 }
 
 .sidebar {
@@ -355,7 +358,7 @@ body.dark-mode .tabs {
   text-align: center;
   cursor: pointer;
   background: #ffffff;
-  border-radius: 10px;
+  border-radius: 30px;
   font-weight: 600;
   font-size: 14px;
   color: #000000;
@@ -415,7 +418,7 @@ body.dark-mode .tab.active {
 }
 
 body.dark-mode .card {
-  background: #1a1a1a;
+  background: #010101;
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
@@ -444,12 +447,12 @@ body.dark-mode .card h3, body.dark-mode .card h4 {
 
 .stat-card {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 30px;
   padding: 20px;
   text-align: center;
   border: 2px solid rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.05);
 }
 
 body.dark-mode .stat-card {
@@ -459,8 +462,8 @@ body.dark-mode .stat-card {
 }
 
 .stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  transform: translateY(-10px);
+  box-shadow: 0 8px px rgba(0, 0, 0, 0.08);
 }
 
 body.dark-mode .stat-card:hover {
@@ -4726,6 +4729,8 @@ function generateBillDate(day, month, frequency, startMonth) {
     
     return billDate.toISOString().split('T')[0];
 }
+
+
 
 function isPaydayOnDate(person, day, month, year) {
     if (!person.paymentDate || !person.frequency) return false;
