@@ -4539,18 +4539,43 @@ function getNextWorkingDay(date) {
 
 function generateBillDate(day, month, frequency, startMonth) {
     const today = new Date();
+    const todayFormatted = today.toISOString().split('T')[0];
     let billDate;
     
-    if (frequency === 'yearly' && month) {
+    if (frequency === 'monthly') {
+        if (day === today.getDate()) {
+            return todayFormatted;
+        }
+        
+        billDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        const daysInMonth = new Date(billDate.getFullYear(), billDate.getMonth() + 1, 0).getDate();
+        
+        if (day > daysInMonth) {
+            billDate.setDate(daysInMonth);
+        } else {
+            billDate.setDate(day);
+        }
+        
+        if (billDate < today) {
+            billDate.setMonth(billDate.getMonth() + 1);
+            const daysInNextMonth = new Date(billDate.getFullYear(), billDate.getMonth() + 1, 0).getDate();
+            if (day > daysInNextMonth) {
+                billDate.setDate(daysInNextMonth);
+            } else {
+                billDate.setDate(day);
+            }
+        }
+    }
+    else if (frequency === 'yearly' && month) {
+        if (day === today.getDate() && month - 1 === today.getMonth()) {
+            return todayFormatted;
+        }
+        
         billDate = new Date(today.getFullYear(), month - 1, 1);
         const daysInMonth = new Date(billDate.getFullYear(), billDate.getMonth() + 1, 0).getDate();
         
         if (day > daysInMonth) {
             billDate.setDate(daysInMonth);
-            billDate.setDate(billDate.getDate() + 1);
-            if (billDate.getDate() === 1) {
-                billDate.setMonth(billDate.getMonth() + 1);
-            }
         } else {
             billDate.setDate(day);
         }
@@ -4560,17 +4585,25 @@ function generateBillDate(day, month, frequency, startMonth) {
             const daysInNextMonth = new Date(billDate.getFullYear(), billDate.getMonth() + 1, 0).getDate();
             if (day > daysInNextMonth) {
                 billDate.setDate(daysInNextMonth);
-                billDate.setDate(billDate.getDate() + 1);
-                if (billDate.getDate() === 1) {
-                    billDate.setMonth(billDate.getMonth() + 1);
-                }
             } else {
                 billDate.setDate(day);
             }
         }
-    } else if (frequency === 'quarterly') {
+    }
+    else if (frequency === 'quarterly') {
         const currentMonth = today.getMonth() + 1;
         const quarterStart = startMonth || currentMonth;
+        
+        const monthsInQuarter = [quarterStart];
+        for (let i = 1; i < 4; i++) {
+            const nextMonth = ((quarterStart - 1 + (i * 3)) % 12) + 1;
+            monthsInQuarter.push(nextMonth);
+        }
+        
+        if (day === today.getDate() && monthsInQuarter.includes(today.getMonth() + 1)) {
+            return todayFormatted;
+        }
+        
         let nextQuarterMonth = quarterStart;
         
         while (nextQuarterMonth <= currentMonth) {
@@ -4587,23 +4620,16 @@ function generateBillDate(day, month, frequency, startMonth) {
         const daysInMonth = new Date(billDate.getFullYear(), billDate.getMonth() + 1, 0).getDate();
         if (day > daysInMonth) {
             billDate.setDate(daysInMonth);
-            billDate.setDate(billDate.getDate() + 1);
-            if (billDate.getDate() === 1) {
-                billDate.setMonth(billDate.getMonth() + 1);
-            }
         } else {
             billDate.setDate(day);
         }
-    } else {
+    }
+    else {
         billDate = new Date(today.getFullYear(), today.getMonth(), 1);
         const daysInMonth = new Date(billDate.getFullYear(), billDate.getMonth() + 1, 0).getDate();
         
         if (day > daysInMonth) {
             billDate.setDate(daysInMonth);
-            billDate.setDate(billDate.getDate() + 1);
-            if (billDate.getDate() === 1) {
-                billDate.setMonth(billDate.getMonth() + 1);
-            }
         } else {
             billDate.setDate(day);
         }
@@ -4613,10 +4639,6 @@ function generateBillDate(day, month, frequency, startMonth) {
             const daysInNextMonth = new Date(billDate.getFullYear(), billDate.getMonth() + 1, 0).getDate();
             if (day > daysInNextMonth) {
                 billDate.setDate(daysInNextMonth);
-                billDate.setDate(billDate.getDate() + 1);
-                if (billDate.getDate() === 1) {
-                    billDate.setMonth(billDate.getMonth() + 1);
-                }
             } else {
                 billDate.setDate(day);
             }
@@ -5206,8 +5228,8 @@ function addBill() {
     const isDueToday = billDate === today;
     
     if (isOneOff || isDueToday) {
+        // For one-off expenses or bills due today, create a payment record
         const paymentRecord = {
-            id: nextPaycheckId++,
             billId: bill.id,
             billName: bill.name,
             amount: bill.amount + (bill.overpayment || 0),
@@ -5263,6 +5285,7 @@ function addBill() {
     
     saveDataToLocalStorage();
     updateBillsList();
+    updateHistoryDisplay(); // Update history to show the new bill payment
     updateOverview();
     toggleBillTypeVisibility();
 }
