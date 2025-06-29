@@ -12,15 +12,15 @@
 
 body {
   font-family: 'Space Grotesk', monospace;
+  background: #ffffff;
   min-height: 100vh;
   padding: 20px;
   color: #000000;
   transition: all 0.3s ease;
-  background: #ffffff;
 }
 
 body.dark-mode {
-  background: #0a0a0a;
+  background: #000000;
   color: #ffffff;
 }
 
@@ -33,12 +33,10 @@ body.dark-mode {
   padding: 20px;
   z-index: 1000;
   transition: all 0.3s ease;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
 }
 
 body.dark-mode .fixed-header {
   background: #000000;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.3);
 }
 
 .header-content {
@@ -104,11 +102,11 @@ button {
   color: #ffffff;
   border: none;
   padding: 12px 24px;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -119,13 +117,11 @@ button {
   align-items: center;
   justify-content: center;
   text-align: center;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
 body.dark-mode button {
   background: #ffffff;
   color: #000000;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
 
 button::before {
@@ -145,11 +141,11 @@ button:hover::before {
 
 button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 body.dark-mode button:hover {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 255, 255, 0.15);
 }
 
 .btn-danger {
@@ -165,7 +161,6 @@ body.dark-mode button:hover {
 .btn-small {
   padding: 6px 12px;
   font-size: 12px;
-  border-radius: 30px;
 }
 
 .save-btn {
@@ -173,11 +168,11 @@ body.dark-mode button:hover {
   color: #ffffff;
   border: none;
   padding: 8px 16px;
-  border-radius: 30px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -185,24 +180,20 @@ body.dark-mode button:hover {
   align-items: center;
   justify-content: center;
   text-align: center;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
 .save-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   opacity: 0.8;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
 .save-btn.changed {
   background: #8e1600;
-  border-radius: 30px;
 }
 
 .save-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
-  border-radius: 30px;
 }
 
 .sidebar {
@@ -212,26 +203,25 @@ body.dark-mode button:hover {
   width: 250px;
   height: 100%;
   background: #ffffff;
-  border-right: 2px solid rgba(0, 0, 0, 0.08);
+  border-right: 2px solid #000000;
   padding: 80px 20px 20px;
   z-index: 1001;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(10px);
 }
 
 body.dark-mode .sidebar {
-  background: #1a1a1a;
-  border-right-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  background: #000000;
+  border-right-color: #ffffff;
 }
 
 .sidebar.open {
   left: 0;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
 }
 
 body.dark-mode .sidebar.open {
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 4px 0 20px rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-menu {
@@ -248,12 +238,12 @@ body.dark-mode .sidebar.open {
 .sidebar-menu button, .sidebar-menu .currency-selector {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
+  border: 2px solid #000000;
+  border-radius: 8px;
   font-size: 14px;
   background: #ffffff;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   color: #000000;
   cursor: pointer;
   text-align: center;
@@ -262,27 +252,22 @@ body.dark-mode .sidebar.open {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 body.dark-mode .sidebar-menu button, body.dark-mode .sidebar-menu .currency-selector {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: #1a1a1a;
+  border-color: #ffffff;
+  background: #000000;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-menu button:hover, .sidebar-menu .currency-selector:hover {
   background: #e8e8e8;
   color: #000000;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 body.dark-mode .sidebar-menu button:hover, body.dark-mode .sidebar-menu .currency-selector:hover {
-  background: #333333;
+  background: #1a1a1a;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .sidebar-menu .checkbox-group {
@@ -290,30 +275,25 @@ body.dark-mode .sidebar-menu button:hover, body.dark-mode .sidebar-menu .currenc
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
+  border: 2px solid #000000;
+  border-radius: 8px;
   background: #ffffff;
   color: #000000;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
 }
 
 body.dark-mode .sidebar-menu .checkbox-group {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: #1a1a1a;
+  border-color: #ffffff;
+  background: #000000;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-menu .checkbox-group:hover {
   background: #e8e8e8;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 body.dark-mode .sidebar-menu .checkbox-group:hover {
-  background: #333333;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: #1a1a1a;
 }
 
 .sidebar-menu .checkbox-group input[type="checkbox"] {
@@ -339,6 +319,7 @@ body.dark-mode .sidebar-menu .checkbox-group label {
   background: transparent;
 }
 
+
 .tabs {
   display: flex;
   background: transparent;
@@ -358,39 +339,32 @@ body.dark-mode .tabs {
   text-align: center;
   cursor: pointer;
   background: #ffffff;
-  border-radius: 30px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
   color: #000000;
-  transition: all 0.2s ease;
+  transition: background 0.3s ease, color 0.3s ease;
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 body.dark-mode .tab {
-  background: #1a1a1a;
+  background: #000000;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .tab.active {
   background: #000000;
   color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
 }
 
 body.dark-mode .tab.active {
   background: #ffffff;
   color: #000000;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .tab-content {
@@ -412,24 +386,13 @@ body.dark-mode .tab.active {
   border-radius: 16px;
   padding: 32px;
   margin-bottom: 24px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  border: 2px solid #000000;
+  transition: none;
 }
 
 body.dark-mode .card {
-  background: #010101;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-}
-
-body.dark-mode .card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  background: #000000;
+  border-color: #ffffff;
 }
 
 .card h3, .card h4 {
@@ -447,51 +410,29 @@ body.dark-mode .card h3, body.dark-mode .card h4 {
 
 .stat-card {
   background: #ffffff;
-  border-radius: 30px;
+  border-radius: 12px;
   padding: 20px;
   text-align: center;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
-  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.05);
+  border: 2px solid #000000;
+  transition: none;
 }
 
 body.dark-mode .stat-card {
-  background: #1a1a1a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.stat-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 8px px rgba(0, 0, 0, 0.08);
-}
-
-body.dark-mode .stat-card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  background: #000000;
+  border-color: #ffffff;
 }
 
 .person-card {
   padding: 24px;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #ffffff;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  border: 2px solid #000000;
+  transition: none;
 }
 
 body.dark-mode .person-card {
-  background: #1a1a1a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.person-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-}
-
-body.dark-mode .person-card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  background: #000000;
+  border-color: #ffffff;
 }
 
 .person-card h3 {
@@ -509,21 +450,19 @@ body.dark-mode .person-card h3 {
 
 .bill-item {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  border: 2px solid #000000;
+  transition: none;
 }
 
 body.dark-mode .bill-item {
-  background: #1a1a1a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  background: #000000;
+  border-color: #ffffff;
 }
 
 .bill-info {
@@ -659,33 +598,31 @@ body.dark-mode label {
 input, select, textarea {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
+  border: 2px solid #000000;
+  border-radius: 8px;
   font-size: 14px;
   background: #ffffff;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: #000000;
   transform: translateY(0);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
 }
 
 body.dark-mode input, body.dark-mode select, body.dark-mode textarea {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: #1a1a1a;
+  border-color: #ffffff;
+  background: #000000;
   color: #ffffff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: #666;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 body.dark-mode input:focus, body.dark-mode select:focus, body.dark-mode textarea:focus {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
 body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
@@ -706,29 +643,27 @@ body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
 
 .payment-transfers {
   background: #f5f5f5;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid #000000;
   animation: slideInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
 
 body.dark-mode .payment-transfers {
-  background: #2a2a2a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  background: #1a1a1a;
+  border-color: #ffffff;
 }
 
 .transfer-item {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid #000000;
 }
 
 body.dark-mode .transfer-item {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  border-bottom-color: #ffffff;
 }
 
 .transfer-item:last-child {
@@ -744,17 +679,15 @@ body.dark-mode .transfer-item {
 
 .debt-overview {
   background: #f5f5f5;
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 16px;
   margin-top: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #000000;
 }
 
 body.dark-mode .debt-overview {
-  background: #2a2a2a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  background: #1a1a1a;
+  border-color: #ffffff;
 }
 
 .debt-item {
@@ -776,17 +709,15 @@ body.dark-mode .debt-overview {
 
 .bills-group {
   margin-bottom: 20px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
+  border: 1px solid #000000;
+  border-radius: 8px;
   padding: 15px;
   background: #ffffff;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 body.dark-mode .bills-group {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: #1a1a1a;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  border-color: #ffffff;
+  background: #000000;
 }
 
 .bills-group-header {
@@ -814,23 +745,21 @@ body.dark-mode .bills-group-header {
   border-collapse: collapse;
   margin-top: 20px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid #000000;
   table-layout: fixed;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 body.dark-mode .history-table {
-  background: #1a1a1a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  background: #000000;
+  border-color: #ffffff;
 }
 
 .history-table th, .history-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid #000000;
   font-size: 14px;
   color: #000000;
   word-wrap: break-word;
@@ -838,7 +767,7 @@ body.dark-mode .history-table {
 }
 
 body.dark-mode .history-table th, body.dark-mode .history-table td {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: #ffffff;
   color: #ffffff;
 }
 
@@ -857,19 +786,17 @@ body.dark-mode .history-table th {
 
 .calendar-container {
   background: #f5f5f5;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid #000000;
   overflow: hidden;
   animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
 
 body.dark-mode .calendar-container {
-  background: #2a2a2a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  background: #1a1a1a;
+  border-color: #ffffff;
 }
 
 .calendar-container h4 {
@@ -938,7 +865,7 @@ body.dark-mode .calendar-header {
 
 .calendar-day {
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid #000000;
   min-height: 80px;
   padding: 4px;
   position: relative;
@@ -948,8 +875,8 @@ body.dark-mode .calendar-header {
 }
 
 body.dark-mode .calendar-day {
-  background: #1a1a1a;
-  border-color: rgba(255, 255, 255, 0.08);
+  background: #000000;
+  border-color: #ffffff;
 }
 
 .calendar-day.has-events {
@@ -966,7 +893,6 @@ body.dark-mode .calendar-day {
   min-height: 30px;
   overflow-y: auto;
   z-index: 2;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .calendar-grid-row {
@@ -975,27 +901,25 @@ body.dark-mode .calendar-day {
 }
 
 body.dark-mode .calendar-day.expanded {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1);
 }
 
 .calendar-day.empty {
   background: transparent !important;
   opacity: 0.4 !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
 }
 
 body.dark-mode .calendar-day.empty {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 
 .calendar-day.today {
   background: #ffffff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 body.dark-mode .calendar-day.today {
-  background: #1a1a1a;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  background: #000000;
 }
 
 .calendar-day.today .day-number {
@@ -1150,18 +1074,16 @@ body.dark-mode .bill-name {
 
 .historical-income-container {
   background: #f5f5f5;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid #000000;
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
 
 body.dark-mode .historical-income-container {
-  background: #2a2a2a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  background: #1a1a1a;
+  border-color: #ffffff;
 }
 
 .historical-income-container h4 {
@@ -1180,17 +1102,15 @@ body.dark-mode .historical-income-container h4 {
 
 .year-group {
   margin-bottom: 20px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
+  border: 1px solid #000000;
+  border-radius: 8px;
   padding: 15px;
   background: #ffffff;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 body.dark-mode .year-group {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: #1a1a1a;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  border-color: #ffffff;
+  background: #000000;
 }
 
 .year-header {
@@ -1227,12 +1147,12 @@ body.dark-mode .year-totals {
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid #e8e8e8;
   font-size: 14px;
 }
 
 body.dark-mode .month-item {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  border-bottom-color: #333;
 }
 
 .month-item:last-child {
@@ -1307,20 +1227,18 @@ body.dark-mode .color-option.selected {
 
 .color-modal-content {
   background: #ffffff;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid #000000;
   border-radius: 16px;
   padding: 32px;
   max-width: 400px;
   width: 90%;
   color: #000000;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
 }
 
 body.dark-mode .color-modal-content {
-  background: #1a1a1a;
-  border-color: rgba(255, 255, 255, 0.08);
+  background: #000000;
+  border-color: #ffffff;
   color: #ffffff;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 }
 
 .color-option-item {
@@ -4730,8 +4648,6 @@ function generateBillDate(day, month, frequency, startMonth) {
     return billDate.toISOString().split('T')[0];
 }
 
-
-
 function isPaydayOnDate(person, day, month, year) {
     if (!person.paymentDate || !person.frequency) return false;
     
@@ -6267,5 +6183,8 @@ function attachEventListeners() {
 
 document.addEventListener('DOMContentLoaded', attachEventListeners);
 </script>
+
+</body>
+</html>
 
 </body></html>
