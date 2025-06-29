@@ -5170,12 +5170,14 @@ function addBill() {
         return;
     }
     
+    const billDate = isOneOff ? new Date().toISOString().split('T')[0] : generateBillDate(day, month, frequency, startMonth);
+    
     const bill = {
         id: nextBillId++,
         name: name,
         amount: amount,
         frequency: isOneOff ? 'one-off' : frequency,
-        date: isOneOff ? new Date().toISOString().split('T')[0] : generateBillDate(day, month, frequency, startMonth),
+        date: billDate,
         day: isOneOff ? null : day,
         month: isOneOff ? null : month,
         startMonth: frequency === 'quarterly' ? startMonth : null,
@@ -5200,7 +5202,10 @@ function addBill() {
     const payerName = payer === 'joint' ? 'Joint Account' : 
                      data.people.find(p => p.id === parseInt(payer))?.name || 'Unknown';
     
-    if (isOneOff) {
+    const today = new Date().toISOString().split('T')[0];
+    const isDueToday = billDate === today;
+    
+    if (isOneOff || isDueToday) {
         const paymentRecord = {
             id: nextPaycheckId++,
             billId: bill.id,
@@ -5210,22 +5215,31 @@ function addBill() {
             category: bill.category,
             billType: bill.billType,
             payer: bill.payer,
-            status: 'One-off expense'
+            status: isOneOff ? 'One-off expense' : 'Regular bill payment'
         };
         
         if (!data.billPayments) data.billPayments = [];
         data.billPayments.push(paymentRecord);
         
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: new Date().toISOString().split('T')[0],
-            event: 'Unexpected Expense Added',
-            description: `Added one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))} paid by ${payerName}`
-        });
+        if (isOneOff) {
+            data.eventHistory.push({
+                id: nextEventId++,
+                date: today,
+                event: 'Unexpected Expense Added',
+                description: `Added one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))} paid by ${payerName}`
+            });
+        } else {
+            data.eventHistory.push({
+                id: nextEventId++,
+                date: today,
+                event: 'Bill Payment Recorded',
+                description: `Recorded payment for ${bill.name} due today - ${formatCurrency(bill.amount + (bill.overpayment || 0))} paid by ${payerName}`
+            });
+        }
     } else {
         data.eventHistory.push({
             id: nextEventId++,
-            date: new Date().toISOString().split('T')[0],
+            date: today,
             event: 'Bill Added',
             description: `Added ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}/${bill.frequency} on day ${day}${month ? ` of month ${month}` : ''} paid by ${payerName}`
         });
