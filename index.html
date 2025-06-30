@@ -1868,6 +1868,9 @@ let hasChanges = false;
 let originalEmbeddedData = {};
 let sessionStartData = {};
 let savedFileHandle = null;
+let isPostImport = false;
+let isImporting = false;
+let importBaseline = {};
 const STORAGE_KEY = 'budgetTrackerData';
 const $ = id => document.getElementById(id);
 const colorPalette = [
@@ -1895,6 +1898,18 @@ function updateCalendarView(year = null, month = null) {
     
     initCalendarInteractions();
 }
+
+function markAsPostImport() {
+    setTimeout(() => {
+        isPostImport = true;
+        importBaseline = JSON.parse(JSON.stringify(data));
+        localStorage.removeItem(STORAGE_KEY);
+        isImporting = false;
+        console.log('Post-import mode activated, localStorage cleared');
+    }, 500);
+}
+
+
 
 function navigateCalendar(direction) {
     if (direction === -1) {
@@ -2410,6 +2425,8 @@ function frequencyToMonthly(amount, frequency) {
 }
 
 function processImportData(fileContent) {
+    isImporting = true;
+    
     const importData = JSON.parse(atob(fileContent.trim()));
     
     if (!importData.people || !importData.bills) {
@@ -2443,6 +2460,8 @@ function processImportData(fileContent) {
     data.nextIncomeId = nextIncomeId;
     data.nextEventId = nextEventId;
     data.nextPaycheckId = nextPaycheckId;
+    
+    markAsPostImport();
 }
 
 function createCleanExportData() {
@@ -2540,6 +2559,8 @@ function showImportExportModal() {
                 return;
             }
             
+            isImporting = true;
+            
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
@@ -2568,20 +2589,22 @@ function showImportExportModal() {
                     toggleBillTypeVisibility();
                     updateTabsVisibility();
                     
-                    data.eventHistory.push({
-                        id: nextEventId++,
-                        date: new Date().toISOString().split('T')[0],
-                        event: 'Data Imported',
-                        description: 'Imported data from a budget file'
-                    });
-                    
-                    saveDataToLocalStorage();
-                    hideModal();
-                    showTab('overview');
-                    
-                    alert('Data imported successfully!');
+                    setTimeout(() => {
+                        data.eventHistory.push({
+                            id: nextEventId++,
+                            date: new Date().toISOString().split('T')[0],
+                            event: 'Data Imported',
+                            description: 'Imported data from a budget file'
+                        });
+                        
+                        hideModal();
+                        showTab('overview');
+                        
+                        alert('Data imported successfully!');
+                    }, 600);
                     
                 } catch (e) {
+                    isImporting = false;
                     console.error('Import error:', e);
                     alert('Failed to import data. The file may be invalid or corrupted.');
                 }
@@ -3716,11 +3739,22 @@ function clearChanges() {
 
 function loadData() {
     try {
-        localStorage.removeItem(STORAGE_KEY);
+        const storedData = localStorage.getItem(STORAGE_KEY);
+        if (storedData) {
+            const parsed = JSON.parse(storedData);
+            if (parsed.isPostImport) {
+                console.log('Found post-import changes, will load from embedded data and apply changes');
+                localStorage.removeItem(STORAGE_KEY);
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        }
+        
         const embeddedScript = $('embedded-data');
         data = JSON.parse(embeddedScript.textContent);
         originalEmbeddedData = JSON.parse(JSON.stringify(data));
         sessionStartData = JSON.parse(JSON.stringify(data));
+        
         nextPersonId = data.nextPersonId || 1;
         nextBillId = data.nextBillId || 1;
         nextIncomeId = data.nextIncomeId || 1;
@@ -3739,58 +3773,142 @@ function loadData() {
         }
         
         attachPersonEventListeners();
-        
         clearChanges();
         processElapsedBills();
         processElapsedIncome();
+        
+        isPostImport = false;
+        importBaseline = {};
+        
     } catch (e) {
         console.error('Failed to load embedded data:', e);
-        data = {
-            people: [],
-            bills: [],
-            currency: "USD",
-            darkMode: false,
-            weightedBills: false,
-            nextPersonId: 1,
-            nextBillId: 1,
-            nextIncomeId: 1,
-            nextEventId: 1,
-            nextPaycheckId: 1,
-            paycheckHistory: [],
-            billHistory: [],
-            eventHistory: [],
-            billPayments: [],
-            lastProcessedDate: null,
-            peopleIncomeSettings: {},
-            savedFileHandle: null
-        };
-        originalEmbeddedData = JSON.parse(JSON.stringify(data));
-        sessionStartData = JSON.parse(JSON.stringify(data));
-        
-        showTab('overview');
-        const sidebar = $('sidebar');
-        if (sidebar.classList.contains('open')) {
-            sidebar.classList.remove('open');
-        }
-        
-        clearChanges();
+        initializeDefaultData();
     }
 }
 
+function initializeDefaultData() {
+    data = {
+        people: [],
+        bills: [],
+        currency: "USD",
+        darkMode: false,
+        weightedBills: false,
+        nextPersonId: 1,
+        nextBillId: 1,
+        nextIncomeId: 1,
+        nextEventId: 1,
+        nextPaycheckId: 1,
+        paycheckHistory: [],
+        billHistory: [],
+        eventHistory: [],
+        billPayments: [],
+        lastProcessedDate: null,
+        peopleIncomeSettings: {},
+        savedFileHandle: null
+    };
+    originalEmbeddedData = JSON.parse(JSON.stringify(data));
+    sessionStartData = JSON.parse(JSON.stringify(data));
+    
+    showTab('overview');
+    const sidebar = $('sidebar');
+    if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+    }
+    
+    clearChanges();
+    isPostImport = false;
+    importBaseline = {};
+}
+
 function saveDataToLocalStorage() {
+    if (isImporting) {
+        console.log('Skipping save during import process');
+        return;
+    }
+    
     try {
-        data.nextPersonId = nextPersonId;
-        data.nextBillId = nextBillId;
-        data.nextIncomeId = nextIncomeId;
-        data.nextEventId = nextEventId;
-        data.nextPaycheckId = nextPaycheckId;
-        data.savedFileHandle = savedFileHandle;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        markAsChanged();
+        if (isPostImport && Object.keys(importBaseline).length > 0) {
+            const changes = calculateChanges();
+            if (Object.keys(changes).length > 0) {
+                const deltaData = {
+                    isPostImport: true,
+                    changes: changes,
+                    counters: {
+                        nextPersonId: nextPersonId,
+                        nextBillId: nextBillId,
+                        nextIncomeId: nextIncomeId,
+                        nextEventId: nextEventId,
+                        nextPaycheckId: nextPaycheckId
+                    },
+                    lastSaveTime: new Date().toISOString()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(deltaData));
+            }
+        } else {
+            data.nextPersonId = nextPersonId;
+            data.nextBillId = nextBillId;
+            data.nextIncomeId = nextIncomeId;
+            data.nextEventId = nextEventId;
+            data.nextPaycheckId = nextPaycheckId;
+            data.savedFileHandle = savedFileHandle;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            markAsChanged();
+        }
     } catch (e) {
-        console.error('Failed to save to session storage:', e);
+        console.error('Failed to save to localStorage:', e);
+        if (e.name === 'QuotaExceededError') {
+            console.log('Storage quota exceeded, but continuing...');
+        }
     }
 }
+
+function calculateChanges() {
+    const changes = {};
+    
+    if (JSON.stringify(data.people) !== JSON.stringify(importBaseline.people)) {
+        changes.people = data.people;
+    }
+    
+    if (JSON.stringify(data.bills) !== JSON.stringify(importBaseline.bills)) {
+        changes.bills = data.bills;
+    }
+    
+    if (data.paycheckHistory.length > importBaseline.paycheckHistory.length) {
+        changes.newPaychecks = data.paycheckHistory.slice(importBaseline.paycheckHistory.length);
+    }
+    
+    if (data.eventHistory.length > importBaseline.eventHistory.length) {
+        changes.newEvents = data.eventHistory.slice(importBaseline.eventHistory.length);
+    }
+    
+    if (data.billPayments.length > (importBaseline.billPayments?.length || 0)) {
+        changes.newBillPayments = data.billPayments.slice(importBaseline.billPayments?.length || 0);
+    }
+    
+    if (data.currency !== importBaseline.currency) {
+        changes.currency = data.currency;
+    }
+    
+    if (data.darkMode !== importBaseline.darkMode) {
+        changes.darkMode = data.darkMode;
+    }
+    
+    if (data.weightedBills !== importBaseline.weightedBills) {
+        changes.weightedBills = data.weightedBills;
+    }
+    
+    if (data.lastProcessedDate !== importBaseline.lastProcessedDate) {
+        changes.lastProcessedDate = data.lastProcessedDate;
+    }
+    
+    if (JSON.stringify(data.peopleIncomeSettings) !== JSON.stringify(importBaseline.peopleIncomeSettings)) {
+        changes.peopleIncomeSettings = data.peopleIncomeSettings;
+    }
+    
+    return changes;
+}
+
+
 
 async function saveDataToFile() {
     try {
@@ -4909,11 +5027,19 @@ function createModal() {
         z-index: 10000;
         justify-content: center;
         align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
     `;
     
     const modalContent = document.createElement('div');
     modalContent.id = 'modalContent';
     modalContent.className = 'color-modal-content';
+    modalContent.style.cssText = `
+        max-height: 90vh;
+        overflow-y: auto;
+        max-width: 500px;
+        width: 100%;
+    `;
     
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
@@ -5014,16 +5140,12 @@ function showEditBillModal(bill) {
         </div>
     ` : '';
     
-    modalContent.innerHTML = `
-        <h3 style="margin-bottom:20px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};">Edit Bill: ${bill.name}</h3>
+    const recurringFieldsHTML = bill.isOneOff ? `
         <div class="form-group">
-            <label for="editBillName">Bill Name</label>
-            <input type="text" id="editBillName" value="${bill.name}">
+            <label for="editOneOffDate">Date</label>
+            <input type="date" id="editOneOffDate" value="${bill.date}">
         </div>
-        <div class="form-group">
-            <label for="editBillAmount">Amount</label>
-            <input type="number" id="editBillAmount" value="${bill.amount}" step="0.01">
-        </div>
+    ` : `
         <div class="form-group">
             <label for="editBillFrequency">Frequency</label>
             <select id="editBillFrequency">
@@ -5051,6 +5173,19 @@ function showEditBillModal(bill) {
                 ${startMonthOptions}
             </select>
         </div>
+    `;
+
+    modalContent.innerHTML = `
+        <h3 style="margin-bottom:20px;">Edit ${bill.isOneOff ? 'One-off Expense' : 'Bill'}: ${bill.name}</h3>
+        <div class="form-group">
+            <label for="editBillName">${bill.isOneOff ? 'Expense' : 'Bill'} Name</label>
+            <input type="text" id="editBillName" value="${bill.name}">
+        </div>
+        <div class="form-group">
+            <label for="editBillAmount">Amount</label>
+            <input type="number" id="editBillAmount" value="${bill.amount}" step="0.01">
+        </div>
+        ${recurringFieldsHTML}
         <div class="form-group">
             <label for="editBillCategory">Category</label>
             <select id="editBillCategory">
@@ -5058,11 +5193,11 @@ function showEditBillModal(bill) {
             </select>
         </div>
         ${billTypeSection}
-        <div class="checkbox-group">
-            <input type="checkbox" id="editIsDebt"${bill.isDebt ? ' checked' : ''}>
+        <div class="checkbox-group" ${bill.isOneOff ? 'style="display:none;"' : ''}>
+            <input type="checkbox" id="editIsDebt"${bill.isDebt ? ' checked' : ''} ${bill.isOneOff ? 'disabled' : ''}>
             <label for="editIsDebt">This is a debt/loan</label>
         </div>
-        <div id="editDebtFields" style="display:${bill.isDebt ? 'block' : 'none'};">
+        <div id="editDebtFields" style="display:${bill.isDebt && !bill.isOneOff ? 'block' : 'none'};">${bill.isOneOff ? '' : `
             <div class="form-group">
                 <label for="editTotalDebt">Total Debt Amount</label>
                 <input type="number" id="editTotalDebt" value="${bill.totalDebt || ''}" step="0.01">
@@ -5082,7 +5217,7 @@ function showEditBillModal(bill) {
             <div class="form-group">
                 <label for="editOverpayment">Monthly Overpayment</label>
                 <input type="number" id="editOverpayment" value="${bill.overpayment || ''}" step="0.01">
-            </div>
+            </div>`}
         </div>
         <div style="display:flex;gap:10px;margin-top:20px;">
             <button id="saveEditBtn" style="flex:1;">Save Changes</button>
@@ -5090,28 +5225,30 @@ function showEditBillModal(bill) {
         </div>
     `;
     
-    $('editBillFrequency').addEventListener('change', () => {
-        const frequency = $('editBillFrequency').value;
-        const monthGroup = $('editBillMonthGroup');
-        const startMonthGroup = $('editBillStartMonthGroup');
+    if (!bill.isOneOff) {
+        $('editBillFrequency').addEventListener('change', () => {
+            const frequency = $('editBillFrequency').value;
+            const monthGroup = $('editBillMonthGroup');
+            const startMonthGroup = $('editBillStartMonthGroup');
+            
+            if (frequency === 'yearly') {
+                monthGroup.style.display = 'block';
+                startMonthGroup.style.display = 'none';
+            } else if (frequency === 'quarterly') {
+                monthGroup.style.display = 'none';
+                startMonthGroup.style.display = 'block';
+            } else {
+                monthGroup.style.display = 'none';
+                startMonthGroup.style.display = 'none';
+            }
+        });
         
-        if (frequency === 'yearly') {
-            monthGroup.style.display = 'block';
-            startMonthGroup.style.display = 'none';
-        } else if (frequency === 'quarterly') {
-            monthGroup.style.display = 'none';
-            startMonthGroup.style.display = 'block';
-        } else {
-            monthGroup.style.display = 'none';
-            startMonthGroup.style.display = 'none';
-        }
-    });
-    
-    $('editIsDebt').addEventListener('change', () => {
-        const isDebt = $('editIsDebt').checked;
-        const debtFields = $('editDebtFields');
-        debtFields.style.display = isDebt ? 'block' : 'none';
-    });
+        $('editIsDebt').addEventListener('change', () => {
+            const isDebt = $('editIsDebt').checked;
+            const debtFields = $('editDebtFields');
+            debtFields.style.display = isDebt ? 'block' : 'none';
+        });
+    }
     
     if (data.people.length > 1) {
         $('editBillType').addEventListener('change', () => {
@@ -5145,13 +5282,40 @@ function showEditBillModal(bill) {
     $('saveEditBtn').addEventListener('click', () => {
         const name = $('editBillName').value.trim();
         const amount = parseFloat($('editBillAmount').value) || 0;
-        const frequency = $('editBillFrequency').value;
-        const day = parseInt($('editBillDate').value);
-        const month = $('editBillMonth').value ? parseInt($('editBillMonth').value) : null;
-        const startMonth = $('editBillStartMonth').value ? parseInt($('editBillStartMonth').value) : null;
+        let day, month, startMonth, frequency;
+        
+        if (bill.isOneOff) {
+            const oneOffDate = $('editOneOffDate').value;
+            if (!oneOffDate) {
+                alert('Please select a date for the one-off expense');
+                return;
+            }
+            bill.date = oneOffDate;
+        } else {
+            frequency = $('editBillFrequency').value;
+            day = parseInt($('editBillDate').value);
+            month = $('editBillMonth').value ? parseInt($('editBillMonth').value) : null;
+            startMonth = $('editBillStartMonth').value ? parseInt($('editBillStartMonth').value) : null;
+            
+            if (!day) {
+                alert('Please select a due day');
+                return;
+            }
+            
+            if (frequency === 'yearly' && !month) {
+                alert('Please select a month for yearly bills');
+                return;
+            }
+            
+            if (frequency === 'quarterly' && !startMonth) {
+                alert('Please select a start month for quarterly bills');
+                return;
+            }
+        }
+        
         const category = $('editBillCategory').value;
         const billType = data.people.length <= 1 ? 'individual' : $('editBillType').value;
-        const isDebt = $('editIsDebt').checked;
+        const isDebt = bill.isOneOff ? false : $('editIsDebt').checked;
         
         let payer;
         if (data.people.length <= 1) {
@@ -5166,22 +5330,7 @@ function showEditBillModal(bill) {
         }
         
         if (!name || !amount) {
-            alert('Please fill in bill name and amount');
-            return;
-        }
-        
-        if (!day) {
-            alert('Please select a due day');
-            return;
-        }
-        
-        if (frequency === 'yearly' && !month) {
-            alert('Please select a month for yearly bills');
-            return;
-        }
-        
-        if (frequency === 'quarterly' && !startMonth) {
-            alert('Please select a start month for quarterly bills');
+            alert('Please fill in name and amount');
             return;
         }
         
@@ -5192,30 +5341,32 @@ function showEditBillModal(bill) {
         
         bill.name = name;
         bill.amount = amount;
-        bill.frequency = frequency;
-        bill.day = day;
-        bill.month = month;
-        bill.startMonth = frequency === 'quarterly' ? startMonth : null;
         bill.category = category;
         bill.billType = billType;
         bill.payer = payer;
         bill.isDebt = isDebt;
         
-        if (isDebt) {
-            bill.totalDebt = parseFloat($('editTotalDebt').value) || 0;
-            bill.interestRate = parseFloat($('editInterestRate').value) || 0;
-            bill.termYears = parseInt($('editTermYears').value) || 0;
-            bill.termMonths = parseInt($('editTermMonths').value) || 0;
-            bill.overpayment = parseFloat($('editOverpayment').value) || 0;
-        } else {
-            delete bill.totalDebt;
-            delete bill.interestRate;
-            delete bill.termYears;
-            delete bill.termMonths;
-            delete bill.overpayment;
+        if (!bill.isOneOff) {
+            bill.frequency = frequency;
+            bill.day = day;
+            bill.month = month;
+            bill.startMonth = frequency === 'quarterly' ? startMonth : null;
+            bill.date = generateBillDate(day, month, frequency, startMonth);
+            
+            if (isDebt) {
+                bill.totalDebt = parseFloat($('editTotalDebt').value) || 0;
+                bill.interestRate = parseFloat($('editInterestRate').value) || 0;
+                bill.termYears = parseInt($('editTermYears').value) || 0;
+                bill.termMonths = parseInt($('editTermMonths').value) || 0;
+                bill.overpayment = parseFloat($('editOverpayment').value) || 0;
+            } else {
+                delete bill.totalDebt;
+                delete bill.interestRate;
+                delete bill.termYears;
+                delete bill.termMonths;
+                delete bill.overpayment;
+            }
         }
-        
-        bill.date = generateBillDate(day, month, frequency, startMonth);
         
         const payerName = payer === 'joint' ? 'Joint Account' : 
                          data.people.find(p => p.id === payer)?.name || 'Unknown';
@@ -5223,7 +5374,7 @@ function showEditBillModal(bill) {
         data.eventHistory.push({
             id: nextEventId++,
             date: new Date().toISOString().split('T')[0],
-            event: 'Bill Updated',
+            event: bill.isOneOff ? 'One-off Expense Updated' : 'Bill Updated',
             description: `Updated ${bill.name} details, paid by ${payerName}`
         });
         
@@ -6420,13 +6571,13 @@ function recordColorChange(personId, previousColor, newColor, reason = 'Manual u
 }
 
 function updateUIPreferences(preferences) {
+    if (isImporting) return;
+    
     if (!data.uiPreferences) {
         data.uiPreferences = {
             lastViewedTab: "overview",
             lastViewedMonth: new Date().getMonth(),
-            lastViewedYear: new Date().getFullYear(),
-            collapsedSections: [],
-            preferredDateFormat: "DD/MM/YYYY"
+            lastViewedYear: new Date().getFullYear()
         };
     }
     
@@ -6435,27 +6586,38 @@ function updateUIPreferences(preferences) {
     });
     
     data.uiPreferences.lastUpdated = new Date().toISOString();
-    saveDataToLocalStorage();
+    
+    try {
+        saveDataToLocalStorage();
+    } catch (e) {
+        console.warn('Failed to save UI preferences, continuing without save');
+    }
 }
 
 function recordUIAction(action, details = {}) {
+    if (isImporting) return;
+    
     if (!data.uiActionHistory) data.uiActionHistory = [];
     
     const actionEntry = {
         id: (data.uiActionHistory.length > 0 ? Math.max(...data.uiActionHistory.map(h => h.id)) + 1 : 1),
         action: action,
         timestamp: new Date().toISOString(),
-        details: details,
+        details: typeof details === 'string' ? details : JSON.stringify(details).substring(0, 100),
         sessionId: data.sessionId || 'unknown'
     };
     
     data.uiActionHistory.push(actionEntry);
     
-    if (data.uiActionHistory.length > 1000) {
-        data.uiActionHistory = data.uiActionHistory.slice(-500);
+    if (data.uiActionHistory.length > 200) {
+        data.uiActionHistory = data.uiActionHistory.slice(-100);
     }
     
-    saveDataToLocalStorage();
+    try {
+        saveDataToLocalStorage();
+    } catch (e) {
+        console.warn('Failed to save UI action, continuing without save');
+    }
 }
 
 function getColorHistory(personId, startDate = null, endDate = null) {
