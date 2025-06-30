@@ -2416,6 +2416,7 @@ function resetCalendarToCurrentMonth() {
 
 function frequencyToMonthly(amount, frequency) {
     switch (frequency) {
+        case 'weekly': return amount * 4.33;
         case 'biweekly': return amount * 26 / 12;
         case 'monthly': return amount;
         case 'quarterly': return amount / 3;
@@ -2424,44 +2425,170 @@ function frequencyToMonthly(amount, frequency) {
     }
 }
 
+function updateImportButtonHandler() {
+    $('importBtn').addEventListener('click', () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.txt';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+        
+        fileInput.click();
+        
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                document.body.removeChild(fileInput);
+                return;
+            }
+            
+            if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
+                document.body.removeChild(fileInput);
+                return;
+            }
+            
+            isImporting = true;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const fileContent = e.target.result;
+                    
+                    const importSuccess = processImportData(fileContent);
+                    
+                    if (!importSuccess) {
+                        alert('Failed to import data. The file may be invalid or corrupted.');
+                        document.body.removeChild(fileInput);
+                        isImporting = false;
+                        return;
+                    }
+                    
+                    document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
+                    document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
+                    
+                    if (data.darkMode) {
+                        document.body.classList.add('dark-mode');
+                    } else {
+                        document.body.classList.remove('dark-mode');
+                    }
+                    
+                    $('currencySelect').value = data.currency;
+                    $('weightedBillsSidebar').checked = data.weightedBills;
+                    
+                    data.people.forEach(person => createPersonTab(person));
+                    attachPersonEventListeners();
+                    
+                    updateGreeting();
+                    updateBillPayerOptions();
+                    updateBillsList();
+                    updateHistoryDisplay();
+                    updateOverview();
+                    toggleBillTypeVisibility();
+                    updateTabsVisibility();
+                    
+                    setTimeout(() => {
+                        data.eventHistory.push({
+                            id: nextEventId++,
+                            date: new Date().toISOString().split('T')[0],
+                            event: 'Data Imported',
+                            description: 'Imported data from a budget file'
+                        });
+                        
+                        hideModal();
+                        showTab('overview');
+                        
+                        alert('Data imported successfully!');
+                    }, 600);
+                    
+                } catch (e) {
+                    isImporting = false;
+                    console.error('Import error:', e);
+                    alert('Failed to import data. The file may be invalid or corrupted.');
+                }
+                
+                document.body.removeChild(fileInput);
+            };
+            
+            reader.readAsText(file);
+        });
+    });
+}
+
+function enhanceImportExportModal() {
+    const originalShowImportExportModal = showImportExportModal;
+    
+    window.showImportExportModal = function() {
+        originalShowImportExportModal.apply(this, arguments);
+        updateImportButtonHandler();
+    };
+}
+
+function initializeEnhancedImport() {
+    enhanceImportExportModal();
+    
+    window.processElapsedIncome = processElapsedIncome;
+    window.processImportIncome = processImportIncome;
+    window.processImportData = processImportData;
+}
+
+function enhanceAttachEventListeners() {
+    const originalAttachEventListeners = attachEventListeners;
+    
+    window.attachEventListeners = function() {
+        originalAttachEventListeners.apply(this, arguments);
+        initializeEnhancedImport();
+    };
+}
+
 function processImportData(fileContent) {
     isImporting = true;
     
-    const importData = JSON.parse(atob(fileContent.trim()));
-    
-    if (!importData.people || !importData.bills) {
-        throw new Error('Invalid import data format');
+    try {
+        const importData = JSON.parse(atob(fileContent.trim()));
+        
+        if (!importData.people || !importData.bills) {
+            throw new Error('Invalid import data format');
+        }
+        
+        data = {
+            people: JSON.parse(JSON.stringify(importData.people || [])),
+            bills: JSON.parse(JSON.stringify(importData.bills || [])),
+            currency: importData.currency || 'USD',
+            darkMode: Boolean(importData.darkMode),
+            weightedBills: Boolean(importData.weightedBills),
+            paycheckHistory: JSON.parse(JSON.stringify(importData.paycheckHistory || [])),
+            billHistory: JSON.parse(JSON.stringify(importData.billHistory || [])),
+            eventHistory: JSON.parse(JSON.stringify(importData.eventHistory || [])),
+            billPayments: JSON.parse(JSON.stringify(importData.billPayments || [])),
+            lastProcessedDate: importData.lastProcessedDate || null,
+            peopleIncomeSettings: JSON.parse(JSON.stringify(importData.peopleIncomeSettings || {})),
+            uiPreferences: JSON.parse(JSON.stringify(importData.uiPreferences || {})),
+            dataVersion: importData.dataVersion || "1.0",
+            billHistoryId: importData.billHistoryId || 1
+        };
+        
+        nextPersonId = data.people.length > 0 ? Math.max(...data.people.map(p => p.id)) + 1 : 1;
+        nextBillId = data.bills.length > 0 ? Math.max(...data.bills.map(b => b.id)) + 1 : 1;
+        nextEventId = data.eventHistory.length > 0 ? Math.max(...data.eventHistory.map(e => e.id)) + 1 : 1;
+        nextPaycheckId = data.paycheckHistory.length > 0 ? Math.max(...data.paycheckHistory.map(p => p.id)) + 1 : 1;
+        
+        data.nextPersonId = nextPersonId;
+        data.nextBillId = nextBillId;
+        data.nextIncomeId = nextIncomeId;
+        data.nextEventId = nextEventId;
+        data.nextPaycheckId = nextPaycheckId;
+        
+        processImportBills();
+        processImportIncome();
+        
+        markAsPostImport();
+        
+        return true;
+    } catch (error) {
+        console.error("Error processing import data:", error);
+        isImporting = false;
+        return false;
     }
-    
-    data = {
-        people: JSON.parse(JSON.stringify(importData.people || [])),
-        bills: JSON.parse(JSON.stringify(importData.bills || [])),
-        currency: importData.currency || 'USD',
-        darkMode: Boolean(importData.darkMode),
-        weightedBills: Boolean(importData.weightedBills),
-        paycheckHistory: JSON.parse(JSON.stringify(importData.paycheckHistory || [])),
-        billHistory: JSON.parse(JSON.stringify(importData.billHistory || [])),
-        eventHistory: JSON.parse(JSON.stringify(importData.eventHistory || [])),
-        billPayments: JSON.parse(JSON.stringify(importData.billPayments || [])),
-        lastProcessedDate: importData.lastProcessedDate || null,
-        peopleIncomeSettings: JSON.parse(JSON.stringify(importData.peopleIncomeSettings || {})),
-        uiPreferences: JSON.parse(JSON.stringify(importData.uiPreferences || {})),
-        dataVersion: importData.dataVersion || "1.0",
-        billHistoryId: importData.billHistoryId || 1
-    };
-    
-    nextPersonId = data.people.length > 0 ? Math.max(...data.people.map(p => p.id)) + 1 : 1;
-    nextBillId = data.bills.length > 0 ? Math.max(...data.bills.map(b => b.id)) + 1 : 1;
-    nextEventId = data.eventHistory.length > 0 ? Math.max(...data.eventHistory.map(e => e.id)) + 1 : 1;
-    nextPaycheckId = data.paycheckHistory.length > 0 ? Math.max(...data.paycheckHistory.map(p => p.id)) + 1 : 1;
-    
-    data.nextPersonId = nextPersonId;
-    data.nextBillId = nextBillId;
-    data.nextIncomeId = nextIncomeId;
-    data.nextEventId = nextEventId;
-    data.nextPaycheckId = nextPaycheckId;
-    
-    markAsPostImport();
 }
 
 function createCleanExportData() {
@@ -2777,46 +2904,11 @@ function updatePersonIncome(personId) {
     const employer = $(`employer-${personId}`).value.trim();
     
     const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
     
-    if (oldPaymentDate !== paymentDate && oldPaymentDate && paymentDate) {
-        const oldDate = new Date(oldPaymentDate);
-        const newDate = new Date(paymentDate);
-        
-        if (frequency === 'biweekly') {
-            updateBiweeklyPaydayChanges(personId, oldDate, newDate, today);
-        } else if (frequency === 'monthly' || frequency === 'quarterly' || frequency === 'yearly') {
-            updateRegularPaydayChanges(personId, oldDate, newDate, frequency, today);
-        }
-    }
+    const isPaymentSettingChanged = oldPaymentDate !== paymentDate || oldFrequency !== frequency;
     
-    if (oldIncome !== income && oldPaymentDate === paymentDate && paymentDate) {
-        const paymentDateObj = new Date(paymentDate);
-        const isCurrentMonth = paymentDateObj.getMonth() === currentMonth && 
-                              paymentDateObj.getFullYear() === currentYear;
-        
-        if (isCurrentMonth) {
-            const existingPaycheck = data.paycheckHistory.find(p => 
-                p.personId === personId && 
-                p.date === paymentDate && 
-                p.type === 'salary' &&
-                !p.isAdditional
-            );
-            
-            if (existingPaycheck) {
-                const oldAmount = existingPaycheck.amount;
-                existingPaycheck.amount = income;
-                existingPaycheck.description += ' (amount updated)';
-                
-                data.eventHistory.push({
-                    id: nextEventId++,
-                    date: new Date().toISOString().split('T')[0],
-                    event: 'Current Month Salary Updated',
-                    description: `Updated ${person.name}'s salary for ${paymentDate} from ${formatCurrency(oldAmount)} to ${formatCurrency(income)}`
-                });
-            }
-        }
+    if (isPaymentSettingChanged && oldPaymentDate) {
+        cleanupFuturePaychecks(personId);
     }
     
     person.income = income;
@@ -2826,38 +2918,14 @@ function updatePersonIncome(personId) {
     
     if (income > 0 && paymentDate) {
         const paymentDateObj = new Date(paymentDate);
-        const isFirstTimeSetup = !data.peopleIncomeSettings || !data.peopleIncomeSettings[personId];
-        const shouldLogCurrentMonth = shouldLogIncomeForCurrentMonth(paymentDateObj, frequency, today);
         
         if (!data.peopleIncomeSettings) data.peopleIncomeSettings = {};
-        
         if (!data.peopleIncomeSettings[personId]) {
             data.peopleIncomeSettings[personId] = {};
         }
         
-        if (shouldLogCurrentMonth && isFirstTimeSetup) {
-            const currentMonthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-            
-            data.paycheckHistory.push({
-                id: nextPaycheckId++,
-                personId: personId,
-                personName: person.name,
-                type: 'salary',
-                amount: income,
-                date: paymentDate,
-                description: employer ? `${frequency} salary - ${employer}` : `${frequency} salary`,
-                employer: employer,
-                frequency: frequency,
-                isAutoLogged: false,
-                monthApplied: currentMonthYear
-            });
-            
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: new Date().toISOString().split('T')[0],
-                event: 'Income Settings Added',
-                description: `Added income settings for ${person.name}: ${formatCurrency(income)}/${frequency} on ${paymentDate}${employer ? ` at ${employer}` : ''}`
-            });
+        if (isPaymentSettingChanged) {
+            generateHistoricalPayments(personId, person, paymentDateObj, income, frequency, employer);
         }
         
         data.peopleIncomeSettings[personId] = {
@@ -2869,14 +2937,12 @@ function updatePersonIncome(personId) {
             currentAmount: income
         };
         
-        if (!isFirstTimeSetup) {
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: new Date().toISOString().split('T')[0],
-                event: 'Income Settings Updated',
-                description: `Updated ${person.name}'s income settings to ${formatCurrency(income)}/${frequency}${employer ? ` at ${employer}` : ''}`
-            });
-        }
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: new Date().toISOString().split('T')[0],
+            event: 'Income Settings Updated',
+            description: `Updated ${person.name}'s income settings to ${formatCurrency(income)}/${frequency}${employer ? ` at ${employer}` : ''}`
+        });
     }
     
     if (oldEmployer !== employer) {
@@ -2894,6 +2960,261 @@ function updatePersonIncome(personId) {
     updateHistoryDisplay();
     updateOverview();
     updatePersonOverview(personId);
+}
+
+function cleanupFuturePaychecks(personId) {
+    const today = new Date();
+    
+    const removedPaychecks = data.paycheckHistory.filter(paycheck => 
+        paycheck.personId === personId && 
+        paycheck.isAutoLogged &&
+        new Date(paycheck.date) > today
+    );
+    
+    if (removedPaychecks.length > 0) {
+        data.paycheckHistory = data.paycheckHistory.filter(paycheck => 
+            paycheck.personId !== personId || 
+            !paycheck.isAutoLogged || 
+            new Date(paycheck.date) <= today
+        );
+        
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: new Date().toISOString().split('T')[0],
+            event: 'Future Paychecks Removed',
+            description: `Removed ${removedPaychecks.length} future auto-logged paychecks due to income setting changes`
+        });
+    }
+}
+
+function cleanupExistingPaychecks(personId) {
+    const removedPaychecks = data.paycheckHistory.filter(paycheck => 
+        paycheck.personId === personId && 
+        (paycheck.isAutoLogged || paycheck.isHistorical)
+    );
+    
+    if (removedPaychecks.length > 0) {
+        data.paycheckHistory = data.paycheckHistory.filter(paycheck => 
+            paycheck.personId !== personId || 
+            (!paycheck.isAutoLogged && !paycheck.isHistorical)
+        );
+        
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: new Date().toISOString().split('T')[0],
+            event: 'Historical Paychecks Removed',
+            description: `Removed ${removedPaychecks.length} historical/auto-logged paychecks due to income setting changes`
+        });
+    }
+}
+
+function generateHistoricalPayments(personId, person, startDate, income, frequency, employer) {
+    const today = new Date();
+    const startDateTime = new Date(startDate);
+    const loggedDates = [];
+    
+    if (startDateTime > today) return;
+    
+    if (frequency === 'weekly') {
+        let checkDate = new Date(startDateTime);
+        
+        while (checkDate <= today) {
+            const paymentDate = checkDate.toISOString().split('T')[0];
+            const monthApplied = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const existingPayment = data.paycheckHistory.find(p => 
+                p.personId === personId && 
+                p.date === paymentDate && 
+                p.type === 'salary'
+            );
+            
+            if (!existingPayment) {
+                data.paycheckHistory.push({
+                    id: nextPaycheckId++,
+                    personId: personId,
+                    personName: person.name,
+                    type: 'salary',
+                    amount: income,
+                    date: paymentDate,
+                    description: employer ? `Weekly salary - ${employer}` : `Weekly salary`,
+                    employer: employer,
+                    frequency: frequency,
+                    isAutoLogged: true,
+                    isHistorical: checkDate < today,
+                    monthApplied: monthApplied
+                });
+                
+                loggedDates.push(paymentDate);
+            }
+            
+            checkDate.setDate(checkDate.getDate() + 7);
+        }
+    } else if (frequency === 'biweekly') {
+        let checkDate = new Date(startDateTime);
+        
+        while (checkDate <= today) {
+            const paymentDate = checkDate.toISOString().split('T')[0];
+            const monthApplied = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const existingPayment = data.paycheckHistory.find(p => 
+                p.personId === personId && 
+                p.date === paymentDate && 
+                p.type === 'salary'
+            );
+            
+            if (!existingPayment) {
+                data.paycheckHistory.push({
+                    id: nextPaycheckId++,
+                    personId: personId,
+                    personName: person.name,
+                    type: 'salary',
+                    amount: income,
+                    date: paymentDate,
+                    description: employer ? `Biweekly salary - ${employer}` : `Biweekly salary`,
+                    employer: employer,
+                    frequency: frequency,
+                    isAutoLogged: true,
+                    isHistorical: checkDate < today,
+                    monthApplied: monthApplied
+                });
+                
+                loggedDates.push(paymentDate);
+            }
+            
+            checkDate.setDate(checkDate.getDate() + 14);
+        }
+    } else if (frequency === 'monthly') {
+        let checkDate = new Date(startDateTime);
+        
+        while (checkDate <= today) {
+            const paymentDate = checkDate.toISOString().split('T')[0];
+            const monthApplied = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const existingPayment = data.paycheckHistory.find(p => 
+                p.personId === personId && 
+                p.date === paymentDate && 
+                p.type === 'salary'
+            );
+            
+            if (!existingPayment) {
+                data.paycheckHistory.push({
+                    id: nextPaycheckId++,
+                    personId: personId,
+                    personName: person.name,
+                    type: 'salary',
+                    amount: income,
+                    date: paymentDate,
+                    description: employer ? `Monthly salary - ${employer}` : `Monthly salary`,
+                    employer: employer,
+                    frequency: frequency,
+                    isAutoLogged: true,
+                    isHistorical: checkDate < today,
+                    monthApplied: monthApplied
+                });
+                
+                loggedDates.push(paymentDate);
+            }
+            
+            const currentMonth = checkDate.getMonth();
+            checkDate.setMonth(currentMonth + 1);
+            
+            if (checkDate.getMonth() > currentMonth + 1 && currentMonth !== 11) {
+                checkDate = new Date(checkDate.getFullYear(), currentMonth + 1, 0);
+            }
+        }
+    } else if (frequency === 'quarterly') {
+        let checkDate = new Date(startDateTime);
+        
+        while (checkDate <= today) {
+            const paymentDate = checkDate.toISOString().split('T')[0];
+            const monthApplied = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const existingPayment = data.paycheckHistory.find(p => 
+                p.personId === personId && 
+                p.date === paymentDate && 
+                p.type === 'salary'
+            );
+            
+            if (!existingPayment) {
+                data.paycheckHistory.push({
+                    id: nextPaycheckId++,
+                    personId: personId,
+                    personName: person.name,
+                    type: 'salary',
+                    amount: income,
+                    date: paymentDate,
+                    description: employer ? `Quarterly salary - ${employer}` : `Quarterly salary`,
+                    employer: employer,
+                    frequency: frequency,
+                    isAutoLogged: true,
+                    isHistorical: checkDate < today,
+                    monthApplied: monthApplied
+                });
+                
+                loggedDates.push(paymentDate);
+            }
+            
+            const currentMonth = checkDate.getMonth();
+            checkDate.setMonth(currentMonth + 3);
+            
+            const originalDay = startDateTime.getDate();
+            const lastDayOfTargetMonth = new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 0).getDate();
+            if (originalDay > lastDayOfTargetMonth) {
+                checkDate.setDate(lastDayOfTargetMonth);
+            }
+        }
+    } else if (frequency === 'yearly') {
+        let checkDate = new Date(startDateTime);
+        
+        while (checkDate <= today) {
+            const paymentDate = checkDate.toISOString().split('T')[0];
+            const monthApplied = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const existingPayment = data.paycheckHistory.find(p => 
+                p.personId === personId && 
+                p.date === paymentDate && 
+                p.type === 'salary'
+            );
+            
+            if (!existingPayment) {
+                data.paycheckHistory.push({
+                    id: nextPaycheckId++,
+                    personId: personId,
+                    personName: person.name,
+                    type: 'salary',
+                    amount: income,
+                    date: paymentDate,
+                    description: employer ? `Yearly salary - ${employer}` : `Yearly salary`,
+                    employer: employer,
+                    frequency: frequency,
+                    isAutoLogged: true,
+                    isHistorical: checkDate < today,
+                    monthApplied: monthApplied
+                });
+                
+                loggedDates.push(paymentDate);
+            }
+            
+            const originalDay = startDateTime.getDate();
+            const originalMonth = startDateTime.getMonth();
+            
+            checkDate.setFullYear(checkDate.getFullYear() + 1);
+            
+            const lastDayOfTargetMonth = new Date(checkDate.getFullYear(), originalMonth + 1, 0).getDate();
+            if (originalDay > lastDayOfTargetMonth) {
+                checkDate.setMonth(originalMonth, lastDayOfTargetMonth);
+            }
+        }
+    }
+    
+    if (loggedDates.length > 0) {
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: new Date().toISOString().split('T')[0],
+            event: 'Historical Payments Generated',
+            description: `Generated ${loggedDates.length} historical ${frequency} payments for ${person.name} from ${loggedDates[0]} to ${loggedDates[loggedDates.length - 1]}`
+        });
+    }
 }
 
 function shouldLogIncomeForCurrentMonth(paymentDate, frequency, today) {
@@ -3072,17 +3393,40 @@ function getNextPaymentDate(currentDate, frequency) {
     const nextDate = new Date(currentDate);
     
     switch (frequency) {
+        case 'weekly':
+            nextDate.setDate(currentDate.getDate() + 7);
+            break;
         case 'biweekly':
             nextDate.setDate(currentDate.getDate() + 14);
             break;
         case 'monthly':
-            nextDate.setMonth(currentDate.getMonth() + 1);
+            const currentMonth = currentDate.getMonth();
+            nextDate.setMonth(currentMonth + 1);
+            
+            if (nextDate.getMonth() > currentMonth + 1 && currentMonth !== 11) {
+                nextDate.setDate(0);
+            }
             break;
         case 'quarterly':
-            nextDate.setMonth(currentDate.getMonth() + 3);
+            const startMonth = currentDate.getMonth();
+            nextDate.setMonth(startMonth + 3);
+            
+            const originalDay = currentDate.getDate();
+            const lastDayOfTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+            if (originalDay > lastDayOfTargetMonth) {
+                nextDate.setDate(lastDayOfTargetMonth);
+            }
             break;
         case 'yearly':
+            const yearOriginalDay = currentDate.getDate();
+            const originalMonth = currentDate.getMonth();
+            
             nextDate.setFullYear(currentDate.getFullYear() + 1);
+            
+            const yearLastDayOfTargetMonth = new Date(nextDate.getFullYear(), originalMonth + 1, 0).getDate();
+            if (yearOriginalDay > yearLastDayOfTargetMonth) {
+                nextDate.setMonth(originalMonth, yearLastDayOfTargetMonth);
+            }
             break;
     }
     
@@ -3982,77 +4326,254 @@ async function saveDataToFile() {
     }
 }
 
+function recordEvent(eventType, description) {
+  if (!data.eventHistory) {
+    data.eventHistory = [];
+  }
+
+  if (!['Person Added', 'Currency Changed', 'Debt Paid Off', 'Bill Deleted'].includes(eventType)) {
+    return;
+  }
+
+  const eventEntry = {
+    id: nextEventId++,
+    date: new Date().toISOString().split('T')[0],
+    event: eventType,
+    description: description
+  };
+
+  data.eventHistory.push(eventEntry);
+  saveDataToLocalStorage();
+}
+
+
+
 function processElapsedBills() {
-    const today = new Date();
-    let billsUpdated = false;
+  const today = new Date();
+  let billsUpdated = false;
+  let billPaymentsAdded = 0;
 
-    data.bills.forEach(bill => {
-        if (bill.isDebt && bill.totalDebt <= 0.01) {
-            return;
-        }
-
-        const dueDate = new Date(bill.dueDate);
-        let nextDueDate = new Date(dueDate);
-        const frequencyMs = getFrequencyMs(bill.frequency);
-
-        while (nextDueDate <= today) {
-            const paymentExists = data.billPayments.some(payment => 
-                payment.billId === bill.id && 
-                Math.abs(new Date(payment.date) - nextDueDate) < 1000 * 60 * 60 * 24
-            );
-
-            if (!paymentExists) {
-                const paymentAmount = bill.amount + (bill.overpayment || 0);
-                
-                if (bill.isDebt) {
-                    const monthlyRate = (bill.interestRate || 0) / 100 / 12;
-                    const interest = bill.totalDebt * monthlyRate;
-                    const principal = Math.min(paymentAmount - interest, bill.totalDebt);
-                    
-                    bill.totalDebt = Math.max(0, bill.totalDebt - principal);
-                    billsUpdated = true;
-
-                    data.billPayments.push({
-                        billId: bill.id,
-                        amount: paymentAmount,
-                        date: nextDueDate.toISOString().split('T')[0],
-                        category: bill.category
-                    });
-
-                    if (bill.totalDebt <= 0.01) {
-                        break;
-                    }
-                } else {
-                    data.billPayments.push({
-                        billId: bill.id,
-                        amount: paymentAmount,
-                        date: nextDueDate.toISOString().split('T')[0],
-                        category: bill.category
-                    });
-                    billsUpdated = true;
-                }
-            }
-
-            if (bill.frequency === 'once') {
-                break;
-            } else {
-                nextDueDate.setTime(nextDueDate.getTime() + frequencyMs);
-            }
-        }
-
-        if (bill.frequency !== 'once' && nextDueDate > today) {
-            bill.dueDate = nextDueDate.toISOString().split('T')[0];
-            billsUpdated = true;
-        }
-    });
-
-    data.bills = data.bills.filter(bill => !(bill.isDebt && bill.totalDebt <= 0.01));
+  data.bills.forEach(bill => {
+    if (bill.isDeleted) return;
     
-    if (billsUpdated) {
-        saveDataToLocalStorage();
-        updateBillsList();
-        updateOverview();
+    if (bill.isDebt && bill.totalDebt <= 0.01) {
+      recordEvent('Debt Paid Off', `${bill.name} debt fully paid off!`);
+      bill.isDeleted = true;
+      return;
     }
+    
+    if (bill.isOneOff) {
+      const billDate = new Date(bill.date);
+      if (billDate <= today) {
+        const paymentExists = data.billPayments.some(payment => payment.billId === bill.id);
+        
+        if (!paymentExists) {
+          const paymentRecord = {
+            billId: bill.id,
+            billName: bill.name,
+            amount: bill.amount,
+            date: bill.date,
+            category: bill.category,
+            billType: bill.billType || 'individual',
+            payer: bill.payer,
+            status: 'One-off expense'
+          };
+          
+          if (!data.billPayments) data.billPayments = [];
+          data.billPayments.push(paymentRecord);
+          billsUpdated = true;
+          billPaymentsAdded++;
+        }
+      }
+      return;
+    }
+
+    if (bill.frequency === 'monthly') {
+      const billCreatedDate = bill.dateCreated ? new Date(bill.dateCreated) : new Date(0);
+      const initialDueDate = new Date(bill.date);
+      
+      if (initialDueDate > today) {
+        return;
+      }
+      
+      let nextDueDate = new Date(initialDueDate);
+      
+      while (nextDueDate <= today) {
+        const paymentDate = nextDueDate.toISOString().split('T')[0];
+        
+        const paymentExists = data.billPayments.some(payment => 
+          payment.billId === bill.id && 
+          payment.date === paymentDate
+        );
+
+        if (!paymentExists) {
+          const paymentAmount = bill.amount + (bill.overpayment || 0);
+          
+          if (bill.isDebt) {
+            const monthlyRate = (bill.interestRate || 0) / 100 / 12;
+            const interest = bill.totalDebt * monthlyRate;
+            const principal = Math.min(paymentAmount - interest, bill.totalDebt);
+            
+            const previousDebtTotal = bill.totalDebt;
+            bill.totalDebt = Math.max(0, bill.totalDebt - principal);
+            billsUpdated = true;
+
+            const paymentRecord = {
+              billId: bill.id,
+              billName: bill.name,
+              amount: paymentAmount,
+              date: paymentDate,
+              category: bill.category,
+              billType: bill.billType || 'individual',
+              payer: bill.payer,
+              status: 'Auto-processed payment',
+              interestPaid: interest,
+              principalPaid: principal
+            };
+            
+            if (!data.billPayments) data.billPayments = [];
+            data.billPayments.push(paymentRecord);
+            billPaymentsAdded++;
+
+            if (bill.totalDebt <= 0.01) {
+              recordEvent('Debt Paid Off', `${bill.name} debt fully paid off!`);
+              break;
+            }
+          } else {
+            const paymentRecord = {
+              billId: bill.id,
+              billName: bill.name,
+              amount: paymentAmount,
+              date: paymentDate,
+              category: bill.category,
+              billType: bill.billType || 'individual',
+              payer: bill.payer,
+              status: 'Auto-processed payment'
+            };
+            
+            if (!data.billPayments) data.billPayments = [];
+            data.billPayments.push(paymentRecord);
+            billsUpdated = true;
+            billPaymentsAdded++;
+          }
+        }
+
+        const currentMonth = nextDueDate.getMonth();
+        nextDueDate.setMonth(currentMonth + 1);
+        
+        if (nextDueDate.getMonth() > currentMonth + 1 && currentMonth !== 11) {
+          nextDueDate = new Date(nextDueDate.getFullYear(), currentMonth + 1, 0);
+        }
+      }
+
+      bill.date = nextDueDate.toISOString().split('T')[0];
+      billsUpdated = true;
+    } else {
+      const dueDate = new Date(bill.date);
+      let nextDueDate = new Date(dueDate);
+      const frequencyMs = getFrequencyMs(bill.frequency);
+
+      while (nextDueDate <= today) {
+        const paymentExists = data.billPayments.some(payment => 
+          payment.billId === bill.id && 
+          Math.abs(new Date(payment.date) - nextDueDate) < 1000 * 60 * 60 * 24
+        );
+
+        if (!paymentExists) {
+          const paymentAmount = bill.amount + (bill.overpayment || 0);
+          
+          if (bill.isDebt) {
+            const monthlyRate = (bill.interestRate || 0) / 100 / 12;
+            const interest = bill.totalDebt * monthlyRate;
+            const principal = Math.min(paymentAmount - interest, bill.totalDebt);
+            
+            const previousDebtTotal = bill.totalDebt;
+            bill.totalDebt = Math.max(0, bill.totalDebt - principal);
+            billsUpdated = true;
+
+            const paymentRecord = {
+              billId: bill.id,
+              billName: bill.name,
+              amount: paymentAmount,
+              date: nextDueDate.toISOString().split('T')[0],
+              category: bill.category,
+              billType: bill.billType || 'individual',
+              payer: bill.payer,
+              status: 'Auto-processed payment',
+              interestPaid: interest,
+              principalPaid: principal
+            };
+            
+            if (!data.billPayments) data.billPayments = [];
+            data.billPayments.push(paymentRecord);
+            billPaymentsAdded++;
+
+            if (bill.totalDebt <= 0.01) {
+              recordEvent('Debt Paid Off', `${bill.name} debt fully paid off!`);
+              break;
+            }
+          } else {
+            const paymentRecord = {
+              billId: bill.id,
+              billName: bill.name,
+              amount: paymentAmount,
+              date: nextDueDate.toISOString().split('T')[0],
+              category: bill.category,
+              billType: bill.billType || 'individual',
+              payer: bill.payer,
+              status: 'Auto-processed payment'
+            };
+            
+            if (!data.billPayments) data.billPayments = [];
+            data.billPayments.push(paymentRecord);
+            billsUpdated = true;
+            billPaymentsAdded++;
+          }
+        }
+
+        if (bill.frequency === 'once') {
+          break;
+        } else {
+          nextDueDate.setTime(nextDueDate.getTime() + frequencyMs);
+        }
+      }
+
+      if (bill.frequency !== 'once') {
+        bill.date = nextDueDate.toISOString().split('T')[0];
+        billsUpdated = true;
+      }
+    }
+  });
+
+  data.bills = data.bills.filter(bill => !(bill.isDebt && bill.totalDebt <= 0.01));
+  
+  if (billsUpdated) {
+    saveDataToLocalStorage();
+  }
+  
+  return billsUpdated;
+}
+
+function processImportBills() {
+    const billPaymentsCountBefore = data.billPayments ? data.billPayments.length : 0;
+    
+    const billsUpdated = processElapsedBills();
+    
+    const billPaymentsAdded = (data.billPayments ? data.billPayments.length : 0) - billPaymentsCountBefore;
+    
+    if (billPaymentsAdded > 0) {
+        console.log(`Added ${billPaymentsAdded} bill payments during import processing`);
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: new Date().toISOString().split('T')[0],
+            event: 'Import Bill Processing',
+            description: `Added ${billPaymentsAdded} bill payments for past due dates during import processing`
+        });
+    } else {
+        console.log("No missing bill payments found during import processing");
+    }
+    
+    return billPaymentsAdded > 0;
 }
 
 function getFrequencyMs(frequency) {
@@ -4069,6 +4590,7 @@ function getFrequencyMs(frequency) {
 function processElapsedIncome() {
     const today = new Date();
     const lastProcessed = data.lastProcessedDate ? new Date(data.lastProcessedDate) : null;
+    let incomeUpdated = false;
     
     if (!data.peopleIncomeSettings) data.peopleIncomeSettings = {};
     
@@ -4076,18 +4598,42 @@ function processElapsedIncome() {
         if (!person.paymentDate || !person.income || !person.frequency) return;
         
         if (!data.peopleIncomeSettings[person.id]) {
-            return;
+            data.peopleIncomeSettings[person.id] = {
+                lastAmount: person.income,
+                lastFrequency: person.frequency,
+                lastPaymentDate: person.paymentDate,
+                currentAmount: person.income
+            };
         }
         
         const settings = data.peopleIncomeSettings[person.id];
-        if (!settings.nextPaymentDate) return;
+        const paymentDateObj = new Date(person.paymentDate);
         
-        let nextPayDate = new Date(settings.nextPaymentDate);
+        let nextPayDate;
+        
+        if (settings.nextPaymentDate) {
+            nextPayDate = new Date(settings.nextPaymentDate);
+        } else {
+            nextPayDate = new Date(paymentDateObj);
+            
+            if (nextPayDate > today) {
+                settings.nextPaymentDate = nextPayDate.toISOString().split('T')[0];
+                return;
+            }
+        }
         
         while (nextPayDate <= today) {
-            if (!lastProcessed || nextPayDate > lastProcessed) {
+            const paymentDate = nextPayDate.toISOString().split('T')[0];
+            const monthApplied = `${nextPayDate.getFullYear()}-${String(nextPayDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            const existingPaychecks = data.paycheckHistory.filter(p => 
+                p.personId === person.id && 
+                p.date === paymentDate && 
+                p.type === 'salary'
+            );
+            
+            if (existingPaychecks.length === 0) {
                 const currentAmount = settings.currentAmount || person.income;
-                const currentMonthYear = `${nextPayDate.getFullYear()}-${String(nextPayDate.getMonth() + 1).padStart(2, '0')}`;
                 
                 data.paycheckHistory.push({
                     id: nextPaycheckId++,
@@ -4095,19 +4641,22 @@ function processElapsedIncome() {
                     personName: person.name,
                     type: 'salary',
                     amount: currentAmount,
-                    date: nextPayDate.toISOString().split('T')[0],
+                    date: paymentDate,
                     description: `Auto-logged ${person.frequency} salary${person.employer ? ` - ${person.employer}` : ''}`,
                     employer: person.employer,
                     frequency: person.frequency,
                     isAutoLogged: true,
-                    monthApplied: currentMonthYear
+                    isHistorical: nextPayDate < today,
+                    monthApplied: monthApplied
                 });
+                
+                incomeUpdated = true;
                 
                 data.eventHistory.push({
                     id: nextEventId++,
                     date: new Date().toISOString().split('T')[0],
                     event: 'Salary Auto-Logged',
-                    description: `Auto-logged ${person.frequency} salary of ${formatCurrency(currentAmount)} for ${person.name} on ${nextPayDate.toISOString().split('T')[0]}`
+                    description: `Auto-logged ${person.frequency} salary of ${formatCurrency(currentAmount)} for ${person.name} on ${paymentDate}`
                 });
             }
             
@@ -4125,7 +4674,80 @@ function processElapsedIncome() {
     });
     
     data.lastProcessedDate = today.toISOString().split('T')[0];
-    saveDataToLocalStorage();
+    
+    if (incomeUpdated) {
+        saveDataToLocalStorage();
+    }
+    
+    return incomeUpdated;
+}
+
+function getNextPaymentDate(currentDate, frequency) {
+    const nextDate = new Date(currentDate);
+    
+    switch (frequency) {
+        case 'weekly':
+            nextDate.setDate(currentDate.getDate() + 7);
+            break;
+        case 'biweekly':
+            nextDate.setDate(currentDate.getDate() + 14);
+            break;
+        case 'monthly':
+            const currentMonth = currentDate.getMonth();
+            nextDate.setMonth(currentMonth + 1);
+            
+            if (nextDate.getMonth() > currentMonth + 1 && currentMonth !== 11) {
+                nextDate.setDate(0);
+            }
+            break;
+        case 'quarterly':
+            const startMonth = currentDate.getMonth();
+            nextDate.setMonth(startMonth + 3);
+            
+            const originalDay = currentDate.getDate();
+            const lastDayOfTargetMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+            if (originalDay > lastDayOfTargetMonth) {
+                nextDate.setDate(lastDayOfTargetMonth);
+            }
+            break;
+        case 'yearly':
+            const yearOriginalDay = currentDate.getDate();
+            const originalMonth = currentDate.getMonth();
+            
+            nextDate.setFullYear(currentDate.getFullYear() + 1);
+            
+            const yearLastDayOfTargetMonth = new Date(nextDate.getFullYear(), originalMonth + 1, 0).getDate();
+            if (yearOriginalDay > yearLastDayOfTargetMonth) {
+                nextDate.setMonth(originalMonth, yearLastDayOfTargetMonth);
+            }
+            break;
+    }
+    
+    return nextDate;
+}
+
+function processImportIncome() {
+    console.log("Processing incomes after import...");
+    
+    const payCheckCountBefore = data.paycheckHistory.length;
+    
+    const updatedIncomes = processElapsedIncome();
+    
+    const payChecksAdded = data.paycheckHistory.length - payCheckCountBefore;
+    
+    if (payChecksAdded > 0) {
+        console.log(`Added ${payChecksAdded} missing paychecks during import processing`);
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: new Date().toISOString().split('T')[0],
+            event: 'Import Income Processing',
+            description: `Added ${payChecksAdded} missing paychecks for all users during import processing`
+        });
+    } else {
+        console.log("No missing paychecks found during import processing");
+    }
+    
+    return payChecksAdded > 0;
 }
 
 function updateGreeting() {
@@ -4140,29 +4762,25 @@ function toggleDarkMode() {
 }
 
 function updateCurrency() {
-    const oldCurrency = data.currency;
-    const newCurrency = $('currencySelect').value;
-    
-    if (oldCurrency === newCurrency) return;
-    
-    data.currency = newCurrency;
-    
-    data.eventHistory.push({
-        id: nextEventId++,
-        date: new Date().toISOString().split('T')[0],
-        event: 'Currency Changed',
-        description: `Changed currency from ${oldCurrency} to ${newCurrency}. All amounts will now display in ${newCurrency}.`
-    });
-    
-    saveDataToLocalStorage();
-    updateOverview();
-    updateHistoryDisplay();
-    updateBillsList();
-    data.people.forEach(p => updatePersonOverview(p.id));
-    updateCalendarView();
+  const oldCurrency = data.currency;
+  const newCurrency = $('currencySelect').value;
+  
+  if (oldCurrency === newCurrency) return;
+  
+  data.currency = newCurrency;
+  
+  recordEvent('Currency Changed', `Changed currency from ${oldCurrency} to ${newCurrency}. All amounts will now display in ${newCurrency}.`);
+  
+  saveDataToLocalStorage();
+  updateOverview();
+  updateHistoryDisplay();
+  updateBillsList();
+  data.people.forEach(p => updatePersonOverview(p.id));
+  updateCalendarView();
 }
 
 function formatCurrency(amount) {
+	const roundedAmount = Math.round((amount + Number.EPSILON) * 100) / 100;
     const currencySymbols = {
         'USD': '$',
         'EUR': '€',
@@ -4225,51 +4843,46 @@ function updateTabsVisibility() {
 }
 
 function addNewPerson() {
-    const name = prompt('Enter User Name Below\nAdd more users using the sidemenu ☰');
-    if (!name || !name.trim()) return;
-    
-    const trimmedName = name.trim();
-    if (data.people.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())) {
-        alert('A person with this name already exists!');
-        return;
-    }
-    
-    const newPerson = {
-        id: nextPersonId++,
-        name: trimmedName,
-        income: 0,
-        frequency: 'monthly',
-        paymentDate: '',
-        savings: 0,
-        expenses: 0,
-        employer: '',
-        color: colorPalette[data.people.length % colorPalette.length].value
-    };
-    
-    data.people.push(newPerson);
-    data.eventHistory.push({
-        id: nextEventId++,
-        date: new Date().toISOString().split('T')[0],
-        event: 'Person Added',
-        description: `Added ${trimmedName} to budget tracker`
-    });
-    
-    saveDataToLocalStorage();
-    createPersonTab(newPerson);
-    attachPersonEventListeners();
-    updateGreeting();
-    updateBillPayerOptions();
-    updateHistoryDisplay();
-    updateOverview();
-    toggleBillTypeVisibility();
-    updateTabsVisibility();
-    
-    const sidebar = $('sidebar');
-    if (sidebar.classList.contains('open')) {
-        sidebar.classList.remove('open');
-    }
-    
-    showTab(`person-${newPerson.id}`);
+  const name = prompt('Enter User Name Below\nAdd more users using the sidemenu ☰');
+  if (!name || !name.trim()) return;
+  
+  const trimmedName = name.trim();
+  if (data.people.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())) {
+    alert('A person with this name already exists!');
+    return;
+  }
+  
+  const newPerson = {
+    id: nextPersonId++,
+    name: trimmedName,
+    income: 0,
+    frequency: 'monthly',
+    paymentDate: '',
+    savings: 0,
+    expenses: 0,
+    employer: '',
+    color: colorPalette[data.people.length % colorPalette.length].value
+  };
+  
+  data.people.push(newPerson);
+  recordEvent('Person Added', `Added ${trimmedName} to budget tracker`);
+  
+  saveDataToLocalStorage();
+  createPersonTab(newPerson);
+  attachPersonEventListeners();
+  updateGreeting();
+  updateBillPayerOptions();
+  updateHistoryDisplay();
+  updateOverview();
+  toggleBillTypeVisibility();
+  updateTabsVisibility();
+  
+  const sidebar = $('sidebar');
+  if (sidebar.classList.contains('open')) {
+    sidebar.classList.remove('open');
+  }
+  
+  showTab(`person-${newPerson.id}`);
 }
 
 function calculateJointBillTransfers() {
@@ -5550,42 +6163,35 @@ function editBill(billId) {
 }
 
 function deleteBill(billId) {
-    const bill = data.bills.find(b => b.id === billId);
-    if (!bill) return;
-    
-    const confirmMessage = bill.isOneOff ? 
-        'Delete this one off expense?' : 
-        'Are you sure you want to stop this bill? This will prevent future payments but keep the payment history.';
-    
-    if (!confirm(confirmMessage)) return;
+  const bill = data.bills.find(b => b.id === billId);
+  if (!bill) return;
+  
+  const confirmMessage = bill.isOneOff ? 
+      'Delete this one off expense?' : 
+      'Are you sure you want to stop this bill? This will prevent future payments but keep the payment history.';
+  
+  if (!confirm(confirmMessage)) return;
 
-    bill.isDeleted = true;
-    bill.deletedDate = new Date().toISOString().split('T')[0];
+  bill.isDeleted = true;
+  bill.deletedDate = new Date().toISOString().split('T')[0];
 
-    if (bill.isDebt) {
-        bill.isDebt = false;
-        bill.totalDebt = 0;
-        bill.interestRate = 0;
-        bill.termYears = 0;
-        bill.termMonths = 0;
-        bill.overpayment = 0;
-    }
+  if (bill.isDebt) {
+      bill.isDebt = false;
+      bill.totalDebt = 0;
+      bill.interestRate = 0;
+      bill.termYears = 0;
+      bill.termMonths = 0;
+      bill.overpayment = 0;
+  }
 
-    const eventDescription = bill.isOneOff ? 
-        `Deleted one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}` :
-        `Stopped future payments for ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}/${bill.frequency}. Payment history preserved.`;
+  recordEvent('Bill Deleted', bill.isOneOff ? 
+      `Deleted one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}` :
+      `Stopped future payments for ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}/${bill.frequency}. Payment history preserved.`);
 
-    data.eventHistory.push({
-        id: nextEventId++,
-        date: new Date().toISOString().split('T')[0],
-        event: bill.isOneOff ? 'One-off Expense Deleted' : 'Bill Stopped',
-        description: eventDescription
-    });
-
-    saveDataToLocalStorage();
-    updateBillsList();
-    updateOverview(); 
-    toggleBillTypeVisibility();
+  saveDataToLocalStorage();
+  updateBillsList();
+  updateOverview(); 
+  toggleBillTypeVisibility();
 }
 
 function updateBillsList() {
@@ -7004,6 +7610,8 @@ function finalizeSession() {
     data.lastSessionEndTime = new Date().toISOString();
     saveDataToLocalStorage();
 }
+
+
 
 function updateEnhancedExportData() {
     const originalShowImportExportModal = showImportExportModal;
