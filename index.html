@@ -2686,39 +2686,207 @@ function showImportExportModal() {
 }
 
 function calculateMonthlyBudget(person) {
-    let monthlyIncome = 0;
+   const today = new Date();
+   const currentYear = today.getFullYear();
+   const currentMonth = today.getMonth();
+   const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
    
-    if (person.income && person.frequency && person.paymentDate) {
-        const today = new Date();
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
+   const currentMonthIncome = data.paycheckHistory.filter(p => 
+       p.personId === person.id && 
+       p.date.startsWith(currentMonthStr)
+   );
+   
+   const totalIncome = currentMonthIncome.reduce((sum, income) => sum + income.amount, 0);
+   
+   if (currentMonthIncome.length > 0) {
+       return totalIncome;
+   }
+   
+   let monthlyIncome = 0;
+   
+   if (person.income && person.frequency && person.paymentDate) {
+       if (person.frequency === 'biweekly') {
+           const paymentDate = new Date(getDateString(person.paymentDate));
+           let paydayCount = 0;
+           let checkDate = new Date(paymentDate);
+          
+           while (checkDate.getFullYear() <= currentYear) {
+               if (checkDate.getFullYear() === currentYear && checkDate.getMonth() === currentMonth) {
+                   paydayCount++;
+               } else if (checkDate.getFullYear() === currentYear && checkDate.getMonth() > currentMonth) {
+                   break;
+               }
+               checkDate.setDate(checkDate.getDate() + 14);
+           }
+          
+           monthlyIncome = person.income * paydayCount;
+       } else {
+           monthlyIncome = frequencyToMonthly(person.income, person.frequency);
+       }
+   }
+   
+   return monthlyIncome;
+}
+
+function updateOverview() {
+   const today = new Date();
+   const currentYear = today.getFullYear();
+   const currentMonth = today.getMonth();
+   
+   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+   let billsTotal = 0;
+   let incomeTotal = 0;
+   
+   for (let day = 1; day <= daysInMonth; day++) {
+       const dayDate = new Date(currentYear, currentMonth, day);
+       const dayEvents = getDayEvents(dayDate);
        
-        if (person.frequency === 'biweekly') {
-            const paymentDate = new Date(getDateString(person.paymentDate));
-            let paydayCount = 0;
-            let checkDate = new Date(paymentDate);
-           
-            while (checkDate.getFullYear() <= currentYear) {
-                if (checkDate.getFullYear() === currentYear && checkDate.getMonth() === currentMonth) {
-                    paydayCount++;
-                } else if (checkDate.getFullYear() === currentYear && checkDate.getMonth() > currentMonth) {
-                    break;
+       const billItems = getBillItemsFromEvents(dayEvents);
+       billItems.forEach(bill => {
+           billsTotal += bill.amount;
+       });
+       
+       const oneOffItems = getOneOffItemsFromEvents(dayEvents);
+       oneOffItems.forEach(oneOff => {
+           billsTotal += oneOff.amount;
+       });
+       
+       const paydayItems = getPaydayItemsFromEvents(dayEvents);
+       paydayItems.forEach(payday => {
+           incomeTotal += payday.amount;
+       });
+       
+       const bonusItems = getBonusItemsFromEvents(dayEvents);
+       bonusItems.forEach(bonus => {
+           incomeTotal += bonus.amount;
+       });
+   }
+   
+   const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
+   const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
+   
+   const leftover = incomeTotal - billsTotal - totalMonthlySavings - totalMonthlyExpenses;
+   
+   $('totalIncome').textContent = formatCurrency(incomeTotal);
+   $('totalBills').textContent = formatCurrency(billsTotal);
+   $('totalSavings').textContent = formatCurrency(totalMonthlySavings);
+   $('totalLeftover').textContent = formatCurrency(leftover);
+   
+   $('billsPercentage').textContent = incomeTotal ?
+       `${((billsTotal / incomeTotal) * 100).toFixed(1)}%` : '0%';
+   $('savingsPercentage').textContent = incomeTotal ?
+       `${((totalMonthlySavings / incomeTotal) * 100).toFixed(1)}%` : '0%';
+   $('leftoverPercentage').textContent = incomeTotal ?
+       `${((leftover / incomeTotal) * 100).toFixed(1)}%` : '0%';
+   
+   updatePeopleOverview();
+   updateDebtOverview();
+   updateOneOffOverview();
+   updateTransfersOverview();
+   resetCalendarToCurrentMonth();
+   data.people.forEach(p => updatePersonOverview(p.id));
+}
+
+function getPaydayItemsFromEvents(dayEvents) {
+    if (!dayEvents.paydayText) return [];
+    
+    const paydayItems = [];
+    
+    const regex = /<span[^>]*>([^<]*?Payday:[^<]*?)(\d[\d,.]+)<\/span>/g;
+    let match;
+    let matches = [...dayEvents.paydayText.matchAll(regex)];
+    
+    if (matches.length > 0) {
+        matches.forEach(match => {
+            if (match[1]) {
+                const fullText = match[1].trim();
+                const parts = fullText.split(':');
+                
+                if (parts.length >= 1) {
+                    const name = parts[0].trim();
+                    const amountStr = match[2].trim();
+                    const amount = parseFloat(amountStr.replace(/[£$€¥,]/g, '')) || 0;
+                    
+                    paydayItems.push({ name, amount });
                 }
-                checkDate.setDate(checkDate.getDate() + 14);
             }
-           
-            monthlyIncome = person.income * paydayCount;
-        } else {
-            monthlyIncome = frequencyToMonthly(person.income, person.frequency);
-        }
+        });
     }
+    
+    if (paydayItems.length === 0) {
+        const plainText = dayEvents.paydayText.replace(/<[^>]*>/g, ' ');
+        const paydayMatches = plainText.match(/([^\s:]+(?:\s+[^\s:]+)*?)\s*Payday\s*:\s*([\d,.]+)/g) || [];
+        
+        paydayMatches.forEach(matchText => {
+            const parts = matchText.split(':');
+            if (parts.length >= 2) {
+                const nameWithPayday = parts[0].trim();
+                const name = nameWithPayday.replace(/\s+Payday$/, '');
+                const amountStr = parts[1].trim();
+                const amount = parseFloat(amountStr.replace(/[£$€¥,]/g, '')) || 0;
+                
+                paydayItems.push({ name, amount });
+            }
+        });
+    }
+    
+    if (paydayItems.length === 0) {
+        const paydayNameRegex = /<span class="payday-name"[^>]*>(.*?)<\/span>/g;
+        const paydayNameMatches = [...dayEvents.paydayText.matchAll(paydayNameRegex)];
+        
+        paydayNameMatches.forEach(match => {
+            const content = match[1];
+            const nameMatch = content.match(/^(.*?)\s+Payday:\s*([\d,.]+)/);
+            
+            if (nameMatch) {
+                const name = nameMatch[1].trim();
+                const amountStr = nameMatch[2].trim();
+                const amount = parseFloat(amountStr.replace(/[£$€¥,]/g, '')) || 0;
+                
+                paydayItems.push({ name, amount });
+            }
+        });
+    }
+    
+    return paydayItems;
+}
+
+function getBonusItemsFromEvents(dayEvents) {
+   if (!dayEvents.bonusText) return [];
    
-    const currentMonth = getDateString().substring(0, 7);
-    const currentMonthBonuses = data.paycheckHistory
-        .filter(p => p.personId === person.id && p.type === 'bonus' && p.date.startsWith(currentMonth))
-        .reduce((sum, bonus) => sum + bonus.amount, 0);
+   const bonusItems = [];
+   const bonusTextWithoutHTML = dayEvents.bonusText.replace(/<[^>]*>/g, '|');
+   const bonusParts = bonusTextWithoutHTML.split('|').filter(part => part.trim() && part.includes(':'));
    
-    return monthlyIncome + currentMonthBonuses;
+   bonusParts.forEach(part => {
+       const nameAmountParts = part.split(':');
+       if (nameAmountParts.length === 2) {
+           const name = nameAmountParts[0].trim();
+           const amountStr = nameAmountParts[1].trim();
+           const amount = parseFloat(amountStr.replace(/[£$€¥,]/g, '')) || 0;
+           
+           bonusItems.push({ name, amount });
+       }
+   });
+   
+   return bonusItems;
+}
+
+function isMonthlyBillDue(bill, month, year) {
+   if (bill.frequency === 'monthly') {
+       return true;
+   } else if (bill.frequency === 'quarterly') {
+       const billStartMonth = bill.startMonth || 1;
+       const quarterMonths = [];
+       for (let k = 0; k < 4; k++) {
+           quarterMonths.push(((billStartMonth - 1 + k * 3) % 12));
+       }
+       return quarterMonths.includes(month);
+   } else if (bill.frequency === 'yearly' && bill.month) {
+       return month === bill.month - 1;
+   }
+   
+   return false;
 }
 
 function calculateIncomeRatio() {
@@ -7117,44 +7285,134 @@ function createBillItem(bill) {
 }
 
 function updateOverview() {
-    const totalMonthlyIncome = data.people.reduce((sum, person) => sum + calculateMonthlyBudget(person), 0);
-    const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
-    const activeBills = data.bills.filter(b => !b.isDeleted);
-   
-    const totalMonthlyBills = activeBills.reduce((sum, bill) => {
-        if (bill.isOneOff) {
-            const billDate = new Date(bill.date);
-            const today = new Date();
-            if (billDate.getMonth() === today.getMonth() && billDate.getFullYear() === today.getFullYear()) {
-                return sum + (bill.amount + (bill.overpayment || 0));
-            }
-            return sum;
-        } else {
-            return sum + frequencyToMonthly(bill.amount + (bill.overpayment || 0), bill.frequency);
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    
+    const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+    let incomeTotal = data.paycheckHistory
+        .filter(p => p.date.startsWith(currentMonthStr))
+        .reduce((sum, paycheck) => sum + paycheck.amount, 0);
+    
+    if (incomeTotal === 0) {
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        let billsTotal = 0;
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayDate = new Date(currentYear, currentMonth, day);
+            const dayEvents = getDayEvents(dayDate);
+            
+            const billItems = getBillItemsFromEvents(dayEvents);
+            billItems.forEach(bill => {
+                billsTotal += bill.amount;
+            });
+            
+            const oneOffItems = getOneOffItemsFromEvents(dayEvents);
+            oneOffItems.forEach(oneOff => {
+                billsTotal += oneOff.amount;
+            });
+            
+            const paydayItems = getPaydayItemsFromEvents(dayEvents);
+            paydayItems.forEach(payday => {
+                incomeTotal += payday.amount;
+            });
+            
+            const bonusItems = getBonusItemsFromEvents(dayEvents);
+            bonusItems.forEach(bonus => {
+                incomeTotal += bonus.amount;
+            });
         }
-    }, 0);
-   
+    }
+    
+    if (incomeTotal === 0) {
+        incomeTotal = data.people.reduce((sum, person) => {
+            return sum + calculateMonthlyBudget(person);
+        }, 0);
+    }
+    
+    const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
     const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
-    const leftover = totalMonthlyIncome - totalMonthlySavings - totalMonthlyBills - totalMonthlyExpenses;
-   
-    $('totalIncome').textContent = formatCurrency(totalMonthlyIncome);
-    $('totalBills').textContent = formatCurrency(totalMonthlyBills);
+    
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    let billsTotal = 0;
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayDate = new Date(currentYear, currentMonth, day);
+        const dayEvents = getDayEvents(dayDate);
+        
+        const billItems = getBillItemsFromEvents(dayEvents);
+        billItems.forEach(bill => {
+            billsTotal += bill.amount;
+        });
+        
+        const oneOffItems = getOneOffItemsFromEvents(dayEvents);
+        oneOffItems.forEach(oneOff => {
+            billsTotal += oneOff.amount;
+        });
+    }
+    
+    const leftover = incomeTotal - billsTotal - totalMonthlySavings - totalMonthlyExpenses;
+    
+    $('totalIncome').textContent = formatCurrency(incomeTotal);
+    $('totalBills').textContent = formatCurrency(billsTotal);
     $('totalSavings').textContent = formatCurrency(totalMonthlySavings);
     $('totalLeftover').textContent = formatCurrency(leftover);
-   
-    $('billsPercentage').textContent = totalMonthlyIncome ?
-        `${((totalMonthlyBills / totalMonthlyIncome) * 100).toFixed(1)}%` : '0%';
-    $('savingsPercentage').textContent = totalMonthlyIncome ?
-        `${((totalMonthlySavings / totalMonthlyIncome) * 100).toFixed(1)}%` : '0%';
-    $('leftoverPercentage').textContent = totalMonthlyIncome ?
-        `${((leftover / totalMonthlyIncome) * 100).toFixed(1)}%` : '0%';
-   
+    
+    $('billsPercentage').textContent = incomeTotal ?
+        `${((billsTotal / incomeTotal) * 100).toFixed(1)}%` : '0%';
+    $('savingsPercentage').textContent = incomeTotal ?
+        `${((totalMonthlySavings / incomeTotal) * 100).toFixed(1)}%` : '0%';
+    $('leftoverPercentage').textContent = incomeTotal ?
+        `${((leftover / incomeTotal) * 100).toFixed(1)}%` : '0%';
+    
     updatePeopleOverview();
     updateDebtOverview();
     updateOneOffOverview();
     updateTransfersOverview();
     resetCalendarToCurrentMonth();
     data.people.forEach(p => updatePersonOverview(p.id));
+}
+
+function getBillItemsFromEvents(dayEvents) {
+   if (!dayEvents.billText) return [];
+   
+   const billItems = [];
+   const billTextWithoutHTML = dayEvents.billText.replace(/<[^>]*>/g, '|');
+   const billParts = billTextWithoutHTML.split('|').filter(part => part.trim() && part.includes(':'));
+   
+   billParts.forEach(part => {
+       const nameAmountParts = part.split(':');
+       if (nameAmountParts.length === 2) {
+           const name = nameAmountParts[0].trim().replace(/\s*\(edited\)\s*$/, '');
+           const amountStr = nameAmountParts[1].trim();
+           const amount = parseFloat(amountStr.replace(/[£$€¥,]/g, '')) || 0;
+           
+           billItems.push({ name, amount });
+       }
+   });
+   
+   return billItems;
+}
+
+function getOneOffItemsFromEvents(dayEvents) {
+   if (!dayEvents.oneOffText) return [];
+   
+   const oneOffItems = [];
+   const oneOffTextWithoutHTML = dayEvents.oneOffText.replace(/<[^>]*>/g, '|');
+   const oneOffParts = oneOffTextWithoutHTML.split('|').filter(part => part.trim() && part.includes(':'));
+   
+   oneOffParts.forEach(part => {
+       const nameAmountParts = part.split(':');
+       if (nameAmountParts.length === 2) {
+           const name = nameAmountParts[0].trim();
+           const amountStr = nameAmountParts[1].trim();
+           const amount = parseFloat(amountStr.replace(/[£$€¥,]/g, '')) || 0;
+           
+           oneOffItems.push({ name, amount });
+       }
+   });
+   
+   return oneOffItems;
 }
 
 function updatePeopleOverview() {
