@@ -2054,191 +2054,204 @@ function createCalendarView(year = null, month = null) {
 }
 
 function getDayEvents(date) {
-    const day = date.getDate();
-    const month = date.getMonth();
-    const year = date.getFullYear();
-    const today = getDateString();
-    const dateStr = getDateString(date);
-    
-    const billsForDay = [];
-    const paydaysForDay = [];
-    const bonusesForDay = [];
-    const oneOffsForDay = [];
-    
-    const billPaymentsOnThisDay = data.billPayments.filter(payment => payment.date === dateStr);
-    const billIdsWithPayments = new Set(billPaymentsOnThisDay.map(payment => payment.billId));
-    
-    const processedOneOffIds = new Set();
-    
-    data.bills.forEach(bill => {
-        if (bill.isDeleted) return;
-        
-        if (bill.isOneOff) {
-            const billDate = getDateString(bill.date);
-            if (billDate === dateStr) {
-                if (processedOneOffIds.has(bill.id)) return;
-                
-                const payer = bill.payer === 'joint' ? null : data.people.find(p => p.id === bill.payer);
-                oneOffsForDay.push({
-                    ...bill,
-                    payerColor: payer ? payer.color : null
-                });
-                
-                processedOneOffIds.add(bill.id);
-            }
-            return;
-        }
-        
-        if (billIdsWithPayments.has(bill.id)) {
-            return;
-        }
-        
-        if (isBillDueOnDate(bill, date)) {
-            const payer = bill.payer === 'joint' ? null : data.people.find(p => p.id === bill.payer);
-            billsForDay.push({
-                ...bill,
-                payerColor: payer ? payer.color : null,
-                isPaid: false
-            });
-        }
-    });
-    
-    billPaymentsOnThisDay.forEach(payment => {
-        const originalBill = data.bills.find(b => b.id === payment.billId);
-        
-        if (originalBill && originalBill.isOneOff) {
-            if (processedOneOffIds.has(originalBill.id)) return;
-            processedOneOffIds.add(originalBill.id);
-            
-            const payer = payment.payer === 'joint' ? null : data.people.find(p => p.id === payment.payer);
-            oneOffsForDay.push({
-                ...originalBill,
-                name: payment.billName || originalBill.name,
-                amount: payment.amount - (originalBill?.overpayment || 0),
-                payerColor: payer ? payer.color : null,
-                isPaid: true
-            });
-            return;
-        }
-        
-        const payer = payment.payer === 'joint' ? null : data.people.find(p => p.id === payment.payer);
-        billsForDay.push({
-            id: payment.billId,
-            name: payment.billName,
-            amount: payment.amount - (originalBill?.overpayment || 0),
-            overpayment: originalBill?.overpayment || 0,
-            category: payment.category,
-            payerColor: payer ? payer.color : null,
-            isPaid: true,
-            isHistorical: true,
-            isEdited: payment.status && payment.status.includes('(edited)')
-        });
-    });
-    
-    data.paycheckHistory.forEach(paycheck => {
-        if (paycheck.date === dateStr) {
-            const person = data.people.find(p => p.id === paycheck.personId);
-            if (person) {
-                if (paycheck.type === 'bonus') {
-                    bonusesForDay.push({ person, amount: paycheck.amount });
-                } else {
-                    paydaysForDay.push({ ...person, amount: paycheck.amount });
-                }
-            }
-        }
-    });
-    
-    const isViewingFuture = dateStr > today;
-    
-    if (isViewingFuture) {
-        data.people.forEach(person => {
-            if (isPaydayOnDate(person, day, month, year)) {
-                if (!paydaysForDay.some(p => p.id === person.id)) {
-                    paydaysForDay.push(person);
-                }
-            }
-        });
-    }
-    
-    const billText = billsForDay.map(bill => {
-        const backgroundColor = bill.payerColor ? bill.payerColor : '#e8e8e8';
-        const textColor = bill.payerColor ? getContrastColor(bill.payerColor) : '#000000';
-        const editedMark = bill.isEdited ? ' (edited)' : '';
-        return `<span class="bill-name" style="background-color: ${backgroundColor}; color: ${textColor};">${bill.name}${editedMark}: ${formatCurrency(bill.amount + (bill.overpayment || 0))}</span>`;
-    }).join('');
-    
-    const paydayText = paydaysForDay.map(person => {
-        return `<span class="payday-name" style="background-color: ${person.color}; color: #000000;">${person.name} Payday: ${formatCurrency(person.amount || person.income || 0)}</span>`;
-    }).join('');
-    
-    const bonusText = bonusesForDay.map(bonus => {
-        return `<span class="bonus-name" style="background-color: ${bonus.person.color}; color: #000000;">${bonus.person.name} Bonus: ${formatCurrency(bonus.amount)}</span>`;
-    }).join('');
-    
-    const oneOffText = oneOffsForDay.map(oneOff => {
-        const backgroundColor = oneOff.payerColor ? oneOff.payerColor : '#e8e8e8';
-        const textColor = oneOff.payerColor ? getContrastColor(oneOff.payerColor) : '#000000';
-        return `<span class="oneoff-name" style="background-color: ${backgroundColor}; color: ${textColor};">${oneOff.name}: ${formatCurrency(oneOff.amount)}</span>`;
-    }).join('');
-    
-    return {
-        billText,
-        paydayText,
-        bonusText,
-        oneOffText
-    };
+   const day = date.getDate();
+   const month = date.getMonth();
+   const year = date.getFullYear();
+   const today = getDateString();
+   const dateStr = getDateString(date);
+   
+   const billsForDay = [];
+   const paydaysForDay = [];
+   const bonusesForDay = [];
+   const oneOffsForDay = [];
+   
+   const billPaymentsOnThisDay = data.billPayments.filter(payment => payment.date === dateStr);
+   const billIdsWithPayments = new Set(billPaymentsOnThisDay.map(payment => payment.billId));
+   
+   const processedOneOffIds = new Set();
+   
+   data.bills.forEach(bill => {
+       if (bill.isDeleted) return;
+       
+       if (bill.isOneOff) {
+           const billDate = getDateString(bill.date);
+           if (billDate === dateStr) {
+               if (processedOneOffIds.has(bill.id)) return;
+               
+               const payer = bill.payer === 'joint' ? null : data.people.find(p => p.id === bill.payer);
+               oneOffsForDay.push({
+                   ...bill,
+                   payerColor: payer ? payer.color : null
+               });
+               
+               processedOneOffIds.add(bill.id);
+           }
+           return;
+       }
+       
+       if (billIdsWithPayments.has(bill.id)) {
+           return;
+       }
+       
+       if (isBillDueOnDate(bill, date)) {
+           const payer = bill.payer === 'joint' ? null : data.people.find(p => p.id === bill.payer);
+           billsForDay.push({
+               ...bill,
+               payerColor: payer ? payer.color : null,
+               isPaid: false
+           });
+       }
+   });
+   
+   billPaymentsOnThisDay.forEach(payment => {
+       const originalBill = data.bills.find(b => b.id === payment.billId);
+       
+       if (originalBill && originalBill.isOneOff) {
+           if (processedOneOffIds.has(originalBill.id)) return;
+           processedOneOffIds.add(originalBill.id);
+           
+           const payer = payment.payer === 'joint' ? null : data.people.find(p => p.id === payment.payer);
+           oneOffsForDay.push({
+               ...originalBill,
+               name: payment.billName || originalBill.name,
+               amount: payment.amount - (originalBill?.overpayment || 0),
+               payerColor: payer ? payer.color : null,
+               isPaid: true
+           });
+           return;
+       }
+       
+       const payer = payment.payer === 'joint' ? null : data.people.find(p => p.id === payment.payer);
+       billsForDay.push({
+           id: payment.billId,
+           name: payment.billName,
+           amount: payment.amount - (originalBill?.overpayment || 0),
+           overpayment: originalBill?.overpayment || 0,
+           category: payment.category,
+           payerColor: payer ? payer.color : null,
+           isPaid: true,
+           isHistorical: true,
+           isEdited: payment.status && payment.status.includes('(edited)')
+       });
+   });
+   
+   data.paycheckHistory.forEach(paycheck => {
+       if (paycheck.date === dateStr) {
+           const person = data.people.find(p => p.id === paycheck.personId);
+           if (person) {
+               if (paycheck.type === 'bonus') {
+                   bonusesForDay.push({ person, amount: paycheck.amount });
+               } else {
+                   paydaysForDay.push({ ...person, amount: paycheck.amount });
+               }
+           }
+       }
+   });
+   
+   const isViewingFuture = dateStr > today;
+   
+   if (isViewingFuture) {
+       data.people.forEach(person => {
+           if (isPaydayOnDate(person, day, month, year)) {
+               if (!paydaysForDay.some(p => p.id === person.id)) {
+                   paydaysForDay.push(person);
+               }
+           }
+       });
+   }
+   
+   const billText = billsForDay.map(bill => {
+       const backgroundColor = bill.payerColor ? bill.payerColor : '#e8e8e8';
+       const textColor = bill.payerColor ? getContrastColor(bill.payerColor) : '#000000';
+       const editedMark = bill.isEdited ? ' (edited)' : '';
+       return `<span class="bill-name" style="background-color: ${backgroundColor}; color: ${textColor};">${bill.name}${editedMark}: ${formatCurrency(bill.amount + (bill.overpayment || 0))}</span>`;
+   }).join('');
+   
+   const paydayText = paydaysForDay.map(person => {
+       return `<span class="payday-name" style="background-color: ${person.color}; color: #000000;">${person.name} Payday: ${formatCurrency(person.amount || person.income || 0)}</span>`;
+   }).join('');
+   
+   const bonusText = bonusesForDay.map(bonus => {
+       return `<span class="bonus-name" style="background-color: ${bonus.person.color}; color: #000000;">${bonus.person.name} Bonus: ${formatCurrency(bonus.amount)}</span>`;
+   }).join('');
+   
+   const oneOffText = oneOffsForDay.map(oneOff => {
+       const backgroundColor = oneOff.payerColor ? oneOff.payerColor : '#e8e8e8';
+       const textColor = oneOff.payerColor ? getContrastColor(oneOff.payerColor) : '#000000';
+       return `<span class="oneoff-name" style="background-color: ${backgroundColor}; color: ${textColor};">${oneOff.name}: ${formatCurrency(oneOff.amount)}</span>`;
+   }).join('');
+   
+   return {
+       billText,
+       paydayText,
+       bonusText,
+       oneOffText
+   };
 }
 
 function isBillDueOnDate(bill, date) {
-    if (bill.isDeleted) return false;
+   if (bill.isDeleted) return false;
+  
+   const billCreatedDate = getDateString(bill.dateCreated) || '1970-01-01';
+   const checkDate = getDateString(date);
+   const day = new Date(checkDate).getDate();
+   const month = new Date(checkDate).getMonth();
+   const year = new Date(checkDate).getFullYear();
    
-    const billCreatedDate = getDateString(bill.dateCreated) || '1970-01-01';
-    const checkDate = getDateString(date);
-    const day = new Date(checkDate).getDate();
-    const month = new Date(checkDate).getMonth();
-    const year = new Date(checkDate).getFullYear();
-   
-    if (bill.isOneOff) {
-        const billDate = getDateString(bill.date);
-        return billDate === checkDate;
-    }
-   
-    const billDay = bill.day || new Date(getDateString(bill.date)).getDate();
-   
-    if (billDay !== day) {
-        return false;
-    }
-   
-    if (bill.frequency === 'monthly') {
-        const billCreatedMonth = new Date(billCreatedDate).getMonth();
-        const billCreatedYear = new Date(billCreatedDate).getFullYear();
+   if (!bill.isOneOff) {
+       const currentMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+       const editedPaymentsThisMonth = data.billPayments.filter(payment => 
+           payment.billId === bill.id && 
+           payment.date.startsWith(currentMonth) && 
+           new Date(payment.date).getDate() !== bill.day
+       );
        
-        return year > billCreatedYear ||
-               (year === billCreatedYear && month >= billCreatedMonth);
-    } else if (bill.frequency === 'quarterly') {
-        const billStartMonth = bill.startMonth || (new Date(billCreatedDate).getMonth() + 1);
-        let quarterMonths = [];
-        for (let k = 0; k < 4; k++) {
-            quarterMonths.push(((billStartMonth - 1 + k * 3) % 12) + 1);
-        }
-       
-        if (quarterMonths.includes(month + 1)) {
-            const billCreatedYear = new Date(billCreatedDate).getFullYear();
-            const firstQuarterMonth = billStartMonth - 1;
-           
-            return year > billCreatedYear ||
-                   (year === billCreatedYear && month >= firstQuarterMonth);
-        }
-    } else if (bill.frequency === 'yearly' && bill.month) {
-        if (bill.month - 1 === month) {
-            const billCreatedYear = new Date(billCreatedDate).getFullYear();
-           
-            return year > billCreatedYear ||
-                   (year === billCreatedYear && month >= new Date(billCreatedDate).getMonth());
-        }
-    }
-   
-    return false;
+       if (editedPaymentsThisMonth.length > 0 && day === bill.day) {
+           return false;
+       }
+   }
+  
+   if (bill.isOneOff) {
+       const billDate = getDateString(bill.date);
+       return billDate === checkDate;
+   }
+  
+   const billDay = bill.day || new Date(getDateString(bill.date)).getDate();
+  
+   if (billDay !== day) {
+       return false;
+   }
+  
+   if (bill.frequency === 'monthly') {
+       const billCreatedMonth = new Date(billCreatedDate).getMonth();
+       const billCreatedYear = new Date(billCreatedDate).getFullYear();
+      
+       return year > billCreatedYear ||
+              (year === billCreatedYear && month >= billCreatedMonth);
+   } else if (bill.frequency === 'quarterly') {
+       const billStartMonth = bill.startMonth || (new Date(billCreatedDate).getMonth() + 1);
+       let quarterMonths = [];
+       for (let k = 0; k < 4; k++) {
+           quarterMonths.push(((billStartMonth - 1 + k * 3) % 12) + 1);
+       }
+      
+       if (quarterMonths.includes(month + 1)) {
+           const billCreatedYear = new Date(billCreatedDate).getFullYear();
+           const firstQuarterMonth = billStartMonth - 1;
+          
+           return year > billCreatedYear ||
+                  (year === billCreatedYear && month >= firstQuarterMonth);
+       }
+   } else if (bill.frequency === 'yearly' && bill.month) {
+       if (bill.month - 1 === month) {
+           const billCreatedYear = new Date(billCreatedDate).getFullYear();
+          
+           return year > billCreatedYear ||
+                  (year === billCreatedYear && month >= new Date(billCreatedDate).getMonth());
+       }
+   }
+  
+   return false;
 }
 
 
@@ -3812,197 +3825,167 @@ function updateHistoryDisplay() {
 }
 
 function showEditBillPaymentModal(billPaymentId) {
-    const billPayment = data.billPayments.find(bp => bp.id === billPaymentId);
-    if (!billPayment) return;
-    
-    // Store original values for reference
-    const originalDate = billPayment.date;
-    const originalBillId = billPayment.billId;
-   
-    let modal = $('editModal');
-    let modalContent;
-   
-    if (!modal) {
-        const modalData = createModal();
-        modal = modalData.modal;
-        modalContent = modalData.modalContent;
-    } else {
-        modalContent = $('modalContent');
-    }
-   
-    const categoryOptions = [
-        'Utilities', 'Housing', 'Transportation', 'Insurance', 'Entertainment',
-        'Subscriptions', 'Government', 'Financial', 'Health & Fitness', 'Technology', 'Other'
-    ].map(cat =>
-        `<option value="${cat}"${billPayment.category === cat ? ' selected' : ''}>${cat}</option>`
-    ).join('');
-   
-    const generatePayerOptions = (currentPayer) => {
-        let options = '';
-       
-        options += `<option value="joint"${currentPayer === 'joint' ? ' selected' : ''}>Joint Account</option>`;
-       
-        data.people.forEach(person => {
-            const isSelected = currentPayer == person.id ? ' selected' : '';
-            options += `<option value="${person.id}"${isSelected}>${person.name}</option>`;
-        });
-       
-        return options;
-    };
-   
-    const billTypeOptions = `
-        <option value="individual"${billPayment.billType === 'individual' ? ' selected' : ''}>Individual</option>
-        <option value="joint"${billPayment.billType === 'joint' ? ' selected' : ''}>Joint</option>
-    `;
+   const billPayment = data.billPayments.find(bp => bp.id === billPaymentId);
+   if (!billPayment) return;
+  
+   let modal = $('editModal');
+   let modalContent;
+  
+   if (!modal) {
+       const modalData = createModal();
+       modal = modalData.modal;
+       modalContent = modalData.modalContent;
+   } else {
+       modalContent = $('modalContent');
+   }
+  
+   const categoryOptions = [
+       'Utilities', 'Housing', 'Transportation', 'Insurance', 'Entertainment',
+       'Subscriptions', 'Government', 'Financial', 'Health & Fitness', 'Technology', 'Other'
+   ].map(cat =>
+       `<option value="${cat}"${billPayment.category === cat ? ' selected' : ''}>${cat}</option>`
+   ).join('');
+  
+   const generatePayerOptions = (currentPayer) => {
+       let options = '';
+      
+       options += `<option value="joint"${currentPayer === 'joint' ? ' selected' : ''}>Joint Account</option>`;
+      
+       data.people.forEach(person => {
+           const isSelected = currentPayer == person.id ? ' selected' : '';
+           options += `<option value="${person.id}"${isSelected}>${person.name}</option>`;
+       });
+      
+       return options;
+   };
+  
+   const billTypeOptions = `
+       <option value="individual"${billPayment.billType === 'individual' ? ' selected' : ''}>Individual</option>
+       <option value="joint"${billPayment.billType === 'joint' ? ' selected' : ''}>Joint</option>
+   `;
 
-    // Get current date for max attribute
-    const today = getDateString();
-   
-    modalContent.innerHTML = `
-        <h3 style="margin-bottom:20px;">Edit Bill Payment: ${billPayment.billName}</h3>
-        <div class="form-group">
-            <label for="editPaymentBillName">Bill Name</label>
-            <input type="text" id="editPaymentBillName" value="${billPayment.billName}">
-        </div>
-        <div class="form-group">
-            <label for="editPaymentAmount">Amount</label>
-            <input type="number" id="editPaymentAmount" value="${billPayment.amount}" step="0.01">
-        </div>
-        <div class="form-group">
-            <label for="editPaymentDate">Date</label>
-            <input type="date" id="editPaymentDate" value="${billPayment.date}" max="${today}">
-        </div>
-        <div class="form-group">
-            <label for="editPaymentCategory">Category</label>
-            <select id="editPaymentCategory">
-                ${categoryOptions}
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="editPaymentBillType">Bill Type</label>
-            <select id="editPaymentBillType">
-                ${billTypeOptions}
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="editPaymentPayer">Paid By</label>
-            <select id="editPaymentPayer">
-                ${generatePayerOptions(billPayment.payer)}
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="editPaymentStatus">Status</label>
-            <input type="text" id="editPaymentStatus" value="${billPayment.status}">
-        </div>
+   const today = getDateString();
+  
+   modalContent.innerHTML = `
+       <h3 style="margin-bottom:20px;">Edit Bill Payment: ${billPayment.billName}</h3>
+       <div class="form-group">
+           <label for="editPaymentBillName">Bill Name</label>
+           <input type="text" id="editPaymentBillName" value="${billPayment.billName}">
+       </div>
+       <div class="form-group">
+           <label for="editPaymentAmount">Amount</label>
+           <input type="number" id="editPaymentAmount" value="${billPayment.amount}" step="0.01">
+       </div>
+       <div class="form-group">
+           <label for="editPaymentDate">Date</label>
+           <input type="date" id="editPaymentDate" value="${billPayment.date}" max="${today}">
+       </div>
+       <div class="form-group">
+           <label for="editPaymentCategory">Category</label>
+           <select id="editPaymentCategory">
+               ${categoryOptions}
+           </select>
+       </div>
+       <div class="form-group">
+           <label for="editPaymentBillType">Bill Type</label>
+           <select id="editPaymentBillType">
+               ${billTypeOptions}
+           </select>
+       </div>
+       <div class="form-group">
+           <label for="editPaymentPayer">Paid By</label>
+           <select id="editPaymentPayer">
+               ${generatePayerOptions(billPayment.payer)}
+           </select>
+       </div>
+       <div class="form-group">
+           <label for="editPaymentStatus">Status</label>
+           <input type="text" id="editPaymentStatus" value="${billPayment.status}">
+       </div>
+      
+       <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0;color:#666;font-size:12px;">
+           <strong>Note:</strong> This only edits this specific payment entry. It won't affect the original bill settings or future payments. You cannot set a date in the future.
+       </div>
+      
+       <div style="display:flex;gap:10px;margin-top:20px;">
+           <button id="savePaymentEditBtn" style="flex:1;">Save Changes</button>
+           <button id="deletePaymentBtn" class="btn-danger" style="flex:1;">Delete Payment</button>
+           <button id="cancelPaymentEditBtn" style="flex:1;background:#666;">Cancel</button>
+       </div>
+   `;
+  
+   $('savePaymentEditBtn').addEventListener('click', () => {
+       const name = $('editPaymentBillName').value.trim();
+       const amount = parseFloat($('editPaymentAmount').value) || 0;
+       const date = $('editPaymentDate').value;
+       const category = $('editPaymentCategory').value;
+       const billType = $('editPaymentBillType').value;
+       const payer = $('editPaymentPayer').value === 'joint' ? 'joint' : parseInt($('editPaymentPayer').value);
+       const status = $('editPaymentStatus').value.trim();
+      
+       if (!name || !amount || !date) {
+           alert('Please fill in all required fields');
+           return;
+       }
        
-        <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0;color:#666;font-size:12px;">
-            <strong>Note:</strong> This only edits this specific payment entry. It won't affect the original bill settings or future payments. You cannot set a date in the future.
-        </div>
+       const selectedDate = getDateString(date);
+       const today = getDateString();
        
-        <div style="display:flex;gap:10px;margin-top:20px;">
-            <button id="savePaymentEditBtn" style="flex:1;">Save Changes</button>
-            <button id="deletePaymentBtn" class="btn-danger" style="flex:1;">Delete Payment</button>
-            <button id="cancelPaymentEditBtn" style="flex:1;background:#666;">Cancel</button>
-        </div>
-    `;
-   
-    $('savePaymentEditBtn').addEventListener('click', () => {
-        const name = $('editPaymentBillName').value.trim();
-        const amount = parseFloat($('editPaymentAmount').value) || 0;
-        const date = $('editPaymentDate').value;
-        const category = $('editPaymentCategory').value;
-        const billType = $('editPaymentBillType').value;
-        const payer = $('editPaymentPayer').value === 'joint' ? 'joint' : parseInt($('editPaymentPayer').value);
-        const status = $('editPaymentStatus').value.trim();
-       
-        if (!name || !amount || !date) {
-            alert('Please fill in all required fields');
-            return;
-        }
-        
-        // Add validation to prevent future dates
-        const selectedDate = getDateString(date);
-        const today = getDateString();
-        
-        if (selectedDate > today) {
-            alert('Cannot set payment date in the future. Please select today or an earlier date.');
-            return;
-        }
-       
-        // If date is changing, we need to ensure we don't end up with duplicate entries on the calendar
-        if (originalDate !== selectedDate) {
-            // Check if there's already a payment for this bill on the new date
-            const existingPaymentOnNewDate = data.billPayments.some(p => 
-                p.id !== billPaymentId && // Not the current payment
-                p.billId === originalBillId && // Same bill
-                p.date === selectedDate // On the new date
-            );
-            
-            if (existingPaymentOnNewDate) {
-                if (!confirm(`There's already a payment for this bill on ${selectedDate}. Are you sure you want to have multiple payments on the same date?`)) {
-                    return;
-                }
-            }
-        }
-       
-        const oldData = JSON.stringify(billPayment);
-       
-        billPayment.billName = name;
-        billPayment.amount = amount;
-        billPayment.date = getDateString(date);
-        billPayment.category = category;
-        billPayment.billType = billType;
-        billPayment.payer = payer;
-        
-        // Only append "(edited)" if it's not already there
-        if (!billPayment.status.includes('(edited)')) {
-            billPayment.status = status + ' (edited)';
-        } else {
-            billPayment.status = status;
-        }
-       
-        const payerName = payer === 'joint' ? 'Joint Account' :
-                         data.people.find(p => p.id === payer)?.name || 'Unknown';
-       
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: getDateString(),
-            event: 'Bill Payment Edited',
-            description: `Edited bill payment: ${name} on ${billPayment.date} - ${formatCurrency(amount)} paid by ${payerName}`
-        });
-       
-        saveDataToLocalStorage();
-        updateHistoryDisplay();
-        updateOverview();
-        updateCalendarView();
-        hideModal();
-    });
-   
-    $('deletePaymentBtn').addEventListener('click', () => {
-        if (!confirm('Are you sure you want to delete this payment? This cannot be undone.')) return;
-       
-        const paymentIndex = data.billPayments.findIndex(bp => bp.id === billPaymentId);
-        if (paymentIndex !== -1) {
-            data.billPayments.splice(paymentIndex, 1);
-           
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'Bill Payment Deleted',
-                description: `Deleted bill payment: ${billPayment.billName} on ${billPayment.date} - ${formatCurrency(billPayment.amount)}`
-            });
-           
-            saveDataToLocalStorage();
-            updateHistoryDisplay();
-            updateOverview();
-            updateCalendarView();
-            hideModal();
-        }
-    });
-   
-    $('cancelPaymentEditBtn').addEventListener('click', hideModal);
-   
-    showModal();
+       if (selectedDate > today) {
+           alert('Cannot set payment date in the future. Please select today or an earlier date.');
+           return;
+       }
+
+       billPayment.billName = name;
+       billPayment.amount = amount;
+       billPayment.date = getDateString(date);
+       billPayment.category = category;
+       billPayment.billType = billType;
+       billPayment.payer = payer;
+       billPayment.status = status;
+      
+       const payerName = payer === 'joint' ? 'Joint Account' :
+                        data.people.find(p => p.id === payer)?.name || 'Unknown';
+      
+       data.eventHistory.push({
+           id: nextEventId++,
+           date: getDateString(),
+           event: 'Bill Payment Edited',
+           description: `Edited bill payment: ${name} on ${billPayment.date} - ${formatCurrency(amount)} paid by ${payerName}`
+       });
+      
+       saveDataToLocalStorage();
+       updateHistoryDisplay();
+       updateOverview();
+       resetCalendarToCurrentMonth();
+       hideModal();
+   });
+  
+   $('deletePaymentBtn').addEventListener('click', () => {
+       if (!confirm('Are you sure you want to delete this payment? This cannot be undone.')) return;
+      
+       const paymentIndex = data.billPayments.findIndex(bp => bp.id === billPaymentId);
+       if (paymentIndex !== -1) {
+           data.billPayments.splice(paymentIndex, 1);
+          
+           data.eventHistory.push({
+               id: nextEventId++,
+               date: getDateString(),
+               event: 'Bill Payment Deleted',
+               description: `Deleted bill payment: ${billPayment.billName} on ${billPayment.date} - ${formatCurrency(billPayment.amount)}`
+           });
+          
+           saveDataToLocalStorage();
+           updateHistoryDisplay();
+           updateOverview();
+           resetCalendarToCurrentMonth();
+           hideModal();
+       }
+   });
+  
+   $('cancelPaymentEditBtn').addEventListener('click', hideModal);
+  
+   showModal();
 }
 
 function showEditPaycheckModal(paycheckId) {
