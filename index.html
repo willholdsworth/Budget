@@ -632,6 +632,7 @@ body.dark-mode .info-label {
   font-weight: 600;
   color: #000000;
   font-size: 14px;
+  text-align: right;
 }
 
 body.dark-mode .info-value {
@@ -1926,30 +1927,25 @@ function markAsPostImport() {
 
 
 function navigateCalendar(direction) {
-    if (direction === -1) {
-        let newMonth = currentViewMonth - 1;
-        let newYear = currentViewYear;
-       
-        if (newMonth < 0) {
-            newMonth = 11;
-            newYear--;
-        }
-       
-        currentViewMonth = newMonth;
-        currentViewYear = newYear;
-    } else if (direction === 1) {
-        let newMonth = currentViewMonth + 1;
-        let newYear = currentViewYear;
-       
-        if (newMonth > 11) {
-            newMonth = 0;
-            newYear++;
-        }
-       
-        currentViewMonth = newMonth;
-        currentViewYear = newYear;
+    let newMonth = currentViewMonth + direction;
+    let newYear = currentViewYear;
+   
+    if (newMonth > 11) {
+        newMonth = 0;
+        newYear++;
+    } else if (newMonth < 0) {
+        newMonth = 11;
+        newYear--;
     }
    
+    currentViewMonth = newMonth;
+    currentViewYear = newYear;
+    
+    const billCalendar = $('billCalendar');
+    if (billCalendar) {
+        billCalendar.innerHTML = '';
+    }
+    
     updateCalendarView();
 }
 
@@ -2063,114 +2059,82 @@ function getDayEvents(date) {
     const year = date.getFullYear();
     const today = getDateString();
     const dateStr = getDateString(date);
-   
+    
     const billsForDay = [];
     const paydaysForDay = [];
     const bonusesForDay = [];
     const oneOffsForDay = [];
-   
+    
+    const billPaymentsOnThisDay = data.billPayments.filter(payment => payment.date === dateStr);
+    const billIdsWithPayments = new Set(billPaymentsOnThisDay.map(payment => payment.billId));
+    
+    const processedOneOffIds = new Set();
+    
     data.bills.forEach(bill => {
         if (bill.isDeleted) return;
-       
-        const billCreatedDate = bill.dateCreated ? getDateString(bill.dateCreated) : '1970-01-01';
-       
+        
         if (bill.isOneOff) {
             const billDate = getDateString(bill.date);
             if (billDate === dateStr) {
+                if (processedOneOffIds.has(bill.id)) return;
+                
                 const payer = bill.payer === 'joint' ? null : data.people.find(p => p.id === bill.payer);
                 oneOffsForDay.push({
                     ...bill,
                     payerColor: payer ? payer.color : null
                 });
+                
+                processedOneOffIds.add(bill.id);
             }
             return;
         }
-       
-        const billDay = bill.day || new Date(getDateString(bill.date)).getDate();
-       
-        if (billDay !== day) {
+        
+        if (billIdsWithPayments.has(bill.id)) {
             return;
         }
-       
-        let shouldShow = false;
-       
-        if (bill.frequency === 'monthly') {
-            const billCreatedMonth = new Date(billCreatedDate).getMonth();
-            const billCreatedYear = new Date(billCreatedDate).getFullYear();
-            const viewingMonth = month;
-            const viewingYear = year;
-           
-            if (viewingYear > billCreatedYear ||
-                (viewingYear === billCreatedYear && viewingMonth >= billCreatedMonth)) {
-                shouldShow = true;
-            }
-        } else if (bill.frequency === 'quarterly') {
-            const billStartMonth = bill.startMonth || (new Date(billCreatedDate).getMonth() + 1);
-            let quarterMonths = [];
-            for (let k = 0; k < 4; k++) {
-                quarterMonths.push(((billStartMonth - 1 + k * 3) % 12) + 1);
-            }
-           
-            if (quarterMonths.includes(month + 1)) {
-                const billCreatedYear = new Date(billCreatedDate).getFullYear();
-                const viewingYear = year;
-               
-                const firstQuarterYear = billCreatedYear;
-                const firstQuarterMonth = billStartMonth - 1;
-               
-                if (viewingYear > firstQuarterYear ||
-                    (viewingYear === firstQuarterYear && month >= firstQuarterMonth)) {
-                    shouldShow = true;
-                }
-            }
-        } else if (bill.frequency === 'yearly' && bill.month) {
-            if (bill.month - 1 === month) {
-                const billCreatedYear = new Date(billCreatedDate).getFullYear();
-                const viewingYear = year;
-               
-                if (viewingYear > billCreatedYear ||
-                    (viewingYear === billCreatedYear && month >= new Date(billCreatedDate).getMonth())) {
-                    shouldShow = true;
-                }
-            }
-        }
-       
-        if (shouldShow) {
+        
+        if (isBillDueOnDate(bill, date)) {
             const payer = bill.payer === 'joint' ? null : data.people.find(p => p.id === bill.payer);
-            const isPaid = hasBillPayment(bill.id, dateStr);
-           
             billsForDay.push({
                 ...bill,
                 payerColor: payer ? payer.color : null,
-                isPaid: isPaid
+                isPaid: false
             });
         }
     });
-   
-    data.billPayments.forEach(payment => {
-        if (payment.date === dateStr) {
-            const alreadyShown = billsForDay.some(b => b.id === payment.billId);
-           
-            if (!alreadyShown) {
-                const originalBill = data.bills.find(b => b.id === payment.billId);
-                if (originalBill && !originalBill.isOneOff) {
-                    const payer = payment.payer === 'joint' ? null : data.people.find(p => p.id === payment.payer);
-                   
-                    billsForDay.push({
-                        id: payment.billId,
-                        name: payment.billName,
-                        amount: payment.amount - (originalBill?.overpayment || 0),
-                        overpayment: originalBill?.overpayment || 0,
-                        category: payment.category,
-                        payerColor: payer ? payer.color : null,
-                        isPaid: true,
-                        isHistorical: true
-                    });
-                }
-            }
+    
+    billPaymentsOnThisDay.forEach(payment => {
+        const originalBill = data.bills.find(b => b.id === payment.billId);
+        
+        if (originalBill && originalBill.isOneOff) {
+            if (processedOneOffIds.has(originalBill.id)) return;
+            processedOneOffIds.add(originalBill.id);
+            
+            const payer = payment.payer === 'joint' ? null : data.people.find(p => p.id === payment.payer);
+            oneOffsForDay.push({
+                ...originalBill,
+                name: payment.billName || originalBill.name,
+                amount: payment.amount - (originalBill?.overpayment || 0),
+                payerColor: payer ? payer.color : null,
+                isPaid: true
+            });
+            return;
         }
+        
+        const payer = payment.payer === 'joint' ? null : data.people.find(p => p.id === payment.payer);
+        billsForDay.push({
+            id: payment.billId,
+            name: payment.billName,
+            amount: payment.amount - (originalBill?.overpayment || 0),
+            overpayment: originalBill?.overpayment || 0,
+            category: payment.category,
+            payerColor: payer ? payer.color : null,
+            isPaid: true,
+            isHistorical: true,
+            isEdited: payment.status && payment.status.includes('(edited)')
+        });
     });
-   
+    
     data.paycheckHistory.forEach(paycheck => {
         if (paycheck.date === dateStr) {
             const person = data.people.find(p => p.id === paycheck.personId);
@@ -2183,9 +2147,9 @@ function getDayEvents(date) {
             }
         }
     });
-   
+    
     const isViewingFuture = dateStr > today;
-   
+    
     if (isViewingFuture) {
         data.people.forEach(person => {
             if (isPaydayOnDate(person, day, month, year)) {
@@ -2195,27 +2159,28 @@ function getDayEvents(date) {
             }
         });
     }
-   
+    
     const billText = billsForDay.map(bill => {
         const backgroundColor = bill.payerColor ? bill.payerColor : '#e8e8e8';
         const textColor = bill.payerColor ? getContrastColor(bill.payerColor) : '#000000';
-        return `<span class="bill-name" style="background-color: ${backgroundColor}; color: ${textColor};">${bill.name}: ${formatCurrency(bill.amount + (bill.overpayment || 0))}</span>`;
+        const editedMark = bill.isEdited ? ' (edited)' : '';
+        return `<span class="bill-name" style="background-color: ${backgroundColor}; color: ${textColor};">${bill.name}${editedMark}: ${formatCurrency(bill.amount + (bill.overpayment || 0))}</span>`;
     }).join('');
-   
+    
     const paydayText = paydaysForDay.map(person => {
         return `<span class="payday-name" style="background-color: ${person.color}; color: #000000;">${person.name} Payday: ${formatCurrency(person.amount || person.income || 0)}</span>`;
     }).join('');
-   
+    
     const bonusText = bonusesForDay.map(bonus => {
         return `<span class="bonus-name" style="background-color: ${bonus.person.color}; color: #000000;">${bonus.person.name} Bonus: ${formatCurrency(bonus.amount)}</span>`;
     }).join('');
-   
+    
     const oneOffText = oneOffsForDay.map(oneOff => {
         const backgroundColor = oneOff.payerColor ? oneOff.payerColor : '#e8e8e8';
         const textColor = oneOff.payerColor ? getContrastColor(oneOff.payerColor) : '#000000';
         return `<span class="oneoff-name" style="background-color: ${backgroundColor}; color: ${textColor};">${oneOff.name}: ${formatCurrency(oneOff.amount)}</span>`;
     }).join('');
-   
+    
     return {
         billText,
         paydayText,
@@ -3849,6 +3814,10 @@ function updateHistoryDisplay() {
 function showEditBillPaymentModal(billPaymentId) {
     const billPayment = data.billPayments.find(bp => bp.id === billPaymentId);
     if (!billPayment) return;
+    
+    // Store original values for reference
+    const originalDate = billPayment.date;
+    const originalBillId = billPayment.billId;
    
     let modal = $('editModal');
     let modalContent;
@@ -3885,6 +3854,9 @@ function showEditBillPaymentModal(billPaymentId) {
         <option value="individual"${billPayment.billType === 'individual' ? ' selected' : ''}>Individual</option>
         <option value="joint"${billPayment.billType === 'joint' ? ' selected' : ''}>Joint</option>
     `;
+
+    // Get current date for max attribute
+    const today = getDateString();
    
     modalContent.innerHTML = `
         <h3 style="margin-bottom:20px;">Edit Bill Payment: ${billPayment.billName}</h3>
@@ -3898,7 +3870,7 @@ function showEditBillPaymentModal(billPaymentId) {
         </div>
         <div class="form-group">
             <label for="editPaymentDate">Date</label>
-            <input type="date" id="editPaymentDate" value="${billPayment.date}">
+            <input type="date" id="editPaymentDate" value="${billPayment.date}" max="${today}">
         </div>
         <div class="form-group">
             <label for="editPaymentCategory">Category</label>
@@ -3924,7 +3896,7 @@ function showEditBillPaymentModal(billPaymentId) {
         </div>
        
         <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0;color:#666;font-size:12px;">
-            <strong>Note:</strong> This only edits this specific payment entry. It won't affect the original bill settings or future payments.
+            <strong>Note:</strong> This only edits this specific payment entry. It won't affect the original bill settings or future payments. You cannot set a date in the future.
         </div>
        
         <div style="display:flex;gap:10px;margin-top:20px;">
@@ -3947,6 +3919,31 @@ function showEditBillPaymentModal(billPaymentId) {
             alert('Please fill in all required fields');
             return;
         }
+        
+        // Add validation to prevent future dates
+        const selectedDate = getDateString(date);
+        const today = getDateString();
+        
+        if (selectedDate > today) {
+            alert('Cannot set payment date in the future. Please select today or an earlier date.');
+            return;
+        }
+       
+        // If date is changing, we need to ensure we don't end up with duplicate entries on the calendar
+        if (originalDate !== selectedDate) {
+            // Check if there's already a payment for this bill on the new date
+            const existingPaymentOnNewDate = data.billPayments.some(p => 
+                p.id !== billPaymentId && // Not the current payment
+                p.billId === originalBillId && // Same bill
+                p.date === selectedDate // On the new date
+            );
+            
+            if (existingPaymentOnNewDate) {
+                if (!confirm(`There's already a payment for this bill on ${selectedDate}. Are you sure you want to have multiple payments on the same date?`)) {
+                    return;
+                }
+            }
+        }
        
         const oldData = JSON.stringify(billPayment);
        
@@ -3956,7 +3953,13 @@ function showEditBillPaymentModal(billPaymentId) {
         billPayment.category = category;
         billPayment.billType = billType;
         billPayment.payer = payer;
-        billPayment.status = status + ' (edited)';
+        
+        // Only append "(edited)" if it's not already there
+        if (!billPayment.status.includes('(edited)')) {
+            billPayment.status = status + ' (edited)';
+        } else {
+            billPayment.status = status;
+        }
        
         const payerName = payer === 'joint' ? 'Joint Account' :
                          data.people.find(p => p.id === payer)?.name || 'Unknown';
@@ -5065,7 +5068,11 @@ function findBillPayment(billId, date) {
 }
 
 function hasBillPayment(billId, date) {
-    return !!findBillPayment(billId, date);
+    const dateStr = getDateString(date);
+    return data.billPayments.some(payment => 
+        payment.billId === billId && 
+        payment.date === dateStr
+    );
 }
 
 function generateMissingBillPayments(startDate, endDate) {
@@ -6198,6 +6205,19 @@ function showEditBillModal(bill) {
    
     const today = new Date();
     const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const currentMonthYearStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    
+    const currentBillDayThisMonth = new Date(today.getFullYear(), today.getMonth(), bill.day);
+    const currentBillDateStr = getDateString(currentBillDayThisMonth);
+   
+    const currentMonthPayment = data.billPayments.find(payment => 
+        payment.billId === bill.id && 
+        payment.date.startsWith(currentMonthYearStr) &&
+        new Date(payment.date).getDate() === bill.day
+    );
+    
+    const isAlreadyPaidThisMonth = !!currentMonthPayment;
    
     const dayOptions = Array.from({length: 31}, (_, i) => {
         const day = i + 1;
@@ -6293,8 +6313,16 @@ function showEditBillModal(bill) {
         </div>
     `;
 
+    const paidWarningHTML = isAlreadyPaidThisMonth ? `
+        <div style="background:#fff3cd;padding:15px;border-radius:8px;margin:20px 0;color:#856404;font-size:12px;border:1px solid #ffeaa7;">
+            <strong>Note:</strong> This bill has already been paid for day ${bill.day} in ${today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+            Date changes for this month will update the payment record. Other changes will only affect future months.
+        </div>
+    ` : '';
+
     modalContent.innerHTML = `
         <h3 style="margin-bottom:20px;">Edit ${bill.isOneOff ? 'One-off Expense' : 'Bill'}: ${bill.name}</h3>
+        ${paidWarningHTML}
         <div class="form-group">
             <label for="editBillName">${bill.isOneOff ? 'Expense' : 'Bill'} Name</label>
             <input type="text" id="editBillName" value="${bill.name}">
@@ -6464,26 +6492,133 @@ function showEditBillModal(bill) {
         }
        
         const today = new Date();
+        const todayString = getDateString(today);
         const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-       
-        if (!bill.isOneOff) {
-            removeFutureBillPayments(bill.id, currentMonthStart);
+        
+        const originalBill = JSON.parse(JSON.stringify(bill));
+        
+        if (isAlreadyPaidThisMonth && !bill.isOneOff) {
+            if (originalBill.day !== day) {
+                const newPaymentDate = new Date(today.getFullYear(), today.getMonth(), day);
+                const newPaymentDateStr = getDateString(newPaymentDate);
+                
+                // When moving to a future date in the same month, don't create a history entry
+                // Just remove the current payment and update the bill's date
+                if (newPaymentDateStr > todayString) {
+                    // Remove the current payment entirely
+                    data.billPayments = data.billPayments.filter(p => p !== currentMonthPayment);
+                    
+                    // Log this change in the event history, but don't create a future payment entry
+                    data.eventHistory.push({
+                        id: nextEventId++,
+                        date: getDateString(),
+                        event: 'Payment Removed',
+                        description: `Removed payment for ${name} from day ${originalBill.day}. Bill rescheduled to future date (${day}/${today.getMonth()+1}/${today.getFullYear()}).`
+                    });
+                } else {
+                    // Handle moving to a different past date (still in the past)
+                    if (day > currentMonthEnd.getDate()) {
+                        newPaymentDate.setDate(currentMonthEnd.getDate());
+                    }
+                    
+                    currentMonthPayment.date = getDateString(newPaymentDate);
+                    
+                    if (!currentMonthPayment.status.includes('(date changed)')) {
+                        currentMonthPayment.status += ' (date changed)';
+                    }
+                    
+                    if (name !== originalBill.name) {
+                        currentMonthPayment.billName = name;
+                    }
+                    
+                    if (category !== originalBill.category) {
+                        currentMonthPayment.category = category;
+                    }
+                    
+                    if (amount !== originalBill.amount) {
+                        const originalAmount = currentMonthPayment.amount;
+                        const originalBillAmount = originalBill.amount + (originalBill.overpayment || 0);
+                        
+                        if (originalAmount === originalBillAmount) {
+                            currentMonthPayment.amount = amount + (isDebt ? (parseFloat($('editOverpayment').value) || 0) : 0);
+                        }
+                    }
+                    
+                    data.eventHistory.push({
+                        id: nextEventId++,
+                        date: getDateString(),
+                        event: 'Payment Date Updated',
+                        description: `Updated already-paid bill ${name} date from ${originalBill.day} to ${day} for current month`
+                    });
+                }
+            }
         }
-       
-        bill.name = name;
-        bill.amount = amount;
-        bill.category = category;
-        bill.billType = billType;
-        bill.payer = payer;
-        bill.isDebt = isDebt;
-       
+        
+        // Check if we're changing from a past date to a future date within the same month
         if (!bill.isOneOff) {
+            const oldDateInMonth = new Date(today.getFullYear(), today.getMonth(), originalBill.day);
+            const newDateInMonth = new Date(today.getFullYear(), today.getMonth(), day);
+            const oldDateStr = getDateString(oldDateInMonth);
+            const newDateStr = getDateString(newDateInMonth);
+            
+            // Moving from past date to future date
+            if (oldDateStr <= todayString && newDateStr > todayString && !isAlreadyPaidThisMonth) {
+                // Look for any payments in current month
+                const existingPayments = data.billPayments.filter(payment => 
+                    payment.billId === bill.id && 
+                    payment.date.startsWith(currentMonthYearStr)
+                );
+                
+                // If there are any payments, remove them without creating future entries
+                if (existingPayments.length > 0) {
+                    // Just remove the payments, don't create future entries in history
+                    existingPayments.forEach(payment => {
+                        data.billPayments = data.billPayments.filter(p => p !== payment);
+                    });
+                    
+                    data.eventHistory.push({
+                        id: nextEventId++,
+                        date: getDateString(),
+                        event: 'Payments Removed',
+                        description: `Removed ${existingPayments.length} payment(s) for ${name} from day ${originalBill.day}. Bill rescheduled to future date (${day}/${today.getMonth()+1}/${today.getFullYear()}).`
+                    });
+                }
+            }
+        }
+
+        let needsToBePaidForPastDate = false;
+        if (!bill.isOneOff) {
+            // Check if we're moving from future to past
+            const originalMonthDate = new Date(today.getFullYear(), today.getMonth(), originalBill.day);
+            const newMonthDate = new Date(today.getFullYear(), today.getMonth(), day);
+            
+            if (getDateString(originalMonthDate) > todayString && getDateString(newMonthDate) <= todayString) {
+                needsToBePaidForPastDate = true;
+            }
+        }
+
+        if (!bill.isOneOff) {
+            // Keep tracking current month when calculating starting date
+            // Don't push to next month even if there was a payment already
+            const startDate = currentMonthStart;
+            
+            const futurePaymentsRemoved = removeFutureBillPayments(bill.id, startDate);
+            
+            bill.name = name;
+            bill.amount = amount;
             bill.frequency = frequency;
             bill.day = day;
             bill.month = month;
             bill.startMonth = frequency === 'quarterly' ? startMonth : null;
+            bill.category = category;
+            bill.billType = billType;
+            bill.payer = payer;
+            bill.isDebt = isDebt;
+            
+            bill.dateCreated = getDateString(startDate);
+            
             bill.date = generateBillDate(day, month, frequency, startMonth);
-           
+            
             if (isDebt) {
                 bill.totalDebt = parseFloat($('editTotalDebt').value) || 0;
                 bill.interestRate = parseFloat($('editInterestRate').value) || 0;
@@ -6497,56 +6632,90 @@ function showEditBillModal(bill) {
                 delete bill.termMonths;
                 delete bill.overpayment;
             }
-        }
-       
-        const payerName = payer === 'joint' ? 'Joint Account' :
-                         data.people.find(p => p.id === payer)?.name || 'Unknown';
-       
-        if (!bill.isOneOff) {
-            const todayString = today.toISOString().split('T')[0];
-            const isBillDueToday = isBillDueOnDate(bill, todayString);
-           
-            if (isBillDueToday) {
-                const existingPayment = data.billPayments.find(payment =>
-                    payment.billId === bill.id &&
-                    payment.date === todayString
-                );
-               
-                if (!existingPayment) {
-                    const paymentRecord = {
-                        billId: bill.id,
-                        billName: bill.name,
-                        amount: bill.amount + (bill.overpayment || 0),
-                        date: todayString,
-                        category: bill.category,
-                        billType: bill.billType,
-                        payer: bill.payer,
-                        status: 'Auto-processed payment (bill edited to be due today)'
-                    };
-                   
-                    if (!data.billPayments) data.billPayments = [];
-                    data.billPayments.push(paymentRecord);
-                   
-                    data.eventHistory.push({
-                        id: nextEventId++,
-                        date: new Date().toISOString().split('T')[0],
-                        event: 'Bill Payment Auto-Created',
-                        description: `Created payment for ${bill.name} due today after bill edit - ${formatCurrency(bill.amount + (bill.overpayment || 0))}`
-                    });
+            
+            if (needsToBePaidForPastDate) {
+                const pastDatePayment = {
+                    id: data.billPaymentId++,
+                    billId: bill.id,
+                    billName: bill.name,
+                    amount: bill.amount + (bill.overpayment || 0),
+                    date: getDateString(new Date(today.getFullYear(), today.getMonth(), day)),
+                    category: bill.category,
+                    billType: bill.billType,
+                    payer: bill.payer,
+                    status: 'Auto-processed payment (past due date)'
+                };
+                
+                if (!data.billPayments) data.billPayments = [];
+                data.billPayments.push(pastDatePayment);
+                
+                data.eventHistory.push({
+                    id: nextEventId++,
+                    date: getDateString(),
+                    event: 'Bill Payment Auto-Created',
+                    description: `Created payment for ${bill.name} for past date (${day}/${today.getMonth()+1}) after changing from future date - ${formatCurrency(bill.amount + (bill.overpayment || 0))}`
+                });
+            }
+            else if (!isAlreadyPaidThisMonth) {
+                const todayString = today.toISOString().split('T')[0];
+                const isBillDueToday = isBillDueOnDate(bill, todayString);
+                
+                if (isBillDueToday) {
+                    const existingPayment = data.billPayments.find(payment =>
+                        payment.billId === bill.id &&
+                        payment.date === todayString
+                    );
+                    
+                    if (!existingPayment) {
+                        const paymentRecord = {
+                            id: data.billPaymentId++,
+                            billId: bill.id,
+                            billName: bill.name,
+                            amount: bill.amount + (bill.overpayment || 0),
+                            date: todayString,
+                            category: bill.category,
+                            billType: bill.billType,
+                            payer: bill.payer,
+                            status: 'Auto-processed payment (bill edited to be due today)'
+                        };
+                        
+                        if (!data.billPayments) data.billPayments = [];
+                        data.billPayments.push(paymentRecord);
+                        
+                        data.eventHistory.push({
+                            id: nextEventId++,
+                            date: getDateString(),
+                            event: 'Bill Payment Auto-Created',
+                            description: `Created payment for ${bill.name} due today after bill edit - ${formatCurrency(bill.amount + (bill.overpayment || 0))}`
+                        });
+                    }
                 }
             }
+        } else {
+            bill.name = name;
+            bill.amount = amount;
+            bill.category = category;
+            bill.billType = billType;
+            bill.payer = payer;
         }
-       
+        
+        const payerName = payer === 'joint' ? 'Joint Account' :
+                         data.people.find(p => p.id === payer)?.name || 'Unknown';
+        
+        const effectiveFrom = currentMonthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
         data.eventHistory.push({
             id: nextEventId++,
-            date: new Date().toISOString().split('T')[0],
+            date: getDateString(),
             event: bill.isOneOff ? 'One-off Expense Updated' : 'Bill Updated',
-            description: `Updated ${bill.name} details, paid by ${payerName}. Changes apply from ${currentMonthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} forward. Historical payments preserved.`
+            description: `Updated ${bill.name} details, paid by ${payerName}. Changes apply from ${effectiveFrom} forward. Historical payments preserved.`
         });
-       
+        
         saveDataToLocalStorage();
         updateBillsList();
+        updateHistoryDisplay();
         updateOverview();
+        resetCalendarToCurrentMonth();
         hideModal();
     });
    
@@ -6633,8 +6802,11 @@ function addBill() {
         return;
     }
    
-    const today = getDateString();
-    const billDate = isOneOff ? today : generateBillDate(day, month, frequency, startMonth);
+    const today = new Date();
+    const todayString = getDateString();
+    
+    // For one-off bills, just use the date directly
+    const billDate = isOneOff ? todayString : generateBillDate(day, month, frequency, startMonth);
    
     const bill = {
         id: nextBillId++,
@@ -6650,7 +6822,7 @@ function addBill() {
         payer: payer,
         isDebt: isDebt,
         isOneOff: isOneOff,
-        dateCreated: today
+        dateCreated: todayString
     };
    
     if (isDebt) {
@@ -6666,43 +6838,60 @@ function addBill() {
     const payerName = payer === 'joint' ? 'Joint Account' :
                      data.people.find(p => p.id === parseInt(payer))?.name || 'Unknown';
    
-    const isDueToday = billDate === today;
+    // Check if this bill should already be considered due/paid
+    let shouldCreatePayment = false;
+    let paymentReason = '';
+    
+    if (isOneOff) {
+        // One-off expenses are always paid immediately
+        shouldCreatePayment = true;
+        paymentReason = 'One-off expense';
+    } 
+    else if (day === today.getDate()) {
+        // Bill is due today
+        shouldCreatePayment = true;
+        paymentReason = 'Due today';
+    }
+    else if (!isOneOff) {
+        // Check if recurring bill's date this month is in the past
+        const currentMonthBillDate = new Date(today.getFullYear(), today.getMonth(), day);
+        
+        if (getDateString(currentMonthBillDate) < todayString) {
+            // Bill would have been due earlier this month
+            shouldCreatePayment = true;
+            paymentReason = 'Past due date in current month';
+        }
+    }
    
-    if (isOneOff || isDueToday) {
+    if (shouldCreatePayment) {
+        const paymentDate = isOneOff ? billDate : 
+                           getDateString(new Date(today.getFullYear(), today.getMonth(), day));
+        
         const paymentRecord = {
             id: data.billPaymentId++,
             billId: bill.id,
             billName: bill.name,
             amount: bill.amount + (bill.overpayment || 0),
-            date: bill.date,
+            date: paymentDate,
             category: bill.category,
             billType: bill.billType,
             payer: bill.payer,
-            status: isOneOff ? 'One-off expense' : 'Regular bill payment'
+            status: isOneOff ? 'One-off expense' : `Auto-processed payment (${paymentReason})`
         };
        
         if (!data.billPayments) data.billPayments = [];
         data.billPayments.push(paymentRecord);
        
-        if (isOneOff) {
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: today,
-                event: 'Unexpected Expense Added',
-                description: `Added one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))} paid by ${payerName}`
-            });
-        } else {
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: today,
-                event: 'Bill Payment Recorded',
-                description: `Recorded payment for ${bill.name} due today - ${formatCurrency(bill.amount + (bill.overpayment || 0))} paid by ${payerName}`
-            });
-        }
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: todayString,
+            event: isOneOff ? 'Unexpected Expense Added' : 'Bill Payment Auto-Created',
+            description: `${isOneOff ? 'Added one-off expense' : `Created payment for new bill due on ${day}/${today.getMonth()+1}`}: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))} paid by ${payerName}`
+        });
     } else {
         data.eventHistory.push({
             id: nextEventId++,
-            date: today,
+            date: todayString,
             event: 'Bill Added',
             description: `Added ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}/${bill.frequency} on day ${day}${month ? ` of month ${month}` : ''} paid by ${payerName}`
         });
@@ -6729,6 +6918,7 @@ function addBill() {
     updateHistoryDisplay();
     updateOverview();
     toggleBillTypeVisibility();
+    resetCalendarToCurrentMonth();
     ensureDataConsistency();
 }
 
@@ -6980,7 +7170,7 @@ function updateOverview() {
     updateDebtOverview();
     updateOneOffOverview();
     updateTransfersOverview();
-    updateCalendarView();
+    resetCalendarToCurrentMonth();
     data.people.forEach(p => updatePersonOverview(p.id));
 }
 
