@@ -2415,14 +2415,70 @@ function enhanceAttachEventListeners() {
     };
 }
 
-function processImportData(fileContent) {
+async function processImportData(fileContent) {
     isImporting = true;
    
     try {
-        const importData = JSON.parse(atob(fileContent.trim()));
+        const cleanContent = fileContent.trim();
+        
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleanContent)) {
+            throw new Error('Invalid base64 format - file may be corrupted');
+        }
+        
+        const sizeInMB = new Blob([cleanContent]).size / 1024 / 1024;
+        if (sizeInMB > 5) {
+            const proceed = confirm(
+                `This file is ${sizeInMB.toFixed(1)}MB. ` +
+                `Large files may cause performance issues on mobile devices. ` +
+                `Continue anyway?`
+            );
+            if (!proceed) {
+                isImporting = false;
+                return false;
+            }
+        }
+        
+        let decodedContent;
+        try {
+            decodedContent = atob(cleanContent);
+        } catch (e) {
+            throw new Error('Failed to decode base64 - file may be corrupted or truncated');
+        }
+        
+        const importData = JSON.parse(decodedContent);
        
         if (!importData.people || !importData.bills) {
-            throw new Error('Invalid import data format');
+            throw new Error('Invalid import data format - missing required fields');
+        }
+
+        if (importData.paycheckHistory?.length > 500) {
+            const results = [];
+            for (let i = 0; i < importData.paycheckHistory.length; i += 100) {
+                const chunk = importData.paycheckHistory.slice(i, i + 100);
+                results.push(...chunk);
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            importData.paycheckHistory = results;
+        }
+        
+        if (importData.billPayments?.length > 500) {
+            const results = [];
+            for (let i = 0; i < importData.billPayments.length; i += 100) {
+                const chunk = importData.billPayments.slice(i, i + 100);
+                results.push(...chunk);
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            importData.billPayments = results;
+        }
+        
+        if (importData.eventHistory?.length > 500) {
+            const results = [];
+            for (let i = 0; i < importData.eventHistory.length; i += 100) {
+                const chunk = importData.eventHistory.slice(i, i + 100);
+                results.push(...chunk);
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            importData.eventHistory = results;
         }
        
         data = {
@@ -2431,10 +2487,10 @@ function processImportData(fileContent) {
             currency: importData.currency || 'USD',
             darkMode: Boolean(importData.darkMode),
             weightedBills: Boolean(importData.weightedBills),
-            paycheckHistory: JSON.parse(JSON.stringify(importData.paycheckHistory || [])),
+            paycheckHistory: importData.paycheckHistory || [],
             billHistory: JSON.parse(JSON.stringify(importData.billHistory || [])),
-            eventHistory: JSON.parse(JSON.stringify(importData.eventHistory || [])),
-            billPayments: JSON.parse(JSON.stringify(importData.billPayments || [])),
+            eventHistory: importData.eventHistory || [],
+            billPayments: importData.billPayments || [],
             lastProcessedDate: importData.lastProcessedDate || null,
             peopleIncomeSettings: JSON.parse(JSON.stringify(importData.peopleIncomeSettings || {})),
             uiPreferences: JSON.parse(JSON.stringify(importData.uiPreferences || {})),
@@ -2462,35 +2518,50 @@ function processImportData(fileContent) {
     } catch (error) {
         console.error("Error processing import data:", error);
         isImporting = false;
+        alert(`Import failed: ${error.message}`);
         return false;
     }
 }
 
 function createCleanExportData() {
-    const exportData = {
-        people: JSON.parse(JSON.stringify(data.people)),
-        bills: JSON.parse(JSON.stringify(data.bills)),
-        currency: data.currency,
-        darkMode: data.darkMode,
-        weightedBills: data.weightedBills,
-        paycheckHistory: JSON.parse(JSON.stringify(data.paycheckHistory)),
-        billHistory: JSON.parse(JSON.stringify(data.billHistory || [])),
-        eventHistory: JSON.parse(JSON.stringify(data.eventHistory)),
-        billPayments: JSON.parse(JSON.stringify(data.billPayments)),
-        lastProcessedDate: data.lastProcessedDate,
-        peopleIncomeSettings: JSON.parse(JSON.stringify(data.peopleIncomeSettings)),
-        uiPreferences: JSON.parse(JSON.stringify(data.uiPreferences || {})),
-        dataVersion: data.dataVersion || "1.0",
-        lastExportDate: new Date().toISOString(),
-        billHistoryId: data.billHistoryId || 1,
-        nextPersonId: nextPersonId,
-        nextBillId: nextBillId,
-        nextIncomeId: nextIncomeId,
-        nextEventId: nextEventId,
-        nextPaycheckId: nextPaycheckId
-    };
+   let exportData;
    
-    return exportData;
+   if (isPostImport && Object.keys(importBaseline).length > 0) {
+       exportData = mergeImportBaselineWithChanges();
+       if (exportData) {
+           validateExportData(exportData);
+           return exportData;
+       }
+   }
+
+   exportData = {
+       people: JSON.parse(JSON.stringify(data.people)),
+       bills: JSON.parse(JSON.stringify(data.bills)),
+       billPayments: JSON.parse(JSON.stringify(data.billPayments)),
+       billPaymentId: data.billPaymentId || 1,
+       uiActionHistory: JSON.parse(JSON.stringify(data.uiActionHistory || [])),
+       sessionId: data.sessionId,
+       currency: data.currency,
+       darkMode: data.darkMode,
+       weightedBills: data.weightedBills,
+       paycheckHistory: JSON.parse(JSON.stringify(data.paycheckHistory)),
+       billHistory: JSON.parse(JSON.stringify(data.billHistory || [])),
+       eventHistory: JSON.parse(JSON.stringify(data.eventHistory)),
+       lastProcessedDate: data.lastProcessedDate,
+       peopleIncomeSettings: JSON.parse(JSON.stringify(data.peopleIncomeSettings)),
+       uiPreferences: JSON.parse(JSON.stringify(data.uiPreferences || {})),
+       dataVersion: data.dataVersion || "1.0",
+       lastExportDate: new Date().toISOString(),
+       billHistoryId: data.billHistoryId || 1,
+       nextPersonId: nextPersonId,
+       nextBillId: nextBillId,
+       nextIncomeId: nextIncomeId,
+       nextEventId: nextEventId,
+       nextPaycheckId: nextPaycheckId
+   };
+   
+   validateExportData(exportData);
+   return exportData;
 }
 
 function showImportExportModal() {
@@ -2602,8 +2673,6 @@ function showImportExportModal() {
                     setTimeout(() => {
                         hideModal();
                         showTab('overview');
-                       
-                        alert('Data imported successfully!');
                     }, 600);
                    
                 } catch (e) {
@@ -2639,6 +2708,7 @@ function showImportExportModal() {
                     await writable.write(exportString);
                     await writable.close();
                    
+                    alert('File exported successfully!');
                     saveDataToLocalStorage();
                 } catch (err) {
                     if (err.name !== 'AbortError') {
@@ -2658,6 +2728,7 @@ function showImportExportModal() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            alert('File exported successfully!');
            
             saveDataToLocalStorage();
         }
@@ -2920,103 +2991,138 @@ function calculateSetAsideAmount(billAmount, frequency, isDebt, interestRate, cu
 }
 
 function updatePersonIncome(personId) {
-    const person = data.people.find(p => p.id === personId);
-    if (!person) return;
+   const person = data.people.find(p => p.id === personId);
+   if (!person) return;
+  
+   const oldIncome = person.income || 0;
+   const oldFrequency = person.frequency;
+   const oldPaymentDate = person.paymentDate;
+   const oldEmployer = person.employer || '';
+  
+   const income = parseFloat($(`income-${personId}`).value) || 0;
+   const frequency = $(`frequency-${personId}`).value;
+   const paymentDate = $(`paymentDate-${personId}`).value;
+   const employer = $(`employer-${personId}`).value.trim();
    
-    const oldIncome = person.income || 0;
-    const oldFrequency = person.frequency;
-    const oldPaymentDate = person.paymentDate;
-    const oldEmployer = person.employer || '';
+   const today = getDateString();
+   const isFutureDate = paymentDate && getDateString(paymentDate) > today;
+   const wasInPast = oldPaymentDate && getDateString(oldPaymentDate) <= today;
    
-    const income = parseFloat($(`income-${personId}`).value) || 0;
-    const frequency = $(`frequency-${personId}`).value;
-    const paymentDate = $(`paymentDate-${personId}`).value;
-    const employer = $(`employer-${personId}`).value.trim();
+   const hasDateChange = oldPaymentDate !== paymentDate && oldPaymentDate && paymentDate;
+   const hasFrequencyChange = oldFrequency !== frequency && oldFrequency && frequency;
+   const hasAmountChange = oldIncome !== income && oldIncome && income;
    
-    const today = getDateString();
-   
-    if (paymentDate) {
-        if (getDateString(paymentDate) > today) {
-            alert('Payment date cannot be in the future. Please select today or an earlier date.');
-            $(`paymentDate-${personId}`).value = oldPaymentDate || '';
-            return;
-        }
-    }
-   
-    const hasDateChange = oldPaymentDate !== paymentDate && oldPaymentDate && paymentDate;
-    const hasFrequencyChange = oldFrequency !== frequency && oldFrequency && frequency;
-    const hasAmountChange = oldIncome !== income && oldIncome && income;
-   
-    if (hasDateChange || hasFrequencyChange) {
-        const newStartDate = getDateString(paymentDate);
+   if (hasDateChange && wasInPast && isFutureDate && oldPaymentDate && paymentDate) {
+       const oldDate = new Date(getDateString(oldPaymentDate));
+       const newDate = new Date(getDateString(paymentDate));
+       const currentMonth = today.substring(0, 7);
        
-        const allPaychecks = data.paycheckHistory.filter(p =>
-            p.personId === personId &&
-            p.type === 'salary' &&
-            p.isAutoLogged
-        );
-       
-        const paychecksToRemove = allPaychecks.filter(p => {
-            return p.date >= newStartDate;
-        });
-       
-        if (paychecksToRemove.length > 0) {
-            data.paycheckHistory = data.paycheckHistory.filter(p =>
-                !(p.personId === personId &&
-                  p.type === 'salary' &&
-                  p.isAutoLogged &&
-                  p.date >= newStartDate)
-            );
-        }
-       
-        generateHistoricalPayments(personId, person, new Date(newStartDate), income, frequency, employer);
-       
-    } else if (hasAmountChange && !hasDateChange && !hasFrequencyChange) {
-        const startDate = getDateString(paymentDate);
-       
-        const paychecksToUpdate = data.paycheckHistory.filter(p =>
-            p.personId === personId &&
-            p.type === 'salary' &&
-            p.isAutoLogged &&
-            !p.isAdditional &&
-            p.date >= startDate
-        );
-       
-        let updatedCount = 0;
-        paychecksToUpdate.forEach(paycheck => {
-            paycheck.amount = income;
-            paycheck.description = employer ? `${frequency} salary - ${employer}` : `${frequency} salary`;
-            if (employer) paycheck.employer = employer;
-            updatedCount++;
-        });
-       
-    } else if (!oldPaymentDate && paymentDate) {
-        generateHistoricalPayments(personId, person, new Date(getDateString(paymentDate)), income, frequency, employer);
-    }
-   
-    person.income = income;
-    person.frequency = frequency;
-    person.paymentDate = paymentDate;
-    person.employer = employer;
-   
-    if (!data.peopleIncomeSettings[personId]) {
-        data.peopleIncomeSettings[personId] = {};
-    }
-    data.peopleIncomeSettings[personId] = {
-        lastAmount: income,
-        lastFrequency: frequency,
-        lastPaymentDate: paymentDate,
-        nextPaymentDate: paymentDate ? getDateString(getNextPaymentDate(new Date(getDateString(paymentDate)), frequency)) : null,
-        currentAmount: income
-    };
-   
-    saveDataToLocalStorage();
-    updateGreeting();
-    updateBillPayerOptions();
-    updateHistoryDisplay();
-    updateOverview();
-    updatePersonOverview(personId);
-    ensureDataConsistency();
+       if (oldDate.toISOString().substring(0, 7) === currentMonth && 
+           newDate.toISOString().substring(0, 7) === currentMonth) {
+           
+           if (frequency === 'biweekly') {
+               const currentMonthPaychecks = data.paycheckHistory.filter(p => 
+                   p.personId === personId && 
+                   p.date.startsWith(currentMonth) && 
+                   p.isAutoLogged && 
+                   p.type === 'salary'
+               );
+               
+               currentMonthPaychecks.forEach(paycheck => {
+                   const paycheckDate = new Date(paycheck.date);
+                   const daysDiff = Math.floor((paycheckDate - oldDate) / (1000 * 60 * 60 * 24));
+                   
+                   if (daysDiff >= 0 && daysDiff % 14 === 0) {
+                       data.paycheckHistory = data.paycheckHistory.filter(p => p.id !== paycheck.id);
+                   }
+               });
+               
+           } else {
+               data.paycheckHistory = data.paycheckHistory.filter(p => 
+                   !(p.personId === personId && 
+                     p.date === getDateString(oldPaymentDate) && 
+                     p.isAutoLogged && 
+                     p.type === 'salary')
+               );
+           }
+           
+           data.eventHistory.push({
+               id: nextEventId++,
+               date: today,
+               event: 'Paycheck(s) Removed',
+               description: `Removed auto-logged ${frequency} paycheck(s) for ${person.name} due to date change to future date`
+           });
+       }
+   }
+  
+   if (!isFutureDate && (hasDateChange || hasFrequencyChange)) {
+       const newStartDate = getDateString(paymentDate);
+      
+       const allPaychecks = data.paycheckHistory.filter(p =>
+           p.personId === personId &&
+           p.type === 'salary' &&
+           p.isAutoLogged
+       );
+      
+       const paychecksToRemove = allPaychecks.filter(p => {
+           return p.date >= newStartDate;
+       });
+      
+       if (paychecksToRemove.length > 0) {
+           data.paycheckHistory = data.paycheckHistory.filter(p =>
+               !(p.personId === personId &&
+                 p.type === 'salary' &&
+                 p.isAutoLogged &&
+                 p.date >= newStartDate)
+           );
+       }
+      
+       generateHistoricalPayments(personId, person, new Date(newStartDate), income, frequency, employer);
+      
+   } else if (!isFutureDate && hasAmountChange && !hasDateChange && !hasFrequencyChange) {
+       const startDate = getDateString(paymentDate);
+      
+       const paychecksToUpdate = data.paycheckHistory.filter(p =>
+           p.personId === personId &&
+           p.type === 'salary' &&
+           p.isAutoLogged &&
+           !p.isAdditional &&
+           p.date >= startDate
+       );
+      
+       paychecksToUpdate.forEach(paycheck => {
+           paycheck.amount = income;
+           paycheck.description = employer ? `${frequency} salary - ${employer}` : `${frequency} salary`;
+           if (employer) paycheck.employer = employer;
+       });
+      
+   } else if (!oldPaymentDate && paymentDate && !isFutureDate) {
+       generateHistoricalPayments(personId, person, new Date(getDateString(paymentDate)), income, frequency, employer);
+   }
+  
+   person.income = income;
+   person.frequency = frequency;
+   person.paymentDate = paymentDate;
+   person.employer = employer;
+  
+   if (!data.peopleIncomeSettings[personId]) {
+       data.peopleIncomeSettings[personId] = {};
+   }
+   data.peopleIncomeSettings[personId] = {
+       lastAmount: income,
+       lastFrequency: frequency,
+       lastPaymentDate: paymentDate,
+       nextPaymentDate: paymentDate ? getDateString(getNextPaymentDate(new Date(getDateString(paymentDate)), frequency)) : null,
+       currentAmount: income
+   };
+  
+   saveDataToLocalStorage();
+   updateGreeting();
+   updateBillPayerOptions();
+   updateHistoryDisplay();
+   updateOverview();
+   updatePersonOverview(personId);
+   ensureDataConsistency();
 }
 
 function rebuildScheduleFromDate(personId, newStartDate, income, frequency, employer) {
@@ -3730,8 +3836,6 @@ function addBonus(personId) {
 }
 
 function deletePaycheck(paycheckId, personId) {
-    if (!confirm('Are you sure you want to delete this paycheck? This cannot be undone.')) return;
-   
     const paycheck = data.paycheckHistory.find(p => p.id === paycheckId);
     if (!paycheck) return;
    
@@ -4312,7 +4416,10 @@ function fullReset() {
         billPayments: [],
         lastProcessedDate: null,
         peopleIncomeSettings: {},
-        savedFileHandle: null
+        uiPreferences: {},
+        savedFileHandle: null,
+        billHistoryId: 1,
+        dataVersion: "1.0"
     };
    
     nextPersonId = 1;
@@ -4322,7 +4429,9 @@ function fullReset() {
     nextPaycheckId = 1;
     savedFileHandle = null;
    
-    saveDataToLocalStorage();
+    localStorage.removeItem(STORAGE_KEY);
+    isPostImport = false;
+    importBaseline = {};
    
     document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
     document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
@@ -4451,18 +4560,9 @@ function clearChanges() {
 
 function loadData() {
     try {
-        const storedData = localStorage.getItem(STORAGE_KEY);
-        if (storedData) {
-            const parsed = JSON.parse(storedData);
-            if (parsed.isPostImport) {
-                console.log('Found post-import changes, will load from embedded data and apply changes');
-                localStorage.removeItem(STORAGE_KEY);
-            } else {
-                localStorage.removeItem(STORAGE_KEY);
-            }
-        }
-       
-        const embeddedScript = $('embedded-data');
+        localStorage.removeItem(STORAGE_KEY);
+        
+        const embeddedScript = document.getElementById('embedded-data');
         data = JSON.parse(embeddedScript.textContent);
         originalEmbeddedData = JSON.parse(JSON.stringify(data));
         sessionStartData = JSON.parse(JSON.stringify(data));
@@ -4474,14 +4574,17 @@ function loadData() {
         nextPaycheckId = data.nextPaycheckId || 1;
         savedFileHandle = data.savedFileHandle || null;
        
+        isPostImport = false;
+        importBaseline = {};
+       
         initializeBillPaymentIds();
        
         if (data.darkMode) document.body.classList.add('dark-mode');
-        $('currencySelect').value = data.currency || 'USD';
-        $('weightedBillsSidebar').checked = data.weightedBills || false;
+        document.getElementById('currencySelect').value = data.currency || 'USD';
+        document.getElementById('weightedBillsSidebar').checked = data.weightedBills || false;
        
         showTab('overview');
-        const sidebar = $('sidebar');
+        const sidebar = document.getElementById('sidebar');
         if (sidebar.classList.contains('open')) {
             sidebar.classList.remove('open');
         }
@@ -4646,6 +4749,8 @@ function calculateChanges() {
 
 async function saveDataToFile() {
     try {
+        const exportData = createCleanExportData();
+        
         data.nextPersonId = nextPersonId;
         data.nextBillId = nextBillId;
         data.nextIncomeId = nextIncomeId;
@@ -4653,8 +4758,8 @@ async function saveDataToFile() {
         data.nextPaycheckId = nextPaycheckId;
         data.savedFileHandle = savedFileHandle;
        
-        const embeddedScript = $('embedded-data');
-        embeddedScript.textContent = JSON.stringify(data, null, 8);
+        const embeddedScript = document.getElementById('embedded-data');
+        embeddedScript.textContent = JSON.stringify(exportData, null, 8);
         const htmlContent = document.documentElement.outerHTML;
        
         if ('showSaveFilePicker' in window) {
@@ -4664,6 +4769,12 @@ async function saveDataToFile() {
                     await writable.write(htmlContent);
                     await writable.close();
                     alert('File saved successfully!');
+                    
+                    if (isPostImport) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        importBaseline = JSON.parse(JSON.stringify(exportData));
+                    }
+                    
                     clearChanges();
                     return;
                 } catch (err) {
@@ -4709,6 +4820,12 @@ async function saveDataToFile() {
             URL.revokeObjectURL(url);
             alert('File downloaded successfully! Please save it over your original file.');
         }
+        
+        if (isPostImport) {
+            localStorage.removeItem(STORAGE_KEY);
+            importBaseline = JSON.parse(JSON.stringify(exportData));
+        }
+        
         clearChanges();
     } catch (e) {
         console.error('Failed to save file:', e);
@@ -4738,233 +4855,232 @@ function recordEvent(eventType, description) {
 
 
 function processElapsedBills() {
-    const today = getDateString();
-    let billsUpdated = false;
-    let billPaymentsAdded = 0;
+   const today = getDateString();
+   let billsUpdated = false;
+   let billPaymentsAdded = 0;
 
-    data.bills.forEach(bill => {
-        if (bill.isDeleted) return;
-       
-        if (bill.isDebt && bill.totalDebt <= 0.01) {
-            recordEvent('Debt Paid Off', `${bill.name} debt fully paid off!`);
-            bill.isDeleted = true;
-            return;
-        }
-       
-        if (bill.isOneOff) {
-            const billDate = getDateString(bill.date);
-           
-            if (billDate <= today) {
-                const paymentExists = data.billPayments.some(payment => payment.billId === bill.id);
-               
-                if (!paymentExists) {
-                    const paymentRecord = {
-                        id: data.billPaymentId++,
-                        billId: bill.id,
-                        billName: bill.name,
-                        amount: bill.amount,
-                        date: billDate,
-                        category: bill.category,
-                        billType: bill.billType || 'individual',
-                        payer: bill.payer,
-                        status: 'One-off expense'
-                    };
-                   
-                    if (!data.billPayments) data.billPayments = [];
-                    data.billPayments.push(paymentRecord);
-                    billsUpdated = true;
-                    billPaymentsAdded++;
-                }
-            }
-            return;
-        }
-       
-        const billCreatedDate = getDateString(bill.dateCreated) || '1970-01-01';
-        let checkDate = new Date(billCreatedDate);
-       
-        if (bill.frequency === 'monthly') {
-            checkDate = new Date(new Date(billCreatedDate).getFullYear(), new Date(billCreatedDate).getMonth(), bill.day);
-           
-            if (getDateString(checkDate) < billCreatedDate) {
-                checkDate.setMonth(checkDate.getMonth() + 1);
-            }
-           
-            while (getDateString(checkDate) <= today) {
-                const paymentDate = getDateString(checkDate);
-               
-                const paymentExists = data.billPayments.some(payment =>
-                    payment.billId === bill.id &&
-                    payment.date === paymentDate
-                );
+   if (!data.billPayments) data.billPayments = [];
+   if (!data.billPaymentId) data.billPaymentId = 1;
 
-                if (!paymentExists) {
-                    const paymentAmount = bill.amount + (bill.overpayment || 0);
-                   
-                    if (bill.isDebt) {
-                        const monthlyRate = (bill.interestRate || 0) / 100 / 12;
-                        const interest = bill.totalDebt * monthlyRate;
-                        const principal = Math.min(paymentAmount - interest, bill.totalDebt);
-                       
-                        bill.totalDebt = Math.max(0, bill.totalDebt - principal);
-                        billsUpdated = true;
+   data.bills.forEach(bill => {
+       if (bill.isDeleted) return;
+      
+       if (bill.isDebt && bill.totalDebt <= 0.01) {
+           recordEvent('Debt Paid Off', `${bill.name} debt fully paid off!`);
+           bill.isDeleted = true;
+           return;
+       }
+      
+       if (bill.isOneOff) {
+           const billDate = getDateString(bill.date);
+          
+           if (billDate <= today) {
+               const paymentExists = data.billPayments.some(payment => payment.billId === bill.id);
+              
+               if (!paymentExists) {
+                   const paymentRecord = {
+                       id: data.billPaymentId++,
+                       billId: bill.id,
+                       billName: bill.name,
+                       amount: bill.amount,
+                       date: billDate,
+                       category: bill.category,
+                       billType: bill.billType || 'individual',
+                       payer: bill.payer,
+                       status: 'Auto-processed one-off expense'
+                   };
+                  
+                   data.billPayments.push(paymentRecord);
+                   billsUpdated = true;
+                   billPaymentsAdded++;
+               }
+           }
+           return;
+       }
+      
+       const billCreatedDate = getDateString(bill.dateCreated) || '1970-01-01';
+       let checkDate = new Date(billCreatedDate);
+      
+       if (bill.frequency === 'monthly') {
+           checkDate = new Date(new Date(billCreatedDate).getFullYear(), new Date(billCreatedDate).getMonth(), bill.day);
+          
+           if (getDateString(checkDate) < billCreatedDate) {
+               checkDate.setMonth(checkDate.getMonth() + 1);
+           }
+          
+           while (getDateString(checkDate) <= today) {
+               const paymentDate = getDateString(checkDate);
+              
+               const paymentExists = data.billPayments.some(payment =>
+                   payment.billId === bill.id &&
+                   payment.date === paymentDate
+               );
 
-                        const paymentRecord = {
-                            id: data.billPaymentId++,
-                            billId: bill.id,
-                            billName: bill.name,
-                            amount: paymentAmount,
-                            date: paymentDate,
-                            category: bill.category,
-                            billType: bill.billType || 'individual',
-                            payer: bill.payer,
-                            status: 'Auto-processed payment',
-                            interestPaid: interest,
-                            principalPaid: principal
-                        };
-                       
-                        if (!data.billPayments) data.billPayments = [];
-                        data.billPayments.push(paymentRecord);
-                        billPaymentsAdded++;
+               if (!paymentExists) {
+                   const paymentAmount = bill.amount + (bill.overpayment || 0);
+                  
+                   if (bill.isDebt) {
+                       const monthlyRate = (bill.interestRate || 0) / 100 / 12;
+                       const interest = bill.totalDebt * monthlyRate;
+                       const principal = Math.min(paymentAmount - interest, bill.totalDebt);
+                      
+                       bill.totalDebt = Math.max(0, bill.totalDebt - principal);
+                       billsUpdated = true;
 
-                        if (bill.totalDebt <= 0.01) {
-                            recordEvent('Debt Paid Off', `${bill.name} debt fully paid off!`);
-                            break;
-                        }
-                    } else {
-                        const paymentRecord = {
-                            id: data.billPaymentId++,
-                            billId: bill.id,
-                            billName: bill.name,
-                            amount: paymentAmount,
-                            date: paymentDate,
-                            category: bill.category,
-                            billType: bill.billType || 'individual',
-                            payer: bill.payer,
-                            status: 'Auto-processed payment'
-                        };
-                       
-                        if (!data.billPayments) data.billPayments = [];
-                        data.billPayments.push(paymentRecord);
-                        billsUpdated = true;
-                        billPaymentsAdded++;
-                    }
-                }
+                       const paymentRecord = {
+                           id: data.billPaymentId++,
+                           billId: bill.id,
+                           billName: bill.name,
+                           amount: paymentAmount,
+                           date: paymentDate,
+                           category: bill.category,
+                           billType: bill.billType || 'individual',
+                           payer: bill.payer,
+                           status: 'Auto-processed debt payment',
+                           interestPaid: interest,
+                           principalPaid: principal
+                       };
+                      
+                       data.billPayments.push(paymentRecord);
+                       billPaymentsAdded++;
 
-                checkDate.setMonth(checkDate.getMonth() + 1);
-               
-                const daysInNextMonth = new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 0).getDate();
-                if (bill.day > daysInNextMonth) {
-                    checkDate.setDate(daysInNextMonth);
-                } else {
-                    checkDate.setDate(bill.day);
-                }
-            }
+                       if (bill.totalDebt <= 0.01) {
+                           recordEvent('Debt Paid Off', `${bill.name} debt fully paid off!`);
+                           break;
+                       }
+                   } else {
+                       const paymentRecord = {
+                           id: data.billPaymentId++,
+                           billId: bill.id,
+                           billName: bill.name,
+                           amount: paymentAmount,
+                           date: paymentDate,
+                           category: bill.category,
+                           billType: bill.billType || 'individual',
+                           payer: bill.payer,
+                           status: 'Auto-processed payment'
+                       };
+                      
+                       data.billPayments.push(paymentRecord);
+                       billsUpdated = true;
+                       billPaymentsAdded++;
+                   }
+               }
 
-            bill.date = getDateString(checkDate);
-            billsUpdated = true;
-        } else if (bill.frequency === 'quarterly') {
-            const billStartMonth = bill.startMonth || (new Date(billCreatedDate).getMonth() + 1);
-            checkDate = new Date(new Date(billCreatedDate).getFullYear(), billStartMonth - 1, bill.day);
-           
-            if (getDateString(checkDate) < billCreatedDate) {
-                checkDate.setMonth(checkDate.getMonth() + 3);
-            }
-           
-            while (getDateString(checkDate) <= today) {
-                const paymentExists = data.billPayments.some(payment =>
-                    payment.billId === bill.id &&
-                    payment.date === getDateString(checkDate)
-                );
+               checkDate.setMonth(checkDate.getMonth() + 1);
+              
+               const daysInNextMonth = new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 0).getDate();
+               if (bill.day > daysInNextMonth) {
+                   checkDate.setDate(daysInNextMonth);
+               } else {
+                   checkDate.setDate(bill.day);
+               }
+           }
 
-                if (!paymentExists) {
-                    const paymentAmount = bill.amount + (bill.overpayment || 0);
-                   
-                    const paymentRecord = {
-                        id: data.billPaymentId++,
-                        billId: bill.id,
-                        billName: bill.name,
-                        amount: paymentAmount,
-                        date: getDateString(checkDate),
-                        category: bill.category,
-                        billType: bill.billType || 'individual',
-                        payer: bill.payer,
-                        status: 'Auto-processed payment'
-                    };
-                   
-                    if (!data.billPayments) data.billPayments = [];
-                    data.billPayments.push(paymentRecord);
-                    billsUpdated = true;
-                    billPaymentsAdded++;
-                }
-               
-                checkDate.setMonth(checkDate.getMonth() + 3);
-               
-                const daysInTargetMonth = new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 0).getDate();
-                if (bill.day > daysInTargetMonth) {
-                    checkDate.setDate(daysInTargetMonth);
-                } else {
-                    checkDate.setDate(bill.day);
-                }
-            }
+           bill.date = getDateString(checkDate);
+           billsUpdated = true;
+       } else if (bill.frequency === 'quarterly') {
+           const billStartMonth = bill.startMonth || (new Date(billCreatedDate).getMonth() + 1);
+           checkDate = new Date(new Date(billCreatedDate).getFullYear(), billStartMonth - 1, bill.day);
+          
+           if (getDateString(checkDate) < billCreatedDate) {
+               checkDate.setMonth(checkDate.getMonth() + 3);
+           }
+          
+           while (getDateString(checkDate) <= today) {
+               const paymentExists = data.billPayments.some(payment =>
+                   payment.billId === bill.id &&
+                   payment.date === getDateString(checkDate)
+               );
 
-            bill.date = getDateString(checkDate);
-            billsUpdated = true;
-        } else if (bill.frequency === 'yearly' && bill.month) {
-            checkDate = new Date(new Date(billCreatedDate).getFullYear(), bill.month - 1, bill.day);
-           
-            if (getDateString(checkDate) < billCreatedDate) {
-                checkDate.setFullYear(checkDate.getFullYear() + 1);
-            }
-           
-            while (getDateString(checkDate) <= today) {
-                const paymentExists = data.billPayments.some(payment =>
-                    payment.billId === bill.id &&
-                    payment.date === getDateString(checkDate)
-                );
+               if (!paymentExists) {
+                   const paymentAmount = bill.amount + (bill.overpayment || 0);
+                  
+                   const paymentRecord = {
+                       id: data.billPaymentId++,
+                       billId: bill.id,
+                       billName: bill.name,
+                       amount: paymentAmount,
+                       date: getDateString(checkDate),
+                       category: bill.category,
+                       billType: bill.billType || 'individual',
+                       payer: bill.payer,
+                       status: 'Auto-processed payment'
+                   };
+                  
+                   data.billPayments.push(paymentRecord);
+                   billsUpdated = true;
+                   billPaymentsAdded++;
+               }
+              
+               checkDate.setMonth(checkDate.getMonth() + 3);
+              
+               const daysInTargetMonth = new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 0).getDate();
+               if (bill.day > daysInTargetMonth) {
+                   checkDate.setDate(daysInTargetMonth);
+               } else {
+                   checkDate.setDate(bill.day);
+               }
+           }
 
-                if (!paymentExists) {
-                    const paymentAmount = bill.amount + (bill.overpayment || 0);
-                   
-                    const paymentRecord = {
-                        id: data.billPaymentId++,
-                        billId: bill.id,
-                        billName: bill.name,
-                        amount: paymentAmount,
-                        date: getDateString(checkDate),
-                        category: bill.category,
-                        billType: bill.billType || 'individual',
-                        payer: bill.payer,
-                        status: 'Auto-processed payment'
-                    };
-                   
-                    if (!data.billPayments) data.billPayments = [];
-                    data.billPayments.push(paymentRecord);
-                    billsUpdated = true;
-                    billPaymentsAdded++;
-                }
-               
-                checkDate.setFullYear(checkDate.getFullYear() + 1);
-               
-                const daysInTargetMonth = new Date(checkDate.getFullYear(), bill.month, 0).getDate();
-                if (bill.day > daysInTargetMonth) {
-                    checkDate.setDate(daysInTargetMonth);
-                } else {
-                    checkDate.setDate(bill.day);
-                }
-            }
+           bill.date = getDateString(checkDate);
+           billsUpdated = true;
+       } else if (bill.frequency === 'yearly' && bill.month) {
+           checkDate = new Date(new Date(billCreatedDate).getFullYear(), bill.month - 1, bill.day);
+          
+           if (getDateString(checkDate) < billCreatedDate) {
+               checkDate.setFullYear(checkDate.getFullYear() + 1);
+           }
+          
+           while (getDateString(checkDate) <= today) {
+               const paymentExists = data.billPayments.some(payment =>
+                   payment.billId === bill.id &&
+                   payment.date === getDateString(checkDate)
+               );
 
-            bill.date = getDateString(checkDate);
-            billsUpdated = true;
-        }
-    });
+               if (!paymentExists) {
+                   const paymentAmount = bill.amount + (bill.overpayment || 0);
+                  
+                   const paymentRecord = {
+                       id: data.billPaymentId++,
+                       billId: bill.id,
+                       billName: bill.name,
+                       amount: paymentAmount,
+                       date: getDateString(checkDate),
+                       category: bill.category,
+                       billType: bill.billType || 'individual',
+                       payer: bill.payer,
+                       status: 'Auto-processed payment'
+                   };
+                  
+                   data.billPayments.push(paymentRecord);
+                   billsUpdated = true;
+                   billPaymentsAdded++;
+               }
+              
+               checkDate.setFullYear(checkDate.getFullYear() + 1);
+              
+               const daysInTargetMonth = new Date(checkDate.getFullYear(), bill.month, 0).getDate();
+               if (bill.day > daysInTargetMonth) {
+                   checkDate.setDate(daysInTargetMonth);
+               } else {
+                   checkDate.setDate(bill.day);
+               }
+           }
 
-    data.bills = data.bills.filter(bill => !(bill.isDebt && bill.totalDebt <= 0.01));
-   
-    if (billsUpdated) {
-        saveDataToLocalStorage();
-    }
-   
-    return billsUpdated;
+           bill.date = getDateString(checkDate);
+           billsUpdated = true;
+       }
+   });
+
+   data.bills = data.bills.filter(bill => !(bill.isDebt && bill.totalDebt <= 0.01));
+  
+   if (billsUpdated) {
+       data.lastProcessedDate = today;
+       saveDataToLocalStorage();
+   }
+  
+   return billsUpdated;
 }
 
 function ensureDataConsistency() {
@@ -5152,11 +5268,14 @@ function generateMissingBillPayments(startDate, endDate) {
 }
 
 function processImportBills() {
-    const billPaymentsCountBefore = data.billPayments ? data.billPayments.length : 0;
+    if (!data.billPayments) data.billPayments = [];
+    if (!data.billPaymentId) data.billPaymentId = 1;
+    
+    const billPaymentsCountBefore = data.billPayments.length;
    
     const billsUpdated = processElapsedBills();
    
-    const billPaymentsAdded = (data.billPayments ? data.billPayments.length : 0) - billPaymentsCountBefore;
+    const billPaymentsAdded = data.billPayments.length - billPaymentsCountBefore;
    
     if (billPaymentsAdded > 0) {
         console.log(`Added ${billPaymentsAdded} bill payments during import processing`);
@@ -5166,8 +5285,6 @@ function processImportBills() {
             event: 'Import Bill Processing',
             description: `Added ${billPaymentsAdded} bill payments for past due dates during import processing`
         });
-    } else {
-        console.log("No missing bill payments found during import processing");
     }
    
     return billPaymentsAdded > 0;
@@ -5192,6 +5309,9 @@ function processElapsedIncome() {
    
     data.people.forEach(person => {
         if (!person.paymentDate || !person.income || !person.frequency) return;
+        
+        const paymentStartDate = getDateString(person.paymentDate);
+        if (paymentStartDate > today) return;
        
         if (!data.peopleIncomeSettings[person.id]) {
             data.peopleIncomeSettings[person.id] = {
@@ -6230,22 +6350,6 @@ function showEditBillModal(bill) {
         modalContent = $('modalContent');
     }
    
-    const today = new Date();
-    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    const currentMonthYearStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-   
-    const currentBillDayThisMonth = new Date(today.getFullYear(), today.getMonth(), bill.day);
-    const currentBillDateStr = getDateString(currentBillDayThisMonth);
-   
-    const currentMonthPayment = data.billPayments.find(payment =>
-        payment.billId === bill.id &&
-        payment.date.startsWith(currentMonthYearStr) &&
-        new Date(payment.date).getDate() === bill.day
-    );
-   
-    const isAlreadyPaidThisMonth = !!currentMonthPayment;
-   
     const dayOptions = Array.from({length: 31}, (_, i) => {
         const day = i + 1;
         return `<option value="${day}"${bill.day === day ? ' selected' : ''}>${day}</option>`;
@@ -6340,16 +6444,11 @@ function showEditBillModal(bill) {
         </div>
     `;
 
-    const paidWarningHTML = isAlreadyPaidThisMonth ? `
-        <div style="background:#fff3cd;padding:15px;border-radius:8px;margin:20px 0;color:#856404;font-size:12px;border:1px solid #ffeaa7;">
-            <strong>Note:</strong> This bill has already been paid for day ${bill.day} in ${today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
-            Date changes for this month will update the payment record. Other changes will only affect future months.
-        </div>
-    ` : '';
-
     modalContent.innerHTML = `
         <h3 style="margin-bottom:20px;">Edit ${bill.isOneOff ? 'One-off Expense' : 'Bill'}: ${bill.name}</h3>
-        ${paidWarningHTML}
+        <div style="background:#e3f2fd;padding:15px;border-radius:8px;margin:20px 0;color:#1565c0;font-size:12px;border:1px solid #90caf9;">
+            <strong>Template Edit:</strong> This will update the bill template and adjust ALL existing payment dates to match the new schedule. To edit only a single payment, use the History tab.
+        </div>
         <div class="form-group">
             <label for="editBillName">${bill.isOneOff ? 'Expense' : 'Bill'} Name</label>
             <input type="text" id="editBillName" value="${bill.name}">
@@ -6393,13 +6492,8 @@ function showEditBillModal(bill) {
             </div>`}
         </div>
        
-        <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0;color:#666;font-size:12px;">
-            <strong>Edit Policy:</strong> Changes will apply from ${currentMonthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} forward.
-            All payments before this month will remain unchanged in your payment history.
-        </div>
-       
         <div style="display:flex;gap:10px;margin-top:20px;">
-            <button id="saveEditBtn" style="flex:1;">Save Changes</button>
+            <button id="saveEditBtn" style="flex:1;">Save Template Changes</button>
             <button id="cancelEditBtn" style="flex:1;background:#666;">Cancel</button>
         </div>
     `;
@@ -6517,21 +6611,14 @@ function showEditBillModal(bill) {
             alert('Please select a valid payer');
             return;
         }
-       
-        const today = new Date();
-        const todayString = getDateString(today);
-        const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-       
-        const originalBill = JSON.parse(JSON.stringify(bill));
-       
+
         if (bill.isOneOff) {
+            const oldDate = bill.date;
             bill.name = name;
             bill.amount = amount;
             bill.category = category;
             bill.billType = billType;
             bill.payer = payer;
-           
-            const oldDate = bill.date;
             bill.date = getDateString(newDate);
            
             const associatedPayment = data.billPayments.find(p => p.billId === bill.id);
@@ -6554,101 +6641,12 @@ function showEditBillModal(bill) {
                 event: 'One-Off Expense Updated',
                 description: `Updated one-off expense: ${name} - ${formatCurrency(amount)}, date: ${bill.date}`
             });
-        }
-        else if (isAlreadyPaidThisMonth && !bill.isOneOff) {
-            if (originalBill.day !== day) {
-                const newPaymentDate = new Date(today.getFullYear(), today.getMonth(), day);
-                const newPaymentDateStr = getDateString(newPaymentDate);
-               
-                if (newPaymentDateStr > todayString) {
-                    data.billPayments = data.billPayments.filter(p => p !== currentMonthPayment);
-                   
-                    data.eventHistory.push({
-                        id: nextEventId++,
-                        date: getDateString(),
-                        event: 'Payment Removed',
-                        description: `Removed payment for ${name} from day ${originalBill.day}. Bill rescheduled to future date (${day}/${today.getMonth()+1}/${today.getFullYear()}).`
-                    });
-                } else {
-                    if (day > currentMonthEnd.getDate()) {
-                        newPaymentDate.setDate(currentMonthEnd.getDate());
-                    }
-                   
-                    currentMonthPayment.date = getDateString(newPaymentDate);
-                   
-                    if (!currentMonthPayment.status.includes('(date changed)')) {
-                        currentMonthPayment.status += ' (date changed)';
-                    }
-                   
-                    if (name !== originalBill.name) {
-                        currentMonthPayment.billName = name;
-                    }
-                   
-                    if (category !== originalBill.category) {
-                        currentMonthPayment.category = category;
-                    }
-                   
-                    if (amount !== originalBill.amount) {
-                        const originalAmount = currentMonthPayment.amount;
-                        const originalBillAmount = originalBill.amount + (originalBill.overpayment || 0);
-                       
-                        if (originalAmount === originalBillAmount) {
-                            currentMonthPayment.amount = amount + (isDebt ? (parseFloat($('editOverpayment').value) || 0) : 0);
-                        }
-                    }
-                   
-                    data.eventHistory.push({
-                        id: nextEventId++,
-                        date: getDateString(),
-                        event: 'Payment Date Updated',
-                        description: `Updated already-paid bill ${name} date from ${originalBill.day} to ${day} for current month`
-                    });
-                }
-            }
-        }
-       
-        if (!bill.isOneOff) {
-            const oldDateInMonth = new Date(today.getFullYear(), today.getMonth(), originalBill.day);
-            const newDateInMonth = new Date(today.getFullYear(), today.getMonth(), day);
-            const oldDateStr = getDateString(oldDateInMonth);
-            const newDateStr = getDateString(newDateInMonth);
-           
-            if (oldDateStr <= todayString && newDateStr > todayString && !isAlreadyPaidThisMonth) {
-                const existingPayments = data.billPayments.filter(payment =>
-                    payment.billId === bill.id &&
-                    payment.date.startsWith(currentMonthYearStr)
-                );
-               
-                if (existingPayments.length > 0) {
-                    existingPayments.forEach(payment => {
-                        data.billPayments = data.billPayments.filter(p => p !== payment);
-                    });
-                   
-                    data.eventHistory.push({
-                        id: nextEventId++,
-                        date: getDateString(),
-                        event: 'Payments Removed',
-                        description: `Removed ${existingPayments.length} payment(s) for ${name} from day ${originalBill.day}. Bill rescheduled to future date (${day}/${today.getMonth()+1}/${today.getFullYear()}).`
-                    });
-                }
-            }
-        }
-
-        let needsToBePaidForPastDate = false;
-        if (!bill.isOneOff) {
-            const originalMonthDate = new Date(today.getFullYear(), today.getMonth(), originalBill.day);
-            const newMonthDate = new Date(today.getFullYear(), today.getMonth(), day);
-           
-            if (getDateString(originalMonthDate) > todayString && getDateString(newMonthDate) <= todayString) {
-                needsToBePaidForPastDate = true;
-            }
-        }
-
-        if (!bill.isOneOff) {
-            const startDate = currentMonthStart;
-           
-            const futurePaymentsRemoved = removeFutureBillPayments(bill.id, startDate);
-           
+        } else {
+            const oldDay = bill.day;
+            const oldMonth = bill.month;
+            const oldStartMonth = bill.startMonth;
+            const oldFrequency = bill.frequency;
+            
             bill.name = name;
             bill.amount = amount;
             bill.frequency = frequency;
@@ -6659,11 +6657,7 @@ function showEditBillModal(bill) {
             bill.billType = billType;
             bill.payer = payer;
             bill.isDebt = isDebt;
-           
-            bill.dateCreated = getDateString(startDate);
-           
-            bill.date = generateBillDate(day, month, frequency, startMonth);
-           
+            
             if (isDebt) {
                 bill.totalDebt = parseFloat($('editTotalDebt').value) || 0;
                 bill.interestRate = parseFloat($('editInterestRate').value) || 0;
@@ -6677,79 +6671,12 @@ function showEditBillModal(bill) {
                 delete bill.termMonths;
                 delete bill.overpayment;
             }
-           
-            if (needsToBePaidForPastDate) {
-                const pastDatePayment = {
-                    id: data.billPaymentId++,
-                    billId: bill.id,
-                    billName: bill.name,
-                    amount: bill.amount + (bill.overpayment || 0),
-                    date: getDateString(new Date(today.getFullYear(), today.getMonth(), day)),
-                    category: bill.category,
-                    billType: bill.billType,
-                    payer: bill.payer,
-                    status: 'Auto-processed payment (past due date)'
-                };
-               
-                if (!data.billPayments) data.billPayments = [];
-                data.billPayments.push(pastDatePayment);
-               
-                data.eventHistory.push({
-                    id: nextEventId++,
-                    date: getDateString(),
-                    event: 'Bill Payment Auto-Created',
-                    description: `Created payment for ${bill.name} for past date (${day}/${today.getMonth()+1}) after changing from future date - ${formatCurrency(bill.amount + (bill.overpayment || 0))}`
-                });
+            
+            if (oldDay !== day || oldMonth !== month || oldStartMonth !== startMonth || oldFrequency !== frequency) {
+                bill.date = updateBillSchedule(bill, day, month, startMonth, frequency);
+            } else {
+                bill.date = generateBillDate(day, month, frequency, startMonth);
             }
-            else if (!isAlreadyPaidThisMonth) {
-                const todayString = today.toISOString().split('T')[0];
-                const isBillDueToday = isBillDueOnDate(bill, todayString);
-               
-                if (isBillDueToday) {
-                    const existingPayment = data.billPayments.find(payment =>
-                        payment.billId === bill.id &&
-                        payment.date === todayString
-                    );
-                   
-                    if (!existingPayment) {
-                        const paymentRecord = {
-                            id: data.billPaymentId++,
-                            billId: bill.id,
-                            billName: bill.name,
-                            amount: bill.amount + (bill.overpayment || 0),
-                            date: todayString,
-                            category: bill.category,
-                            billType: bill.billType,
-                            payer: bill.payer,
-                            status: 'Auto-processed payment (bill edited to be due today)'
-                        };
-                       
-                        if (!data.billPayments) data.billPayments = [];
-                        data.billPayments.push(paymentRecord);
-                       
-                        data.eventHistory.push({
-                            id: nextEventId++,
-                            date: getDateString(),
-                            event: 'Bill Payment Auto-Created',
-                            description: `Created payment for ${bill.name} due today after bill edit - ${formatCurrency(bill.amount + (bill.overpayment || 0))}`
-                        });
-                    }
-                }
-            }
-        }
-       
-        const payerName = payer === 'joint' ? 'Joint Account' :
-                         data.people.find(p => p.id === payer)?.name || 'Unknown';
-       
-        const effectiveFrom = currentMonthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-       
-        if (!bill.isOneOff) {
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'Bill Updated',
-                description: `Updated ${bill.name} details, paid by ${payerName}. Changes apply from ${effectiveFrom} forward. Historical payments preserved.`
-            });
         }
        
         saveDataToLocalStorage();
@@ -6764,6 +6691,68 @@ function showEditBillModal(bill) {
     $('cancelEditBtn').addEventListener('click', hideModal);
    
     showModal();
+}
+
+function updateBillSchedule(bill, newDay, newMonth, newStartMonth, newFrequency) {
+    const today = getDateString();
+    const billCreatedDate = getDateString(bill.dateCreated) || today;
+    
+    const existingPayments = data.billPayments.filter(payment => payment.billId === bill.id);
+    const updatedPayments = [];
+    
+    existingPayments.forEach(payment => {
+        const oldPaymentDate = new Date(payment.date);
+        const newPaymentDate = calculateNewPaymentDate(oldPaymentDate, bill, newDay, newMonth, newStartMonth, newFrequency);
+        
+        if (newPaymentDate) {
+            payment.date = getDateString(newPaymentDate);
+            payment.status = payment.status.includes('(date changed)') ? payment.status : payment.status + ' (date changed)';
+            updatedPayments.push(payment);
+        }
+    });
+    
+    const newBillDate = generateBillDate(newDay, newMonth, newFrequency, newStartMonth);
+    
+    data.eventHistory.push({
+        id: nextEventId++,
+        date: today,
+        event: 'Bill Schedule Updated',
+        description: `Updated ${bill.name} schedule. ${updatedPayments.length} existing payments adjusted to new dates.`
+    });
+    
+    return newBillDate;
+}
+
+function calculateNewPaymentDate(oldDate, bill, newDay, newMonth, newStartMonth, newFrequency) {
+    const oldYear = oldDate.getFullYear();
+    const oldMonthNum = oldDate.getMonth();
+    
+    if (newFrequency === 'yearly' && newMonth) {
+        return new Date(oldYear, newMonth - 1, newDay);
+    }
+    
+    if (newFrequency === 'quarterly' && newStartMonth) {
+        const quarterMonths = [];
+        for (let k = 0; k < 4; k++) {
+            quarterMonths.push(((newStartMonth - 1 + k * 3) % 12));
+        }
+        
+        const oldQuarterIndex = quarterMonths.findIndex(month => month === oldMonthNum);
+        if (oldQuarterIndex !== -1) {
+            return new Date(oldYear, quarterMonths[oldQuarterIndex], newDay);
+        }
+        
+        const nearestQuarterMonth = quarterMonths.reduce((prev, curr) => 
+            Math.abs(curr - oldMonthNum) < Math.abs(prev - oldMonthNum) ? curr : prev
+        );
+        return new Date(oldYear, nearestQuarterMonth, newDay);
+    }
+    
+    if (newFrequency === 'monthly') {
+        return new Date(oldYear, oldMonthNum, newDay);
+    }
+    
+    return null;
 }
 
 function removeFutureBillPayments(billId, fromDate) {
@@ -7170,51 +7159,8 @@ function updateOverview() {
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
    
-    const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-    let incomeTotal = data.paycheckHistory
-        .filter(p => p.date.startsWith(currentMonthStr))
-        .reduce((sum, paycheck) => sum + paycheck.amount, 0);
-   
-    if (incomeTotal === 0) {
-        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        let billsTotal = 0;
-       
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dayDate = new Date(currentYear, currentMonth, day);
-            const dayEvents = getDayEvents(dayDate);
-           
-            const billItems = getBillItemsFromEvents(dayEvents);
-            billItems.forEach(bill => {
-                billsTotal += bill.amount;
-            });
-           
-            const oneOffItems = getOneOffItemsFromEvents(dayEvents);
-            oneOffItems.forEach(oneOff => {
-                billsTotal += oneOff.amount;
-            });
-           
-            const paydayItems = getPaydayItemsFromEvents(dayEvents);
-            paydayItems.forEach(payday => {
-                incomeTotal += payday.amount;
-            });
-           
-            const bonusItems = getBonusItemsFromEvents(dayEvents);
-            bonusItems.forEach(bonus => {
-                incomeTotal += bonus.amount;
-            });
-        }
-    }
-   
-    if (incomeTotal === 0) {
-        incomeTotal = data.people.reduce((sum, person) => {
-            return sum + calculateMonthlyBudget(person);
-        }, 0);
-    }
-   
-    const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
-    const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
-   
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    let incomeTotal = 0;
     let billsTotal = 0;
    
     for (let day = 1; day <= daysInMonth; day++) {
@@ -7230,7 +7176,20 @@ function updateOverview() {
         oneOffItems.forEach(oneOff => {
             billsTotal += oneOff.amount;
         });
+       
+        const paydayItems = getPaydayItemsFromEvents(dayEvents);
+        paydayItems.forEach(payday => {
+            incomeTotal += payday.amount;
+        });
+       
+        const bonusItems = getBonusItemsFromEvents(dayEvents);
+        bonusItems.forEach(bonus => {
+            incomeTotal += bonus.amount;
+        });
     }
+   
+    const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
+    const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
    
     const leftover = incomeTotal - billsTotal - totalMonthlySavings - totalMonthlyExpenses;
    
@@ -7646,38 +7605,36 @@ function createPersonTab(person) {
     `;
    
     const incomeHTML = `
-        <div class="card">
-            <h3>${person.name} - Income</h3>
-            <div class="form-group">
-                <label for="income-${person.id}">Income Amount</label>
-                <input type="number" id="income-${person.id}" value="${person.income || 0}" placeholder="0.00" step="0.01">
-            </div>
-            <div class="form-group">
-                <label for="frequency-${person.id}">Payment Frequency</label>
-                <select id="frequency-${person.id}">
-                    <option value="biweekly"${person.frequency === 'biweekly' ? ' selected' : ''}>Biweekly</option>
-                    <option value="monthly"${person.frequency === 'monthly' ? ' selected' : ''}>Monthly</option>
-                    <option value="quarterly"${person.frequency === 'quarterly' ? ' selected' : ''}>Quarterly</option>
-                    <option value="yearly"${person.frequency === 'yearly' ? ' selected' : ''}>Yearly</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="paymentDate-${person.id}">Payment Start Date</label>
-                <input type="date" id="paymentDate-${person.id}" value="${person.paymentDate || ''}"
-                       max="${new Date().toISOString().split('T')[0]}"
-                       onchange="validateIncomeDate(this)">
-            </div>
-            <div class="form-group">
-                <label for="employer-${person.id}">Employer (Optional)</label>
-                <input type="text" id="employer-${person.id}" value="${person.employer || ''}" placeholder="Company name">
-            </div>
-            <button onclick="updatePersonIncome(${person.id})">Update Income</button>
-            <p style="font-size:12px;color:#666;margin-top:10px;">
-                Changing the start date will rebuild your payment schedule from that date forward, preserving any payments before that date.
-                You cannot set a future start date.
-            </p>
-        </div>
-    `;
+		<div class="card">
+			<h3>${person.name} - Income</h3>
+			<div class="form-group">
+				<label for="income-${person.id}">Income Amount</label>
+				<input type="number" id="income-${person.id}" value="${person.income || 0}" placeholder="0.00" step="0.01">
+			</div>
+			<div class="form-group">
+				<label for="frequency-${person.id}">Payment Frequency</label>
+				<select id="frequency-${person.id}">
+					<option value="biweekly"${person.frequency === 'biweekly' ? ' selected' : ''}>Biweekly</option>
+					<option value="monthly"${person.frequency === 'monthly' ? ' selected' : ''}>Monthly</option>
+					<option value="quarterly"${person.frequency === 'quarterly' ? ' selected' : ''}>Quarterly</option>
+					<option value="yearly"${person.frequency === 'yearly' ? ' selected' : ''}>Yearly</option>
+				</select>
+			</div>
+			<div class="form-group">
+				<label for="paymentDate-${person.id}">Payment Start Date</label>
+				<input type="date" id="paymentDate-${person.id}" value="${person.paymentDate || ''}"
+					   onchange="validateIncomeDate(this)">
+			</div>
+			<div class="form-group">
+				<label for="employer-${person.id}">Employer (Optional)</label>
+				<input type="text" id="employer-${person.id}" value="${person.employer || ''}" placeholder="Company name">
+			</div>
+			<button onclick="updatePersonIncome(${person.id})">Update Income</button>
+			<p style="font-size:12px;color:#666;margin-top:10px;">
+				Set a future start date to change your income from that date forward. Past payments will remain unchanged.
+			</p>
+		</div>
+	`;
    
     const savingsExpensesHTML = `
         <div class="card">
@@ -7761,14 +7718,6 @@ function createPersonTab(person) {
 }
 
 function validateIncomeDate(input) {
-    const today = new Date();
-    const selectedDate = new Date(input.value);
-   
-    if (selectedDate > today) {
-        alert('Income start date cannot be in the future. Please select today or an earlier date.');
-        input.value = '';
-        return false;
-    }
     return true;
 }
 
@@ -8583,7 +8532,76 @@ function finalizeSession() {
     saveDataToLocalStorage();
 }
 
+function mergeImportBaselineWithChanges() {
+   if (!isPostImport || Object.keys(importBaseline).length === 0) {
+       return null;
+   }
 
+   const storedData = localStorage.getItem(STORAGE_KEY);
+   let changes = {};
+   
+   if (storedData) {
+       try {
+           const parsed = JSON.parse(storedData);
+           if (parsed.isPostImport && parsed.changes) {
+               changes = parsed.changes;
+           }
+       } catch (e) {
+           console.warn('Could not parse localStorage changes:', e);
+       }
+   }
+
+   const mergedData = JSON.parse(JSON.stringify(importBaseline));
+
+   mergedData.people = JSON.parse(JSON.stringify(data.people));
+   mergedData.bills = JSON.parse(JSON.stringify(data.bills));
+   mergedData.paycheckHistory = JSON.parse(JSON.stringify(data.paycheckHistory));
+   mergedData.eventHistory = JSON.parse(JSON.stringify(data.eventHistory));
+   mergedData.billPayments = JSON.parse(JSON.stringify(data.billPayments));
+   mergedData.billHistory = JSON.parse(JSON.stringify(data.billHistory || []));
+   mergedData.peopleIncomeSettings = JSON.parse(JSON.stringify(data.peopleIncomeSettings));
+   mergedData.uiPreferences = JSON.parse(JSON.stringify(data.uiPreferences || {}));
+
+   if (changes.currency !== undefined) {
+       mergedData.currency = changes.currency;
+   }
+
+   if (changes.darkMode !== undefined) {
+       mergedData.darkMode = changes.darkMode;
+   }
+
+   if (changes.weightedBills !== undefined) {
+       mergedData.weightedBills = changes.weightedBills;
+   }
+
+   if (changes.lastProcessedDate) {
+       mergedData.lastProcessedDate = changes.lastProcessedDate;
+   }
+
+   const currentCounters = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+   if (currentCounters.counters) {
+       mergedData.nextPersonId = currentCounters.counters.nextPersonId || nextPersonId;
+       mergedData.nextBillId = currentCounters.counters.nextBillId || nextBillId;
+       mergedData.nextIncomeId = currentCounters.counters.nextIncomeId || nextIncomeId;
+       mergedData.nextEventId = currentCounters.counters.nextEventId || nextEventId;
+       mergedData.nextPaycheckId = currentCounters.counters.nextPaycheckId || nextPaycheckId;
+   } else {
+       mergedData.nextPersonId = nextPersonId;
+       mergedData.nextBillId = nextBillId;
+       mergedData.nextIncomeId = nextIncomeId;
+       mergedData.nextEventId = nextEventId;
+       mergedData.nextPaycheckId = nextPaycheckId;
+   }
+
+   mergedData.currency = data.currency;
+   mergedData.darkMode = data.darkMode;
+   mergedData.weightedBills = data.weightedBills;
+   mergedData.lastProcessedDate = data.lastProcessedDate;
+   mergedData.lastExportDate = new Date().toISOString();
+   mergedData.dataVersion = mergedData.dataVersion || "1.0";
+   
+   return mergedData;
+}
 
 function updateEnhancedExportData() {
     const originalShowImportExportModal = showImportExportModal;
@@ -8705,13 +8723,38 @@ function updateEnhancedExportData() {
                 URL.revokeObjectURL(url);
                
                 recordUIAction('data_exported', { method: 'download', enhanced: true });
-                alert('Enhanced data downloaded successfully!');
+                alert('Enhanced data exported successfully!');
             }
         });
        
         return originalShowImportExportModal.apply(this, arguments);
     };
 }
+
+function validateExportData(exportData) {
+    const billIds = exportData.bills.map(b => b.id);
+    if (billIds.length !== new Set(billIds).size) {
+        throw new Error('Duplicate bill IDs detected');
+    }
+    
+    const maxBillId = Math.max(...exportData.bills.map(b => b.id), 0);
+    if (exportData.nextBillId <= maxBillId) {
+        exportData.nextBillId = maxBillId + 1;
+    }
+    
+    const maxPersonId = Math.max(...exportData.people.map(p => p.id), 0);
+    if (exportData.nextPersonId <= maxPersonId) {
+        exportData.nextPersonId = maxPersonId + 1;
+    }
+    
+    if (!exportData.people || !exportData.bills) {
+        throw new Error('Missing required data arrays');
+    }
+    
+    return true;
+}
+
+
 
 function createOneOffItem(expense) {
     const payerName = expense.payer === 'joint' ? 'Joint' :
