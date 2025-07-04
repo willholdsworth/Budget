@@ -555,6 +555,7 @@ body.dark-mode .bill-info small {
 
 .bill-actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -938,14 +939,14 @@ body.dark-mode .calendar-header {
 }
 
 .calendar-day {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  min-height: 80px;
-  padding: 4px;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  flex: 1;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    min-height: 80px;
+    padding: 4px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    flex: 1;
 }
 
 body.dark-mode .calendar-day {
@@ -958,16 +959,18 @@ body.dark-mode .calendar-day {
 }
 
 .calendar-grid.has-expanded-day .calendar-day:not(.expanded) {
-  min-width: 0;
-  flex: 0.5;
+    min-width: 0;
+    flex: 0.5;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .calendar-day.expanded {
-  flex: 10;
-  min-height: 30px;
-  overflow-y: auto;
-  z-index: 2;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    flex: 10;
+    min-height: 30px;
+    overflow-y: auto;
+    z-index: 2;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .calendar-grid-row {
@@ -1031,6 +1034,7 @@ body.dark-mode .day-number {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  transition: opacity 0.1s ease;
 }
 
 .bill-name, .payday-name, .bonus-name, .oneoff-name {
@@ -1063,6 +1067,7 @@ body.dark-mode .bill-name {
   background: #4CAF50;
   font-weight: 600;
   font-style: uppercase;
+  transition: opacity 0.1s ease;
 }
 
 .bonus-name {
@@ -1070,12 +1075,14 @@ body.dark-mode .bill-name {
   background: #9C27B0;
   font-weight: 600;
   font-style: uppercase;
+  transition: opacity 0.1s ease;
 }
 
 .oneoff-name {
   color: #ffffff;
   background: #8e1600;
   font-weight: 600;
+  transition: opacity 0.1s ease;
 }
 
 .day-close-btn {
@@ -1147,6 +1154,7 @@ body.dark-mode .bill-name {
   padding: 10px;
   margin-bottom: 8px;
   border-radius: 4px;
+  transition: opacity 0.1s ease;
 }
 
 .historical-income-container {
@@ -1482,9 +1490,11 @@ body.dark-mode .person-color-dot {
   .bill-name, .payday-name, .bonus-name, .oneoff-name {
     font-size: 8px;
     padding: 1px 2px;
+	transition: opacity 0.1s ease;
   }
   .calendar-day.expanded {
     min-height: 120px;
+	transition: opacity 0.1s ease;
   }
   .header-right {
     display: flex;
@@ -2163,8 +2173,7 @@ function getDayEvents(date) {
    const billText = billsForDay.map(bill => {
        const backgroundColor = bill.payerColor ? bill.payerColor : '#e8e8e8';
        const textColor = bill.payerColor ? getContrastColor(bill.payerColor) : '#000000';
-       const editedMark = bill.isEdited ? ' (edited)' : '';
-       return `<span class="bill-name" style="background-color: ${backgroundColor}; color: ${textColor};">${bill.name}${editedMark}: ${formatCurrency(bill.amount + (bill.overpayment || 0))}</span>`;
+       return `<span class="bill-name" style="background-color: ${backgroundColor}; color: ${textColor};">${bill.name}: ${formatCurrency(bill.amount + (bill.overpayment || 0))}</span>`;
    }).join('');
    
    const paydayText = paydaysForDay.map(person => {
@@ -2591,13 +2600,6 @@ function showImportExportModal() {
                     updateTabsVisibility();
                    
                     setTimeout(() => {
-                        data.eventHistory.push({
-                            id: nextEventId++,
-                            date: new Date().toISOString().split('T')[0],
-                            event: 'Data Imported',
-                            description: 'Imported data from a budget file'
-                        });
-                       
                         hideModal();
                         showTab('overview');
                        
@@ -2637,13 +2639,6 @@ function showImportExportModal() {
                     await writable.write(exportString);
                     await writable.close();
                    
-                    data.eventHistory.push({
-                        id: nextEventId++,
-                        date: new Date().toISOString().split('T')[0],
-                        event: 'Data Exported',
-                        description: 'Exported budget data to text file'
-                    });
-                   
                     saveDataToLocalStorage();
                 } catch (err) {
                     if (err.name !== 'AbortError') {
@@ -2663,13 +2658,6 @@ function showImportExportModal() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-           
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: new Date().toISOString().split('T')[0],
-                event: 'Data Exported',
-                description: 'Exported budget data to text file'
-            });
            
             saveDataToLocalStorage();
         }
@@ -2979,13 +2967,6 @@ function updatePersonIncome(personId) {
                   p.isAutoLogged &&
                   p.date >= newStartDate)
             );
-           
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'Schedule Rebuilt',
-                description: `Rebuilt ${person.name}'s schedule from ${paymentDate}. Removed ${paychecksToRemove.length} payments from new start date forward.`
-            });
         }
        
         generateHistoricalPayments(personId, person, new Date(newStartDate), income, frequency, employer);
@@ -3009,24 +2990,8 @@ function updatePersonIncome(personId) {
             updatedCount++;
         });
        
-        if (updatedCount > 0) {
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'Salary Amount Updated',
-                description: `Updated ${updatedCount} existing salary entries to ${formatCurrency(income)} from ${paymentDate} forward.`
-            });
-        }
-       
     } else if (!oldPaymentDate && paymentDate) {
         generateHistoricalPayments(personId, person, new Date(getDateString(paymentDate)), income, frequency, employer);
-       
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: getDateString(),
-            event: 'Income Settings Created',
-            description: `Created ${person.name}'s income settings: ${formatCurrency(income)}/${frequency}${employer ? ` at ${employer}` : ''}`
-        });
     }
    
     person.income = income;
@@ -3044,15 +3009,6 @@ function updatePersonIncome(personId) {
         nextPaymentDate: paymentDate ? getDateString(getNextPaymentDate(new Date(getDateString(paymentDate)), frequency)) : null,
         currentAmount: income
     };
-   
-    if (oldEmployer !== employer && (hasDateChange || hasFrequencyChange || hasAmountChange)) {
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: getDateString(),
-            event: 'Employer Updated',
-            description: `Updated ${person.name}'s employer from "${oldEmployer}" to "${employer}"`
-        });
-    }
    
     saveDataToLocalStorage();
     updateGreeting();
@@ -3360,15 +3316,6 @@ function generateHistoricalPayments(personId, person, startDate, income, frequen
             checkDate = new Date(nextYear, paymentMonth, actualDay);
         }
     }
-   
-    if (loggedDates.length > 0) {
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: getDateString(),
-            event: 'Historical Payments Generated',
-            description: `Generated ${loggedDates.length} historical ${frequency} payments for ${person.name} from ${loggedDates[0]} to ${loggedDates[loggedDates.length - 1]}`
-        });
-    }
 }
 
 function shouldLogIncomeForCurrentMonth(paymentDate, frequency, today) {
@@ -3612,12 +3559,7 @@ function updatePersonSavingsExpenses(personId) {
     if (oldSavings !== savings) {
         person.savings = savings;
        
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: today,
-            event: 'Savings Goal Changed',
-            description: `${person.name}'s monthly savings goal changed from ${formatCurrency(oldSavings)} to ${formatCurrency(savings)} effective ${today}`
-        });
+        recordEvent('Savings Goal Changed', `${person.name}'s monthly savings goal changed from ${formatCurrency(oldSavings)} to ${formatCurrency(savings)}`);
        
         if (!person.savingsHistory) person.savingsHistory = [];
         person.savingsHistory.push({
@@ -3631,12 +3573,7 @@ function updatePersonSavingsExpenses(personId) {
     if (oldExpenses !== expenses) {
         person.expenses = expenses;
        
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: today,
-            event: 'Expenses Goal Changed',
-            description: `${person.name}'s monthly expenses goal changed from ${formatCurrency(oldExpenses)} to ${formatCurrency(expenses)} effective ${today}`
-        });
+        recordEvent('Expenses Goal Changed', `${person.name}'s monthly expenses goal changed from ${formatCurrency(oldExpenses)} to ${formatCurrency(expenses)}`);
        
         if (!person.expensesHistory) person.expensesHistory = [];
         person.expensesHistory.push({
@@ -3644,15 +3581,6 @@ function updatePersonSavingsExpenses(personId) {
             previousAmount: oldExpenses,
             newAmount: expenses,
             effectiveMonth: currentMonthYear
-        });
-    }
-   
-    if (oldSavings !== savings || oldExpenses !== expenses) {
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: today,
-            event: 'Budget Goals Updated',
-            description: `Updated ${person.name}'s monthly budget goals: Savings ${formatCurrency(savings)}, Expenses ${formatCurrency(expenses)}`
         });
     }
    
@@ -3675,12 +3603,7 @@ function deletePerson(personId) {
     data.people = data.people.filter(p => p.id !== personId);
     data.paycheckHistory = data.paycheckHistory.filter(p => p.personId !== personId);
    
-    data.eventHistory.push({
-        id: nextEventId++,
-        date: new Date().toISOString().split('T')[0],
-        event: 'Person Deleted',
-        description: `Deleted ${person.name} from budget tracker`
-    });
+    recordEvent('Person Deleted', `Deleted ${person.name} from budget tracker`);
    
     saveDataToLocalStorage();
    
@@ -3750,16 +3673,6 @@ function addPaycheck(personId) {
    
     data.paycheckHistory.push(paycheck);
    
-    const entryType = selectedDate < currentMonthStart ? 'historical' : 'current month';
-    const additionalText = existingEntries.length > 0 ? 'additional ' : '';
-   
-    data.eventHistory.push({
-        id: nextEventId++,
-        date: getDateString(),
-        event: selectedDate < currentMonthStart ? 'Additional Historical Salary Added' : 'Additional Manual Salary Added',
-        description: `Added ${formatCurrency(amount)} ${additionalText}${entryType} salary for ${person.name} on ${selectedDate}${employer ? ` from ${employer}` : ''}${existingEntries.length > 0 ? ` (in addition to existing entries)` : ''}`
-    });
-   
     $(`paycheckAmount-${personId}`).value = '';
     $(`paycheckDate-${personId}`).value = '';
     $(`paycheckEmployer-${personId}`).value = '';
@@ -3804,13 +3717,6 @@ function addBonus(personId) {
    };
    
    data.paycheckHistory.push(bonus);
-   
-   data.eventHistory.push({
-       id: nextEventId++,
-       date: getDateString(),
-       event: bonus.isHistorical ? 'Historical Bonus Added' : 'Bonus Added',
-       description: `Added ${formatCurrency(amount)} bonus for ${person.name} on ${bonusDate}${employer ? ` from ${employer}` : ''} (applied to ${monthApplied})`
-   });
    
    $(`bonusAmount-${personId}`).value = '';
    $(`bonusDate-${personId}`).value = '';
@@ -3912,8 +3818,7 @@ function updateHistoryDisplay() {
                 <td>${description}</td>
                 <td>
                     <button class="btn-small" onclick="showEditPaycheckModal(${p.id})" style="margin-right: 5px; margin-bottom: 5px;">Edit</button>
-                    <button class="btn-danger btn-small" onclick="deletePaycheck(${p.id},${p.personId})">Delete</button>
-                </td>
+				</td>
             </tr>
         `;
     }).join('') : '<tr><td colspan="6">No income data for selected person.</td></tr>';
@@ -3969,11 +3874,10 @@ function updateHistoryDisplay() {
         if (person) {
             filteredEvents = filteredEvents.filter(e =>
                 e.description.includes(person.name) ||
-                e.event.includes('Bill') ||
-                e.event.includes('Expense') ||
-                e.event.includes('Savings') ||
-                e.event.includes('Expenses') ||
-                e.event.includes('Budget')
+                e.event.includes('Savings Goal Changed') ||
+                e.event.includes('Expenses Goal Changed') ||
+                e.event.includes('Currency Changed') ||
+                e.event.includes('One Off Expense Deleted')
             );
         }
     }
@@ -3998,204 +3902,129 @@ function updateHistoryDisplay() {
     `).join('') : '<tr><td colspan="4">No events for selected person.</td></tr>';
 }
 
-function showEditBillPaymentModal(billPaymentId) {
-   const billPayment = data.billPayments.find(bp => bp.id === billPaymentId);
-   if (!billPayment) return;
-  
-   const originalBill = data.bills.find(b => b.id === billPayment.billId);
-   const isOneOff = originalBill && originalBill.isOneOff;
-  
-   let modal = $('editModal');
-   let modalContent;
-  
-   if (!modal) {
-       const modalData = createModal();
-       modal = modalData.modal;
-       modalContent = modalData.modalContent;
-   } else {
-       modalContent = $('modalContent');
-   }
-  
-   const categoryOptions = [
-       'Utilities', 'Housing', 'Transportation', 'Insurance', 'Entertainment',
-       'Subscriptions', 'Government', 'Financial', 'Health & Fitness', 'Technology', 'Other'
-   ].map(cat =>
-       `<option value="${cat}"${billPayment.category === cat ? ' selected' : ''}>${cat}</option>`
-   ).join('');
-  
-   const generatePayerOptions = (currentPayer) => {
-       let options = '';
-      
-       options += `<option value="joint"${currentPayer === 'joint' ? ' selected' : ''}>Joint Account</option>`;
-      
-       data.people.forEach(person => {
-           const isSelected = currentPayer == person.id ? ' selected' : '';
-           options += `<option value="${person.id}"${isSelected}>${person.name}</option>`;
-       });
-      
-       return options;
-   };
-  
-   const billTypeOptions = `
-       <option value="individual"${billPayment.billType === 'individual' ? ' selected' : ''}>Individual</option>
-       <option value="joint"${billPayment.billType === 'joint' ? ' selected' : ''}>Joint</option>
-   `;
-
-   const today = getDateString();
-   const modalTitle = isOneOff ? 'Edit One-Off Expense' : 'Edit Bill Payment';
-   const expenseLabel = isOneOff ? 'Expense' : 'Bill';
-  
-   modalContent.innerHTML = `
-       <h3 style="margin-bottom:20px;">${modalTitle}: ${billPayment.billName}</h3>
-       <div class="form-group">
-           <label for="editPaymentBillName">${expenseLabel} Name</label>
-           <input type="text" id="editPaymentBillName" value="${billPayment.billName}">
-       </div>
-       <div class="form-group">
-           <label for="editPaymentAmount">Amount</label>
-           <input type="number" id="editPaymentAmount" value="${billPayment.amount}" step="0.01">
-       </div>
-       <div class="form-group">
-           <label for="editPaymentDate">Date</label>
-           <input type="date" id="editPaymentDate" value="${billPayment.date}" max="${today}">
-       </div>
-       <div class="form-group">
-           <label for="editPaymentCategory">Category</label>
-           <select id="editPaymentCategory">
-               ${categoryOptions}
-           </select>
-       </div>
-       <div class="form-group">
-           <label for="editPaymentBillType">Type</label>
-           <select id="editPaymentBillType">
-               ${billTypeOptions}
-           </select>
-       </div>
-       <div class="form-group">
-           <label for="editPaymentPayer">Paid By</label>
-           <select id="editPaymentPayer">
-               ${generatePayerOptions(billPayment.payer)}
-           </select>
-       </div>
-       <div class="form-group">
-           <label for="editPaymentStatus">Status</label>
-           <input type="text" id="editPaymentStatus" value="${billPayment.status}">
-       </div>
-      
-       <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0;color:#666;font-size:12px;">
-           <strong>Note:</strong> This only edits this specific ${isOneOff ? 'expense' : 'payment'} entry. ${!isOneOff ? "It won't affect the original bill settings or future payments." : ""} You cannot set a date in the future.
-       </div>
-      
-       <div style="display:flex;gap:10px;margin-top:20px;">
-           <button id="savePaymentEditBtn" style="flex:1;">Save Changes</button>
-           <button id="deletePaymentBtn" class="btn-danger" style="flex:1;">Delete ${isOneOff ? 'Expense' : 'Payment'}</button>
-           <button id="cancelPaymentEditBtn" style="flex:1;background:#666;">Cancel</button>
-       </div>
-   `;
-  
-   $('savePaymentEditBtn').addEventListener('click', () => {
-       const name = $('editPaymentBillName').value.trim();
-       const amount = parseFloat($('editPaymentAmount').value) || 0;
-       const date = $('editPaymentDate').value;
-       const category = $('editPaymentCategory').value;
-       const billType = $('editPaymentBillType').value;
-       const payer = $('editPaymentPayer').value === 'joint' ? 'joint' : parseInt($('editPaymentPayer').value);
-       const status = $('editPaymentStatus').value.trim();
-      
-       if (!name || !amount || !date) {
-           alert('Please fill in all required fields');
-           return;
-       }
-       
-       const selectedDate = getDateString(date);
-       const today = getDateString();
-       
-       if (selectedDate > today) {
-           alert('Cannot set payment date in the future. Please select today or an earlier date.');
-           return;
-       }
-
-       if (isOneOff && originalBill) {
-           originalBill.name = name;
-           originalBill.amount = amount;
-           originalBill.category = category;
-           originalBill.billType = billType;
-           originalBill.payer = payer;
-           
-           const oldDate = originalBill.date;
-           originalBill.date = getDateString(date);
-           
-           if (oldDate !== originalBill.date) {
-               data.eventHistory.push({
-                   id: nextEventId++,
-                   date: getDateString(),
-                   event: 'One-Off Expense Date Changed',
-                   description: `Updated date for one-off expense: ${name} from ${oldDate} to ${originalBill.date}`
-               });
-           }
-       }
-
-       billPayment.billName = name;
-       billPayment.amount = amount;
-       billPayment.date = getDateString(date);
-       billPayment.category = category;
-       billPayment.billType = billType;
-       billPayment.payer = payer;
-       billPayment.status = status;
-      
-       const payerName = payer === 'joint' ? 'Joint Account' :
-                        data.people.find(p => p.id === payer)?.name || 'Unknown';
-      
-       data.eventHistory.push({
-           id: nextEventId++,
-           date: getDateString(),
-           event: isOneOff ? 'One-Off Expense Edited' : 'Bill Payment Edited',
-           description: `Edited ${isOneOff ? 'one-off expense' : 'bill payment'}: ${name} on ${billPayment.date} - ${formatCurrency(amount)} paid by ${payerName}`
-       });
-      
-       saveDataToLocalStorage();
-       updateHistoryDisplay();
-       updateBillsList();
-       updateOverview();
-       updateOneOffOverview();
-       resetCalendarToCurrentMonth();
-       hideModal();
-   });
-  
-   $('deletePaymentBtn').addEventListener('click', () => {
-       if (!confirm(`Are you sure you want to delete this ${isOneOff ? 'expense' : 'payment'}? This cannot be undone.`)) return;
-      
-       const paymentIndex = data.billPayments.findIndex(bp => bp.id === billPaymentId);
-       if (paymentIndex !== -1) {
-           data.billPayments.splice(paymentIndex, 1);
-          
-           if (isOneOff && originalBill) {
-               originalBill.isDeleted = true;
-               originalBill.deletedDate = getDateString();
-               
-               updateOneOffOverview();
-           }
-          
-           data.eventHistory.push({
-               id: nextEventId++,
-               date: getDateString(),
-               event: isOneOff ? 'One-Off Expense Deleted' : 'Bill Payment Deleted',
-               description: `Deleted ${isOneOff ? 'one-off expense' : 'bill payment'}: ${billPayment.billName} on ${billPayment.date} - ${formatCurrency(billPayment.amount)}`
-           });
-          
-           saveDataToLocalStorage();
-           updateHistoryDisplay();
-           updateBillsList();
-           updateOverview();
-           updateOneOffOverview();
-           resetCalendarToCurrentMonth();
-           hideModal();
-       }
-   });
-  
-   $('cancelPaymentEditBtn').addEventListener('click', hideModal);
-  
-   showModal();
+function showEditBillPaymentModal(paymentId) {
+    const payment = data.billPayments.find(p => p.id === paymentId);
+    if (!payment) return;
+    
+    const originalBill = data.bills.find(b => b.id === payment.billId);
+    
+    let modal = $('editModal');
+    let modalContent;
+    
+    if (!modal) {
+        const modalData = createModal();
+        modal = modalData.modal;
+        modalContent = modalData.modalContent;
+    } else {
+        modalContent = $('modalContent');
+    }
+    
+    const categoryOptions = [
+        'Utilities', 'Housing', 'Transportation', 'Insurance', 'Entertainment',
+        'Subscriptions', 'Government', 'Financial', 'Health & Fitness', 'Technology', 'Other'
+    ].map(cat =>
+        `<option value="${cat}"${payment.category === cat ? ' selected' : ''}>${cat}</option>`
+    ).join('');
+    
+    const payerOptions = data.people.map(person => 
+        `<option value="${person.id}"${payment.payer == person.id ? ' selected' : ''}>${person.name}</option>`
+    ).join('') + (payment.payer === 'joint' ? '<option value="joint" selected>Joint Account</option>' : '<option value="joint">Joint Account</option>');
+    
+    modalContent.innerHTML = `
+        <h3 style="margin-bottom:20px;">Edit Bill Payment: ${payment.billName}</h3>
+        <div class="form-group">
+            <label for="editPaymentAmount">Amount</label>
+            <input type="number" id="editPaymentAmount" value="${payment.amount}" step="0.01">
+        </div>
+        <div class="form-group">
+            <label for="editPaymentDate">Date</label>
+            <input type="date" id="editPaymentDate" value="${payment.date}">
+        </div>
+        <div class="form-group">
+            <label for="editPaymentBillName">Bill Name</label>
+            <input type="text" id="editPaymentBillName" value="${payment.billName}">
+        </div>
+        <div class="form-group">
+            <label for="editPaymentCategory">Category</label>
+            <select id="editPaymentCategory">
+                ${categoryOptions}
+            </select>
+        </div>
+        ${data.people.length > 1 ? `
+        <div class="form-group">
+            <label for="editPaymentPayer">Paid By</label>
+            <select id="editPaymentPayer">
+                ${payerOptions}
+            </select>
+        </div>` : ''}
+        <div class="form-group">
+            <label for="editPaymentStatus">Status</label>
+            <input type="text" id="editPaymentStatus" value="${payment.status || ''}">
+        </div>
+        
+        <div style="display:flex;gap:10px;margin-top:20px;">
+            <button id="savePaymentEditBtn" style="flex:1;">Save Changes</button>
+            <button id="deletePaymentFromModalBtn" class="btn-danger" style="flex:1;">Delete Payment</button>
+            <button id="cancelPaymentEditBtn" style="flex:1;background:#666;">Cancel</button>
+        </div>
+    `;
+    
+    $('savePaymentEditBtn').addEventListener('click', () => {
+        const amount = parseFloat($('editPaymentAmount').value) || 0;
+        const date = $('editPaymentDate').value;
+        const billName = $('editPaymentBillName').value.trim();
+        const category = $('editPaymentCategory').value;
+        const payer = data.people.length <= 1 ? data.people[0]?.id : $('editPaymentPayer').value;
+        const status = $('editPaymentStatus').value.trim();
+        
+        if (!amount || !date || !billName) {
+            alert('Please fill in amount, date, and bill name');
+            return;
+        }
+        
+        payment.amount = amount;
+        payment.date = date;
+        payment.billName = billName;
+        payment.category = category;
+        payment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
+        payment.status = status + ' (edited)';
+        
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: getDateString(),
+            event: 'Bill Payment Edited',
+            description: `Edited payment: ${billName} - ${formatCurrency(amount)} on ${date}`
+        });
+        
+        saveDataToLocalStorage();
+        updateHistoryDisplay();
+        updateOverview();
+        updateCalendarView();
+        hideModal();
+    });
+    
+    $('deletePaymentFromModalBtn').addEventListener('click', () => {
+        if (!confirm('Are you sure you want to delete this payment record? This cannot be undone.')) return;
+        
+        data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
+        
+        data.eventHistory.push({
+            id: nextEventId++,
+            date: getDateString(),
+            event: 'Bill Payment Deleted',
+            description: `Deleted payment record: ${payment.billName} - ${formatCurrency(payment.amount)} from ${payment.date}`
+        });
+        
+        saveDataToLocalStorage();
+        updateHistoryDisplay();
+        updateOverview();
+        updateCalendarView();
+        hideModal();
+    });
+    
+    $('cancelPaymentEditBtn').addEventListener('click', hideModal);
+    
+    showModal();
 }
 
 function showEditPaycheckModal(paycheckId) {
@@ -4230,7 +4059,7 @@ function showEditPaycheckModal(paycheckId) {
     const isAutoLogged = paycheck.isAutoLogged || false;
     const autoLoggedWarning = isAutoLogged ? `
         <div style="background:#fff3cd;padding:15px;border-radius:8px;margin:20px 0;color:#856404;font-size:12px;border:1px solid #ffeaa7;">
-            <strong>Warning:</strong> This is an auto-logged entry. Editing it won't affect future auto-logging for this person's income settings.
+            <strong>FYI:</strong> Editing this information will only change this specific income date/amount. It won't affect any other salary entries, or your future salary schedule.
         </div>
     ` : '';
    
@@ -4268,7 +4097,7 @@ function showEditPaycheckModal(paycheckId) {
         ${autoLoggedWarning}
        
         <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:20px 0;color:#666;font-size:12px;">
-            <strong>Note:</strong> This only edits this specific income entry. It won't affect the person's income settings or future auto-logging.
+            <strong>Note:</strong> If your income has permanently changed since your last paycheck, then you can set a new start date and amount from your user page. Salary entries that have already been logged won't be affected when you do this (Unless you set your start date to before a previously logged salary).
         </div>
        
         <div style="display:flex;gap:10px;margin-top:20px;">
@@ -4396,16 +4225,19 @@ function resetCalendarToCurrentMonth() {
 function initCalendarInteractions() {
     const calendarDays = document.querySelectorAll('.calendar-day');
     const calendarOverlay = document.getElementById('calendarOverlay');
+    const calendarGrid = document.querySelector('.calendar-grid');
    
     calendarDays.forEach(day => {
         day.addEventListener('click', function(event) {
             if (this.classList.contains('expanded') || event.target.classList.contains('day-close-btn')) {
                 this.classList.remove('expanded');
+                calendarGrid.classList.remove('has-expanded-day');
                 if (calendarOverlay) calendarOverlay.style.display = 'none';
                 return;
             }
            
             calendarDays.forEach(d => d.classList.remove('expanded'));
+            calendarGrid.classList.remove('has-expanded-day');
            
             const dayIndex = Array.from(this.parentNode.children).indexOf(this) - 7;
             const dayOfWeek = dayIndex % 7;
@@ -4419,6 +4251,8 @@ function initCalendarInteractions() {
             }
            
             this.classList.add('expanded');
+            calendarGrid.classList.add('has-expanded-day');
+            
             if (calendarOverlay) calendarOverlay.style.display = 'block';
         });
     });
@@ -4428,6 +4262,7 @@ function initCalendarInteractions() {
             const expandedDay = document.querySelector('.calendar-day.expanded');
             if (expandedDay) {
                 expandedDay.classList.remove('expanded');
+                calendarGrid.classList.remove('has-expanded-day');
             }
             this.style.display = 'none';
         });
@@ -4886,7 +4721,7 @@ function recordEvent(eventType, description) {
     data.eventHistory = [];
   }
 
-  if (!['Person Added', 'Currency Changed', 'Debt Paid Off', 'Bill Deleted'].includes(eventType)) {
+  if (!['Person Added', 'Person Deleted', 'Currency Changed', 'Savings Goal Changed', 'Expenses Goal Changed', 'One Off Expense Deleted'].includes(eventType)) {
     return;
   }
 
@@ -4900,7 +4735,6 @@ function recordEvent(eventType, description) {
   data.eventHistory.push(eventEntry);
   saveDataToLocalStorage();
 }
-
 
 
 function processElapsedBills() {
@@ -7013,7 +6847,6 @@ function addBill() {
     const today = new Date();
     const todayString = getDateString();
     
-    // For one-off bills, just use the date directly
     const billDate = isOneOff ? todayString : generateBillDate(day, month, frequency, startMonth);
    
     const bill = {
@@ -7046,26 +6879,21 @@ function addBill() {
     const payerName = payer === 'joint' ? 'Joint Account' :
                      data.people.find(p => p.id === parseInt(payer))?.name || 'Unknown';
    
-    // Check if this bill should already be considered due/paid
     let shouldCreatePayment = false;
     let paymentReason = '';
     
     if (isOneOff) {
-        // One-off expenses are always paid immediately
         shouldCreatePayment = true;
         paymentReason = 'One-off expense';
     } 
     else if (day === today.getDate()) {
-        // Bill is due today
         shouldCreatePayment = true;
         paymentReason = 'Due today';
     }
     else if (!isOneOff) {
-        // Check if recurring bill's date this month is in the past
         const currentMonthBillDate = new Date(today.getFullYear(), today.getMonth(), day);
         
         if (getDateString(currentMonthBillDate) < todayString) {
-            // Bill would have been due earlier this month
             shouldCreatePayment = true;
             paymentReason = 'Past due date in current month';
         }
@@ -7089,20 +6917,6 @@ function addBill() {
        
         if (!data.billPayments) data.billPayments = [];
         data.billPayments.push(paymentRecord);
-       
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: todayString,
-            event: isOneOff ? 'Unexpected Expense Added' : 'Bill Payment Auto-Created',
-            description: `${isOneOff ? 'Added one-off expense' : `Created payment for new bill due on ${day}/${today.getMonth()+1}`}: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))} paid by ${payerName}`
-        });
-    } else {
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: todayString,
-            event: 'Bill Added',
-            description: `Added ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}/${bill.frequency} on day ${day}${month ? ` of month ${month}` : ''} paid by ${payerName}`
-        });
     }
    
     $('billName').value = '';
@@ -7141,7 +6955,7 @@ function deleteBill(billId) {
   if (!bill) return;
  
   const confirmMessage = bill.isOneOff ?
-      'Delete this one off expense?' :
+      'Delete this one off expense? This will remove it completely from all records and history.' :
       'Are you sure you want to stop this bill? This will prevent future payments but keep the payment history.';
  
   if (!confirm(confirmMessage)) return;
@@ -7151,22 +6965,25 @@ function deleteBill(billId) {
   bill.isDeleted = true;
   bill.deletedDate = today;
 
-  const futurePayments = data.billPayments.filter(payment =>
-      payment.billId === bill.id &&
-      payment.date > today
-  );
-
-  if (futurePayments.length > 0) {
-      data.billPayments = data.billPayments.filter(payment =>
-          !(payment.billId === bill.id && payment.date > today)
+  if (bill.isOneOff) {
+      const relatedPayments = data.billPayments.filter(payment => payment.billId === bill.id);
+      
+      if (relatedPayments.length > 0) {
+          data.billPayments = data.billPayments.filter(payment => payment.billId !== bill.id);
+      }
+      
+      recordEvent('One Off Expense Deleted', `Deleted one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}. All records removed.`);
+  } else {
+      const futurePayments = data.billPayments.filter(payment =>
+          payment.billId === bill.id &&
+          payment.date > today
       );
-     
-      data.eventHistory.push({
-          id: nextEventId++,
-          date: today,
-          event: 'Future Bill Payments Cancelled',
-          description: `Cancelled ${futurePayments.length} future payments for ${bill.name} after deletion.`
-      });
+
+      if (futurePayments.length > 0) {
+          data.billPayments = data.billPayments.filter(payment =>
+              !(payment.billId === bill.id && payment.date > today)
+          );
+      }
   }
 
   if (bill.isDebt) {
@@ -7178,13 +6995,12 @@ function deleteBill(billId) {
       bill.overpayment = 0;
   }
 
-  recordEvent('Bill Deleted', bill.isOneOff ?
-      `Deleted one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}` :
-      `Stopped future payments for ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}/${bill.frequency}. Payment history preserved.`);
-
   saveDataToLocalStorage();
   updateBillsList();
+  updateHistoryDisplay();
   updateOverview();
+  updateOneOffOverview();
+  resetCalendarToCurrentMonth();
   toggleBillTypeVisibility();
   ensureDataConsistency();
 }
