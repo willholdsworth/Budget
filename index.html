@@ -2750,25 +2750,45 @@ function calculateMonthlyBudget(person) {
    const currentMonth = today.getMonth();
    const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
    
+   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+   let totalMonthIncome = 0;
+   
+   for (let day = 1; day <= daysInMonth; day++) {
+       const dayDate = new Date(currentYear, currentMonth, day);
+       const dayEvents = getDayEvents(dayDate);
+       
+       const paydayItems = getPaydayItemsFromEvents(dayEvents);
+       
+       const personPayday = paydayItems.find(payday => {
+           return payday.name && payday.name.includes(person.name);
+       });
+       
+       if (personPayday) {
+           totalMonthIncome += personPayday.amount;
+       }
+   }
+   
+   if (totalMonthIncome > 0) {
+       return totalMonthIncome;
+   }
+   
    const currentMonthIncome = data.paycheckHistory.filter(p =>
        p.personId === person.id &&
        p.date.startsWith(currentMonthStr)
    );
    
-   const totalIncome = currentMonthIncome.reduce((sum, income) => sum + income.amount, 0);
+   const paycheckTotal = currentMonthIncome.reduce((sum, income) => sum + income.amount, 0);
    
-   if (currentMonthIncome.length > 0) {
-       return totalIncome;
+   if (paycheckTotal > 0) {
+       return paycheckTotal;
    }
-   
-   let monthlyIncome = 0;
    
    if (person.income && person.frequency && person.paymentDate) {
        if (person.frequency === 'biweekly') {
            const paymentDate = new Date(getDateString(person.paymentDate));
            let paydayCount = 0;
            let checkDate = new Date(paymentDate);
-         
+           
            while (checkDate.getFullYear() <= currentYear) {
                if (checkDate.getFullYear() === currentYear && checkDate.getMonth() === currentMonth) {
                    paydayCount++;
@@ -2777,14 +2797,14 @@ function calculateMonthlyBudget(person) {
                }
                checkDate.setDate(checkDate.getDate() + 14);
            }
-         
-           monthlyIncome = person.income * paydayCount;
+           
+           return person.income * paydayCount;
        } else {
-           monthlyIncome = frequencyToMonthly(person.income, person.frequency);
+           return frequencyToMonthly(person.income, person.frequency);
        }
    }
    
-   return monthlyIncome;
+   return 0;
 }
 
 function updateOverview() {
