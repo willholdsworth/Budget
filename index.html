@@ -1542,8 +1542,9 @@ transition: opacity 0.1s ease;
     font-size: 18px;
   }
   .tab {
-    padding: 8px 12px;
-    font-size: 11px;
+    padding: 8px 10px;
+    font-size: 10px;
+    transform: scale(0.9);
   }
   .stat-card {
     padding: 8px;
@@ -1578,6 +1579,39 @@ transition: opacity 0.1s ease;
   }
   .history-table th, .history-table td {
     padding: 8px 12px;
+  }
+  
+  #importExportBtn {
+    width: 70px;
+    height: 30px;
+    font-size: 8px;
+    line-height: 1.2;
+    white-space: normal;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 4px;
+  }
+  
+  .header-right {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+@media (max-width: 360px) {
+  .tab {
+    transform: scale(0.85);
+    margin: 0 -2px;
+  }
+  
+  #importExportBtn {
+    width: 42px;
+    height: 42px;
+    font-size: 9px;
   }
 }
 
