@@ -1,11 +1,11 @@
 const CACHE_NAME = 'budget-base-v1';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    '/icon-192.png',
-    '/icon-512.png',
-    '/splash-screen.png'
+    '/Budget/',
+    '/Budget/index.html',
+    '/Budget/manifest.json',
+    '/Budget/icon-192.png',
+    '/Budget/icon-512.png',
+    '/Budget/splash-screen.png'
 ];
 
 self.addEventListener('install', function(event) {
