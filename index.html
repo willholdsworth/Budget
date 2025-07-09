@@ -1582,7 +1582,7 @@ transition: opacity 0.1s ease;
 }
 
 </style>
-<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#000000"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head><body>
+<link rel="manifest" href="./manifest.json"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head><body>
 <div class="fixed-header">
  <div class="header-content">
    <div class="header-left"><button id="hamburgerBtn" class="hamburger-btn">☰</button></div>
@@ -9058,15 +9058,59 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 <script>
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function() {
-                        navigator.serviceWorker.register('/Budget/sw.js')
+                        navigator.serviceWorker.register('./sw.js')
                             .then(function(registration) {
-                                console.log('ServiceWorker registration successful');
+                                console.log('ServiceWorker registration successful for scope:', registration.scope);
                             })
                             .catch(function(err) {
                                 console.log('ServiceWorker registration failed: ', err);
                             });
                     });
                 }
+
+                // Enhanced install prompt for PWA
+                let deferredPrompt;
+                
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    console.log('PWA install prompt available');
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    
+                    // Create install button
+                    const installBtn = document.createElement('button');
+                    installBtn.textContent = '📱 Install Budget Base';
+                    installBtn.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        z-index: 9999;
+                        background: #4CAF50;
+                        color: white;
+                        border: none;
+                        padding: 12px 20px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                        font-family: inherit;
+                    `;
+                    
+                    installBtn.onclick = async () => {
+                        if (deferredPrompt) {
+                            deferredPrompt.prompt();
+                            const result = await deferredPrompt.userChoice;
+                            console.log('Install result:', result);
+                            deferredPrompt = null;
+                            installBtn.remove();
+                        }
+                    };
+                    
+                    document.body.appendChild(installBtn);
+                });
+
+                window.addEventListener('appinstalled', () => {
+                    console.log('PWA installed successfully');
+                });
 
                 // Custom splash screen functionality
                 function showSplashScreen() {
@@ -9088,7 +9132,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     `;
                     
                     splash.innerHTML = `
-                        <img src="splash-screen.png" style="max-width: 90vw; max-height: 60vh; object-fit: contain;" 
+                        <img src="./splash-screen.png" style="max-width: 90vw; max-height: 60vh; object-fit: contain;" 
                              onerror="this.style.display='none'; document.getElementById('fallback-splash').style.display='block';">
                         <div id="fallback-splash" style="display: none; text-align: center;">
                             <div style="width: 100px; height: 100px; background: #4facfe; border-radius: 20px; margin: 0 auto 20px;"></div>
@@ -9099,7 +9143,6 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     
                     document.body.appendChild(splash);
                     
-                    // Remove splash after 3 seconds
                     setTimeout(() => {
                         splash.style.opacity = '0';
                         setTimeout(() => {
@@ -9110,15 +9153,11 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     }, 3000);
                 }
 
-                // Show splash on load (for PWA and native apps)
                 if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
-                    // Running as PWA
                     showSplashScreen();
                 } else if (window.navigator.standalone === true) {
-                    // Running as iOS web app
                     showSplashScreen();
                 } else if (document.referrer.includes('android-app://')) {
-                    // Running as Android app
                     showSplashScreen();
                 }
             </script></body></html>
