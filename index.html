@@ -9068,26 +9068,14 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     });
                 }
 
-                // Use browser's default install prompt (cleanest approach)
                 window.addEventListener('beforeinstallprompt', (e) => {
                     console.log('PWA install prompt available');
-                    // Don't prevent default - let browser show its native install UI
-                    // e.preventDefault(); // Commented out to allow native prompt
-                    
-                    // Optional: Log when the native prompt is available
-                    console.log('Native browser install prompt will be shown');
-                });
-
-                // Log successful installation
-                window.addEventListener('appinstalled', () => {
-                    console.log('PWA installed successfully via native prompt');
                 });
 
                 window.addEventListener('appinstalled', () => {
                     console.log('PWA installed successfully');
                 });
 
-                // Custom splash screen functionality with faster loading
                 function showSplashScreen() {
                     const isDarkMode = document.body.classList.contains('dark-mode') || 
                                      window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -9112,8 +9100,10 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     const textColor = isDarkMode ? '#ffffff' : '#333333';
                     const subTextColor = isDarkMode ? '#cccccc' : '#666666';
                     
+                    const splashImageSrc = isDarkMode ? "./splash-screen-dark.png" : "./splash-screen.png";
+                    
                     splash.innerHTML = `
-                        <img src="./splash-screen.png" style="max-width: 90vw; max-height: 60vh; object-fit: contain;" 
+                        <img src="${splashImageSrc}" style="max-width: 90vw; max-height: 60vh; object-fit: contain;" 
                              onerror="this.style.display='none'; document.getElementById('fallback-splash').style.display='block';">
                         <div id="fallback-splash" style="display: none; text-align: center;">
                             <div style="width: 100px; height: 100px; background: #4facfe; border-radius: 20px; margin: 0 auto 20px;"></div>
@@ -9134,24 +9124,20 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     }, 3000);
                 }
 
-                // Show splash immediately on PWA launch (faster than waiting for load event)
                 function initializeSplash() {
                     const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
                     const isIOSStandalone = window.navigator.standalone === true;
                     const isAndroidApp = document.referrer.includes('android-app://');
                     
                     if (isStandalone || isIOSStandalone || isAndroidApp) {
-                        // Show splash immediately to cover any initial icon display
                         if (document.readyState === 'loading') {
                             showSplashScreen();
                         } else {
-                            // DOM already loaded, show splash immediately
                             requestAnimationFrame(showSplashScreen);
                         }
                     }
                 }
                 
-                // Initialize splash as early as possible
                 if (document.readyState === 'loading') {
                     document.addEventListener('DOMContentLoaded', initializeSplash);
                 } else {

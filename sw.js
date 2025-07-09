@@ -5,7 +5,10 @@ const urlsToCache = [
     "/Budget/manifest.json",
     "/Budget/icon-192.png",
     "/Budget/icon-512.png",
-    "/Budget/splash-screen.png"
+    "/Budget/icon-dark-192.png",
+    "/Budget/icon-dark-512.png",
+    "/Budget/splash-screen.png",
+    "/Budget/splash-screen-dark.png"
 ];
 
 self.addEventListener('install', function(event) {
@@ -22,7 +25,6 @@ self.addEventListener('install', function(event) {
 });
 
 self.addEventListener('fetch', function(event) {
-    // Only handle requests within our scope
     const url = new URL(event.request.url);
     const appPath = '/Budget';
     
