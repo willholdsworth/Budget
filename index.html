@@ -1582,7 +1582,7 @@ transition: opacity 0.1s ease;
 }
 
 </style>
-<link rel="manifest" href="./manifest.json"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head><body>
+<link rel="manifest" href="./manifest.json"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head><body>
 <div class="fixed-header">
  <div class="header-content">
    <div class="header-left"><button id="hamburgerBtn" class="hamburger-btn">☰</button></div>
@@ -9068,52 +9068,30 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     });
                 }
 
-                // Enhanced install prompt for PWA
-                let deferredPrompt;
-                
+                // Use browser's default install prompt (cleanest approach)
                 window.addEventListener('beforeinstallprompt', (e) => {
                     console.log('PWA install prompt available');
-                    e.preventDefault();
-                    deferredPrompt = e;
+                    // Don't prevent default - let browser show its native install UI
+                    // e.preventDefault(); // Commented out to allow native prompt
                     
-                    // Create install button
-                    const installBtn = document.createElement('button');
-                    installBtn.textContent = '📱 Install Budget Base';
-                    installBtn.style.cssText = `
-                        position: fixed;
-                        top: 20px;
-                        right: 20px;
-                        z-index: 9999;
-                        background: #4CAF50;
-                        color: white;
-                        border: none;
-                        padding: 12px 20px;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        font-weight: bold;
-                        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                        font-family: inherit;
-                    `;
-                    
-                    installBtn.onclick = async () => {
-                        if (deferredPrompt) {
-                            deferredPrompt.prompt();
-                            const result = await deferredPrompt.userChoice;
-                            console.log('Install result:', result);
-                            deferredPrompt = null;
-                            installBtn.remove();
-                        }
-                    };
-                    
-                    document.body.appendChild(installBtn);
+                    // Optional: Log when the native prompt is available
+                    console.log('Native browser install prompt will be shown');
+                });
+
+                // Log successful installation
+                window.addEventListener('appinstalled', () => {
+                    console.log('PWA installed successfully via native prompt');
                 });
 
                 window.addEventListener('appinstalled', () => {
                     console.log('PWA installed successfully');
                 });
 
-                // Custom splash screen functionality
+                // Custom splash screen functionality with faster loading
                 function showSplashScreen() {
+                    const isDarkMode = document.body.classList.contains('dark-mode') || 
+                                     window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    
                     const splash = document.createElement('div');
                     splash.id = 'pwa-splash';
                     splash.style.cssText = `
@@ -9122,7 +9100,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                         left: 0;
                         width: 100vw;
                         height: 100vh;
-                        background: white;
+                        background: ${isDarkMode ? '#000000' : '#ffffff'};
                         display: flex;
                         flex-direction: column;
                         justify-content: center;
@@ -9131,13 +9109,16 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                         transition: opacity 0.5s ease-out;
                     `;
                     
+                    const textColor = isDarkMode ? '#ffffff' : '#333333';
+                    const subTextColor = isDarkMode ? '#cccccc' : '#666666';
+                    
                     splash.innerHTML = `
                         <img src="./splash-screen.png" style="max-width: 90vw; max-height: 60vh; object-fit: contain;" 
                              onerror="this.style.display='none'; document.getElementById('fallback-splash').style.display='block';">
                         <div id="fallback-splash" style="display: none; text-align: center;">
                             <div style="width: 100px; height: 100px; background: #4facfe; border-radius: 20px; margin: 0 auto 20px;"></div>
-                            <h2 style="color: #333; margin-bottom: 10px;">Budget Base</h2>
-                            <p style="color: #666;">Loading...</p>
+                            <h2 style="color: ${textColor}; margin-bottom: 10px;">Budget Base</h2>
+                            <p style="color: ${subTextColor};">Loading...</p>
                         </div>
                     `;
                     
@@ -9153,11 +9134,27 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     }, 3000);
                 }
 
-                if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
-                    showSplashScreen();
-                } else if (window.navigator.standalone === true) {
-                    showSplashScreen();
-                } else if (document.referrer.includes('android-app://')) {
-                    showSplashScreen();
+                // Show splash immediately on PWA launch (faster than waiting for load event)
+                function initializeSplash() {
+                    const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+                    const isIOSStandalone = window.navigator.standalone === true;
+                    const isAndroidApp = document.referrer.includes('android-app://');
+                    
+                    if (isStandalone || isIOSStandalone || isAndroidApp) {
+                        // Show splash immediately to cover any initial icon display
+                        if (document.readyState === 'loading') {
+                            showSplashScreen();
+                        } else {
+                            // DOM already loaded, show splash immediately
+                            requestAnimationFrame(showSplashScreen);
+                        }
+                    }
+                }
+                
+                // Initialize splash as early as possible
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initializeSplash);
+                } else {
+                    initializeSplash();
                 }
             </script></body></html>
