@@ -1887,7 +1887,13 @@ transition: opacity 0.1s ease;
 <button id="fullResetBtn" class="btn-danger" style="margin-top:8px;">Full Reset</button>
 <div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Person</th><th>Type</th><th>Amount</th><th>Description</th><th>Actions</th></tr></thead><tbody id="incomeHistoryList"><tr><td colspan="6">No income data for selected person.</td></tr></tbody></table></div>
 </div>
-<div class="card cascade-item"><h3>Bill History</h3><div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Bill Name</th><th>Amount</th><th>Category</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody id="billHistoryList"><tr><td colspan="7">No bill payments for selected person.</td></tr></tbody></table></div></div>
+<div class="card cascade-item">
+<h3>Bill History</h3>
+<div class="form-group">
+    <label for="billNameFilter">Filter by Bill Name</label>
+    <input type="text" id="billNameFilter" placeholder="Enter bill name" onkeyup="updateHistoryDisplay()">
+</div>
+<div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Bill Name</th><th>Amount</th><th>Category</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody id="billHistoryList"><tr><td colspan="7">No bill payments for selected person.</td></tr></tbody></table></div></div>
 <div class="card cascade-item"><h3>Event History</h3><div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Event</th><th>Description</th><th>Actions</th></tr></thead><tbody id="eventHistoryList"><tr><td colspan="4">No events for selected person.</td></tr></tbody></table></div></div>
 </div>
 </div>
@@ -3929,6 +3935,7 @@ function updateHistoryDisplay() {
     const personFilterContainer = $('historyPersonFilter');
     const startDate = $('historyStartDate').value;
     const endDate = $('historyEndDate').value;
+    const billNameFilter = $('billNameFilter').value.toLowerCase();
    
     let selectedPersonId = personFilterContainer.tagName === 'SELECT' ?
         (personFilterContainer.value === 'all' ? 'all' : parseInt(personFilterContainer.value)) :
@@ -3972,7 +3979,7 @@ function updateHistoryDisplay() {
                 <td>${description}</td>
                 <td>
                     <button class="btn-small" onclick="showEditPaycheckModal(${p.id})" style="margin-right: 5px; margin-bottom: 5px;">Edit</button>
-</td>
+                </td>
             </tr>
         `;
     }).join('') : '<tr><td colspan="6">No income data for selected person.</td></tr>';
@@ -3989,6 +3996,11 @@ function updateHistoryDisplay() {
     }
     if (endDate) {
         filteredBillHistory = filteredBillHistory.filter(p => p.date <= endDate);
+    }
+    if (billNameFilter) {
+        filteredBillHistory = filteredBillHistory.filter(p => 
+            p.billName.toLowerCase().includes(billNameFilter)
+        );
     }
    
     if (!data.billPayments) data.billPayments = [];
@@ -4044,7 +4056,7 @@ function updateHistoryDisplay() {
    
     const sortedEvents = filteredEvents.sort((a, b) => {
         return b.date.localeCompare(a.date);
-    });
+    }).slice(0, 10);
    
     eventHistoryList.innerHTML = sortedEvents.length > 0 ? sortedEvents.map(e => `
         <tr>
@@ -4329,6 +4341,7 @@ function clearHistoryFilters() {
     $('historyPersonFilter').value = 'all';
     $('historyStartDate').value = '';
     $('historyEndDate').value = '';
+    $('billNameFilter').value = '';
     updateHistoryDisplay();
 }
 
@@ -4899,7 +4912,12 @@ function recordEvent(eventType, description) {
     description: description
   };
 
-  data.eventHistory.push(eventEntry);
+  data.eventHistory.unshift(eventEntry);
+  
+  if (data.eventHistory.length > 10) {
+    data.eventHistory = data.eventHistory.slice(0, 10);
+  }
+  
   saveDataToLocalStorage();
 }
 
