@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1581,7 +1582,7 @@ transition: opacity 0.1s ease;
 }
 
 </style>
-</head><body>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#000000"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head><body>
 <div class="fixed-header">
  <div class="header-content">
    <div class="header-left"><button id="hamburgerBtn" class="hamburger-btn">☰</button></div>
@@ -8864,6 +8865,260 @@ function attachEventListeners() {
 }
 
 document.addEventListener('DOMContentLoaded', attachEventListeners);
+
+const BUDGET_DATA_KEY = 'budget_app_data';
+const DARK_MODE_KEY = 'budget_app_dark_mode';
+
+function saveAppData() {
+  try {
+    data.nextPersonId = nextPersonId;
+    data.nextBillId = nextBillId;
+    data.nextIncomeId = nextIncomeId;
+    data.nextEventId = nextEventId;
+    data.nextPaycheckId = nextPaycheckId;
+    
+    localStorage.setItem(BUDGET_DATA_KEY, JSON.stringify(data));
+    localStorage.setItem(DARK_MODE_KEY, document.body.classList.contains('dark-mode'));
+    
+    return true;
+  } catch (e) {
+    console.error("Failed to save app data:", e);
+    return false;
+  }
+}
+
+function loadAppData() {
+  try {
+    const darkMode = localStorage.getItem(DARK_MODE_KEY);
+    if (darkMode === 'true') {
+      document.body.classList.add('dark-mode');
+    } else if (darkMode === 'false') {
+      document.body.classList.remove('dark-mode');
+    }
+    
+    const savedData = localStorage.getItem(BUDGET_DATA_KEY);
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      
+      data = parsedData;
+      
+      nextPersonId = data.nextPersonId || 1;
+      nextBillId = data.nextBillId || 1;
+      nextIncomeId = data.nextIncomeId || 1;
+      nextEventId = data.nextEventId || 1;
+      nextPaycheckId = data.nextPaycheckId || 1;
+      
+      document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
+      document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
+      
+      if (darkMode === 'true') {
+        document.body.classList.add('dark-mode');
+        data.darkMode = true;
+      } else if (darkMode === 'false') {
+        document.body.classList.remove('dark-mode');
+        data.darkMode = false;
+      }
+      
+      document.getElementById('currencySelect').value = data.currency;
+      document.getElementById('weightedBillsSidebar').checked = data.weightedBills;
+      
+      data.people.forEach(person => createPersonTab(person));
+      
+      updateGreeting();
+      updateBillPayerOptions();
+      updateBillsList();
+      updateHistoryDisplay();
+      updateOverview();
+      toggleBillTypeVisibility();
+      updateTabsVisibility();
+      
+      if (typeof attachPersonEventListeners === 'function') {
+        attachPersonEventListeners();
+      }
+      
+      return true;
+    }
+  } catch (e) {
+    console.error("Failed to load app data:", e);
+  }
+  
+  return false;
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target) return;
+  
+  const actionButtons = [
+    'addBillBtn', 'saveEditBtn', 'updatePersonBasic', 'updatePersonIncome', 
+    'updatePersonSavingsExpenses', 'addPaycheckBtn', 'addBonusBtn', 
+    'savePaycheckEditBtn', 'savePaymentEditBtn', 'deletePaymentFromModalBtn',
+    'deletePaycheckFromModalBtn', 'fullResetBtn', 'addNewPersonBtn'
+  ];
+  
+  if (e.target.tagName === 'BUTTON') {
+    if (actionButtons.includes(e.target.id) || 
+        e.target.classList.contains('btn-danger') || 
+        e.target.onclick?.toString().includes('deleteBill') ||
+        e.target.onclick?.toString().includes('deleteEvent') ||
+        e.target.onclick?.toString().includes('deletePaycheck') ||
+        e.target.onclick?.toString().includes('deletePerson') ||
+        e.target.onclick?.toString().includes('addNewPerson')) {
+      
+      setTimeout(saveAppData, 50);
+    }
+  }
+});
+
+const originalUpdatePersonColor = window.updatePersonColor;
+if (originalUpdatePersonColor) {
+  window.updatePersonColor = function() {
+    const result = originalUpdatePersonColor.apply(this, arguments);
+    saveAppData();
+    return result;
+  };
+}
+
+const originalToggleDarkMode = window.toggleDarkMode;
+if (originalToggleDarkMode) {
+  window.toggleDarkMode = function() {
+    const result = originalToggleDarkMode.apply(this, arguments);
+    localStorage.setItem(DARK_MODE_KEY, document.body.classList.contains('dark-mode'));
+    return result;
+  };
+}
+
+const originalUpdateCurrency = window.updateCurrency;
+if (originalUpdateCurrency) {
+  window.updateCurrency = function() {
+    const result = originalUpdateCurrency.apply(this, arguments);
+    saveAppData();
+    return result;
+  };
+}
+
+const originalUpdateWeightedBills = window.updateWeightedBills;
+if (originalUpdateWeightedBills) {
+  window.updateWeightedBills = function() {
+    const result = originalUpdateWeightedBills.apply(this, arguments);
+    saveAppData();
+    return result;
+  };
+}
+
+const originalAddNewPerson = window.addNewPerson;
+if (originalAddNewPerson) {
+  window.addNewPerson = function() {
+    const result = originalAddNewPerson.apply(this, arguments);
+    saveAppData();
+    return result;
+  };
+}
+
+const originalProcessImportData = window.processImportData;
+if (originalProcessImportData) {
+  window.processImportData = function() {
+    const wasDarkMode = document.body.classList.contains('dark-mode');
+    const result = originalProcessImportData.apply(this, arguments);
+    
+    if (result) {
+      if (wasDarkMode) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+      data.darkMode = wasDarkMode;
+      
+      saveAppData();
+    }
+    
+    return result;
+  };
+}
+
+window.addEventListener('beforeunload', saveAppData);
+window.addEventListener('pagehide', saveAppData);
+document.addEventListener('pause', saveAppData);
+
+document.getElementById('currencySelect').addEventListener('change', saveAppData);
+document.getElementById('weightedBillsSidebar').addEventListener('change', saveAppData);
+
+window.budgetAppPersistence = {
+  save: saveAppData,
+  load: loadAppData
+};
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  loadAppData();
+} else {
+  document.addEventListener('DOMContentLoaded', loadAppData);
+}
 </script>
 
-</body></html>
+
+<script>
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', function() {
+                        navigator.serviceWorker.register('/sw.js')
+                            .then(function(registration) {
+                                console.log('ServiceWorker registration successful');
+                            })
+                            .catch(function(err) {
+                                console.log('ServiceWorker registration failed: ', err);
+                            });
+                    });
+                }
+
+                // Custom splash screen functionality
+                function showSplashScreen() {
+                    const splash = document.createElement('div');
+                    splash.id = 'pwa-splash';
+                    splash.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw;
+                        height: 100vh;
+                        background: white;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 10000;
+                        transition: opacity 0.5s ease-out;
+                    `;
+                    
+                    splash.innerHTML = `
+                        <img src="splash-screen.png" style="max-width: 90vw; max-height: 60vh; object-fit: contain;" 
+                             onerror="this.style.display='none'; document.getElementById('fallback-splash').style.display='block';">
+                        <div id="fallback-splash" style="display: none; text-align: center;">
+                            <div style="width: 100px; height: 100px; background: #4facfe; border-radius: 20px; margin: 0 auto 20px;"></div>
+                            <h2 style="color: #333; margin-bottom: 10px;">Budget Base</h2>
+                            <p style="color: #666;">Loading...</p>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(splash);
+                    
+                    // Remove splash after 3 seconds
+                    setTimeout(() => {
+                        splash.style.opacity = '0';
+                        setTimeout(() => {
+                            if (splash.parentNode) {
+                                splash.parentNode.removeChild(splash);
+                            }
+                        }, 500);
+                    }, 3000);
+                }
+
+                // Show splash on load (for PWA and native apps)
+                if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+                    // Running as PWA
+                    showSplashScreen();
+                } else if (window.navigator.standalone === true) {
+                    // Running as iOS web app
+                    showSplashScreen();
+                } else if (document.referrer.includes('android-app://')) {
+                    // Running as Android app
+                    showSplashScreen();
+                }
+            </script></body></html>
