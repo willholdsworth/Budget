@@ -1623,7 +1623,7 @@ transition: opacity 0.1s ease;
 }
 
 </style>
-<link rel="manifest" href="./manifest.json"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head><body>
+<link rel="manifest" href="./manifest.json"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="manifest" href="./manifest.json"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head><body>
 <div class="fixed-header">
  <div class="header-content">
    <div class="header-left"><button id="hamburgerBtn" class="hamburger-btn">☰</button></div>
@@ -9213,6 +9213,95 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 </script>
 
 
+<script>
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', function() {
+                        navigator.serviceWorker.register('./sw.js')
+                            .then(function(registration) {
+                                console.log('ServiceWorker registration successful for scope:', registration.scope);
+                            })
+                            .catch(function(err) {
+                                console.log('ServiceWorker registration failed: ', err);
+                            });
+                    });
+                }
+
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    console.log('PWA install prompt available');
+                });
+
+                window.addEventListener('appinstalled', () => {
+                    console.log('PWA installed successfully');
+                });
+
+                function showSplashScreen() {
+                    const isDarkMode = document.body.classList.contains('dark-mode') || 
+                                     window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    
+                    const splash = document.createElement('div');
+                    splash.id = 'pwa-splash';
+                    splash.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw;
+                        height: 100vh;
+                        background: ${isDarkMode ? '#000000' : '#ffffff'};
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 10000;
+                        transition: opacity 0.5s ease-out;
+                    `;
+                    
+                    const textColor = isDarkMode ? '#ffffff' : '#333333';
+                    const subTextColor = isDarkMode ? '#cccccc' : '#666666';
+                    
+                    const splashImageSrc = isDarkMode ? "./splash-screen-dark.png" : "./splash-screen.png";
+                    
+                    splash.innerHTML = `
+                        <img src="${splashImageSrc}" style="max-width: 90vw; max-height: 60vh; object-fit: contain;" 
+                             onerror="this.style.display='none'; document.getElementById('fallback-splash').style.display='block';">
+                        <div id="fallback-splash" style="display: none; text-align: center;">
+                            <div style="width: 100px; height: 100px; background: #4facfe; border-radius: 20px; margin: 0 auto 20px;"></div>
+                            <h2 style="color: ${textColor}; margin-bottom: 10px;">Budget Base</h2>
+                            <p style="color: ${subTextColor};">Loading...</p>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(splash);
+                    
+                    setTimeout(() => {
+                        splash.style.opacity = '0';
+                        setTimeout(() => {
+                            if (splash.parentNode) {
+                                splash.parentNode.removeChild(splash);
+                            }
+                        }, 500);
+                    }, 3000);
+                }
+
+                function initializeSplash() {
+                    const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+                    const isIOSStandalone = window.navigator.standalone === true;
+                    const isAndroidApp = document.referrer.includes('android-app://');
+                    
+                    if (isStandalone || isIOSStandalone || isAndroidApp) {
+                        if (document.readyState === 'loading') {
+                            showSplashScreen();
+                        } else {
+                            requestAnimationFrame(showSplashScreen);
+                        }
+                    }
+                }
+                
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initializeSplash);
+                } else {
+                    initializeSplash();
+                }
+            </script>
 <script>
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function() {

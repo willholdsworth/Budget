@@ -5,6 +5,9 @@
   "start_url": "/Budget/",
   "scope": "/Budget/",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay"
+  ],
   "orientation": "portrait-primary",
   "background_color": [
     {
@@ -27,7 +30,10 @@
     }
   ],
   "categories": [
-    "utilities"
+    "financial",
+    "utilities",
+    "lifestyle",
+    "productivity"
   ],
   "lang": "en-US",
   "icons": [
