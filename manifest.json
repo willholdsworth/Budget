@@ -72,14 +72,14 @@
       "media": "(prefers-color-scheme: dark)"
     }
   ],
-  "id": "https://www.willholdsworth.com/Budget",
+  "id": "https://www.willholdsworth.com/Budget/",
   "author": "Will Holdsworth",
   "prefer_related_applications": false,
   "related_applications": [],
   "shortcuts": [
     {
       "name": "Dashboard",
-      "url": "/Budget/index.html",
+      "url": "/Budget/",
       "description": "View your budget dashboard"
     }
   ],
