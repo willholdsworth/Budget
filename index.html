@@ -9390,4 +9390,29 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                 } else {
                     initializeSplash();
                 }
+				
+				document.addEventListener('click', function(event) {
+				  let anchor = event.target.closest('a');
+				  if (!anchor) return;
+				  
+				  const href = anchor.getAttribute('href');
+				  if (!href) return;
+				  
+				  if (
+					href.indexOf('://') !== -1 || 
+					href.startsWith('#') || 
+					anchor.getAttribute('download') || 
+					anchor.getAttribute('target') === '_blank'
+				  ) {
+					return;
+				  }
+				  
+				  event.preventDefault();
+				  history.pushState({}, '', href);
+				  window.dispatchEvent(new PopStateEvent('popstate'));
+				});
+
+				window.addEventListener('popstate', function() {
+				  console.log('Navigation handled by PWA:', location.pathname);
+				});
             </script></body></html>

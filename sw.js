@@ -15,7 +15,6 @@ self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(function(cache) {
-                console.log('Opened cache');
                 return cache.addAll(urlsToCache);
             })
             .catch(function(error) {
@@ -28,6 +27,16 @@ self.addEventListener('fetch', function(event) {
     const url = new URL(event.request.url);
     const appPath = '/Budget';
     
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => {
+                    return caches.match('/Budget/index.html');
+                })
+        );
+        return;
+    }
+    
     if (url.pathname.startsWith(appPath)) {
         event.respondWith(
             caches.match(event.request)
@@ -35,10 +44,24 @@ self.addEventListener('fetch', function(event) {
                     if (response) {
                         return response;
                     }
-                    return fetch(event.request);
+                    
+                    const fetchRequest = event.request.clone();
+                    
+                    return fetch(fetchRequest).then(function(response) {
+                        if (!response || response.status !== 200 || response.type !== 'basic') {
+                            return response;
+                        }
+                        
+                        const responseToCache = response.clone();
+                        
+                        caches.open(CACHE_NAME).then(function(cache) {
+                            cache.put(event.request, responseToCache);
+                        });
+                        
+                        return response;
+                    });
                 })
                 .catch(function(error) {
-                    console.error('Fetch failed:', error);
                     throw error;
                 })
         );
@@ -51,11 +74,18 @@ self.addEventListener('activate', function(event) {
             return Promise.all(
                 cacheNames.map(function(cacheName) {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
         })
     );
+    
+    return self.clients.claim();
+});
+
+self.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
