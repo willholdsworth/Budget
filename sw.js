@@ -62,7 +62,11 @@ self.addEventListener('fetch', function(event) {
                     });
                 })
                 .catch(function(error) {
-                    throw error;
+                    console.error('Fetch failed:', error);
+                    return new Response('Network error occurred', {
+                        status: 503,
+                        statusText: 'Service Unavailable'
+                    });
                 })
         );
     }
