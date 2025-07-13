@@ -2,7 +2,7 @@
   "name": "Budget Base",
   "short_name": "Budget Base",
   "description": "A simple way to track your bills & income",
-  "start_url": "/Budget/index.html",
+  "start_url": "/Budget/",
   "scope": "/Budget/",
   "display": "standalone",
   "display_override": [
