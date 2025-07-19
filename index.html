@@ -9415,4 +9415,340 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 				window.addEventListener('popstate', function() {
 				  console.log('Navigation handled by PWA:', location.pathname);
 				});
+
+	function showCustomPrompt(config) {
+	    let modal = document.getElementById('editModal');
+	    let modalContent;
+	    
+	    if (!modal) {
+	        const modalData = createModal();
+	        modal = modalData.modal;
+	        modalContent = modalData.modalContent;
+	    } else {
+	        modalContent = document.getElementById('modalContent');
+	    }
+	
+	    const inputId = 'customPromptInput';
+	    
+	    modalContent.innerHTML = `
+	        <h3 style="margin-bottom:20px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};text-align:center;">${config.title}</h3>
+	        <p style="margin-bottom:20px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};text-align:center;font-size:14px;line-height:1.5;">
+	            ${config.message}
+	        </p>
+	        <div class="form-group">
+	            <input type="text" id="${inputId}" placeholder="${config.placeholder || ''}" value="${config.defaultValue || ''}" style="width:100%;">
+	        </div>
+	        <div style="display:flex;gap:10px;margin-top:20px;">
+	            <button id="confirmPromptBtn" style="flex:1;">${config.confirmText || 'OK'}</button>
+	            <button id="cancelPromptBtn" style="flex:1;background:#666;">Cancel</button>
+	        </div>
+	    `;
+	
+	    const input = document.getElementById(inputId);
+	    const confirmBtn = document.getElementById('confirmPromptBtn');
+	    const cancelBtn = document.getElementById('cancelPromptBtn');
+	
+	    const cleanup = () => {
+	        hideModal();
+	    };
+	
+	    confirmBtn.addEventListener('click', () => {
+	        const value = input.value.trim();
+	        cleanup();
+	        if (config.onConfirm) {
+	            config.onConfirm(value);
+	        }
+	    });
+	
+	    cancelBtn.addEventListener('click', () => {
+	        cleanup();
+	        if (config.onCancel) {
+	            config.onCancel();
+	        }
+	    });
+	
+	    input.addEventListener('keypress', (e) => {
+	        if (e.key === 'Enter') {
+	            confirmBtn.click();
+	        }
+	    });
+	
+	    showModal();
+	    
+	    setTimeout(() => {
+	        input.focus();
+	        input.select();
+	    }, 100);
+	}
+	
+	function showCustomConfirm(config) {
+	    let modal = document.getElementById('editModal');
+	    let modalContent;
+	    
+	    if (!modal) {
+	        const modalData = createModal();
+	        modal = modalData.modal;
+	        modalContent = modalData.modalContent;
+	    } else {
+	        modalContent = document.getElementById('modalContent');
+	    }
+	
+	    const buttonStyle = config.isDangerous ? 'background:#8e1600;color:#ffffff;' : '';
+	    
+	    modalContent.innerHTML = `
+	        <h3 style="margin-bottom:20px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};text-align:center;">${config.title}</h3>
+	        <p style="margin-bottom:30px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};text-align:center;font-size:14px;line-height:1.5;">
+	            ${config.message}
+	        </p>
+	        <div style="display:flex;gap:10px;justify-content:center;">
+	            <button id="confirmActionBtn" style="${buttonStyle}">${config.confirmText || 'OK'}</button>
+	            <button id="cancelActionBtn" style="background:#666;">Cancel</button>
+	        </div>
+	    `;
+	
+	    document.getElementById('confirmActionBtn').addEventListener('click', () => {
+	        hideModal();
+	        if (config.onConfirm) {
+	            config.onConfirm();
+	        }
+	    });
+	
+	    document.getElementById('cancelActionBtn').addEventListener('click', () => {
+	        hideModal();
+	        if (config.onCancel) {
+	            config.onCancel();
+	        }
+	    });
+	
+	    showModal();
+	}
+	
+	function customAddNewPerson() {
+	    showCustomPrompt({
+	        title: 'Add New User',
+	        message: 'Enter the name for the new user. You can add more users using the sidemenu ☰',
+	        placeholder: 'Enter user name...',
+	        confirmText: 'Add User',
+	        onConfirm: (name) => {
+	            if (!name) {
+	                showCustomConfirm({
+	                    title: 'Invalid Input',
+	                    message: 'Please enter a valid name.',
+	                    confirmText: 'Try Again',
+	                    onConfirm: () => customAddNewPerson()
+	                });
+	                return;
+	            }
+	
+	            if (data.people.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+	                showCustomConfirm({
+	                    title: 'Duplicate Name',
+	                    message: 'A person with this name already exists!',
+	                    confirmText: 'Try Again',
+	                    onConfirm: () => customAddNewPerson()
+	                });
+	                return;
+	            }
+	
+	            const newPerson = {
+	                id: nextPersonId++,
+	                name: name,
+	                income: 0,
+	                frequency: 'monthly',
+	                paymentDate: '',
+	                savings: 0,
+	                expenses: 0,
+	                employer: '',
+	                color: colorPalette[data.people.length % colorPalette.length].value
+	            };
+	
+	            data.people.push(newPerson);
+	            recordEvent('Person Added', `Added ${name} to budget tracker`);
+	
+	            saveDataToLocalStorage();
+	            createPersonTab(newPerson);
+	            attachPersonEventListeners();
+	            updateGreeting();
+	            updateBillPayerOptions();
+	            updateHistoryDisplay();
+	            updateOverview();
+	            toggleBillTypeVisibility();
+	            updateTabsVisibility();
+	
+	            const sidebar = document.getElementById('sidebar');
+	            if (sidebar.classList.contains('open')) {
+	                sidebar.classList.remove('open');
+	            }
+	
+	            showTab(`person-${newPerson.id}`);
+	        },
+	        onCancel: () => {}
+	    });
+	}
+	
+	function customDeleteBill(billId) {
+	    const bill = data.bills.find(b => b.id === billId);
+	    if (!bill) return;
+	
+	    const title = bill.isOneOff ? 'Delete One-Off Expense' : 'Delete Bill';
+	    const message = bill.isOneOff ? 
+	        'Delete this one-off expense? This will remove it completely from all records and history.' :
+	        'Are you sure you want to stop this bill? This will prevent future payments but keep the payment history.';
+	
+	    showCustomConfirm({
+	        title: title,
+	        message: message,
+	        confirmText: 'Delete',
+	        isDangerous: true,
+	        onConfirm: () => {
+	            const today = getDateString();
+	
+	            bill.isDeleted = true;
+	            bill.deletedDate = today;
+	
+	            if (bill.isOneOff) {
+	                const relatedPayments = data.billPayments.filter(payment => payment.billId === bill.id);
+	                
+	                if (relatedPayments.length > 0) {
+	                    data.billPayments = data.billPayments.filter(payment => payment.billId !== bill.id);
+	                }
+	                
+	                recordEvent('One Off Expense Deleted', `Deleted one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}. All records removed.`);
+	            } else {
+	                const futurePayments = data.billPayments.filter(payment =>
+	                    payment.billId === bill.id &&
+	                    payment.date > today
+	                );
+	
+	                if (futurePayments.length > 0) {
+	                    data.billPayments = data.billPayments.filter(payment =>
+	                        !(payment.billId === bill.id && payment.date > today)
+	                    );
+	                }
+	            }
+	
+	            if (bill.isDebt) {
+	                bill.isDebt = false;
+	                bill.totalDebt = 0;
+	                bill.interestRate = 0;
+	                bill.termYears = 0;
+	                bill.termMonths = 0;
+	                bill.overpayment = 0;
+	            }
+	
+	            saveDataToLocalStorage();
+	            updateBillsList();
+	            updateHistoryDisplay();
+	            updateOverview();
+	            updateOneOffOverview();
+	            resetCalendarToCurrentMonth();
+	            toggleBillTypeVisibility();
+	            ensureDataConsistency();
+	        }
+	    });
+	}
+	
+	function customDeletePerson(personId) {
+	    const person = data.people.find(p => p.id === personId);
+	    if (!person) return;
+	
+	    if (data.bills.some(b => b.payer === person.id)) {
+	        showCustomConfirm({
+	            title: 'Cannot Delete User',
+	            message: 'Cannot delete person with associated bills. Please reassign or delete their bills first.',
+	            confirmText: 'OK'
+	        });
+	        return;
+	    }
+	
+	    showCustomConfirm({
+	        title: 'Delete User',
+	        message: `Are you sure you want to delete ${person.name} and their associated data? This cannot be undone.`,
+	        confirmText: 'Delete',
+	        isDangerous: true,
+	        onConfirm: () => {
+	            data.people = data.people.filter(p => p.id !== personId);
+	            data.paycheckHistory = data.paycheckHistory.filter(p => p.personId !== personId);
+	            
+	            recordEvent('Person Deleted', `Deleted ${person.name} from budget tracker`);
+	            
+	            saveDataToLocalStorage();
+	            
+	            const tab = document.querySelector(`button.tab[data-person-id="${personId}"]`);
+	            if (tab) tab.remove();
+	            
+	            const content = document.getElementById(`person-${personId}`);
+	            if (content) content.remove();
+	            
+	            updateGreeting();
+	            updateBillPayerOptions();
+	            updateHistoryDisplay();
+	            updateOverview();
+	            toggleBillTypeVisibility();
+	            updateTabsVisibility();
+	            
+	            showTab('overview');
+	        }
+	    });
+	}
+	
+	function customFullReset() {
+	    showCustomConfirm({
+	        title: 'Full Reset',
+	        message: 'Are you sure you want to reset all data? This will permanently delete all users, bills, income history, and settings. This cannot be undone.',
+	        confirmText: 'Reset All Data',
+	        isDangerous: true,
+	        onConfirm: () => {
+	            data = {
+	                people: [],
+	                bills: [],
+	                currency: "USD",
+	                darkMode: document.body.classList.contains('dark-mode'),
+	                weightedBills: false,
+	                nextPersonId: 1,
+	                nextBillId: 1,
+	                nextIncomeId: 1,
+	                nextEventId: 1,
+	                nextPaycheckId: 1,
+	                paycheckHistory: [],
+	                billHistory: [],
+	                eventHistory: [],
+	                billPayments: [],
+	                lastProcessedDate: null,
+	                peopleIncomeSettings: {},
+	                uiPreferences: {},
+	                savedFileHandle: null,
+	                billHistoryId: 1,
+	                dataVersion: "1.0"
+	            };
+	            
+	            nextPersonId = 1;
+	            nextBillId = 1;
+	            nextIncomeId = 1;
+	            nextEventId = 1;
+	            nextPaycheckId = 1;
+	            savedFileHandle = null;
+	            
+	            localStorage.removeItem('budgetTrackerData');
+	            isPostImport = false;
+	            importBaseline = {};
+	            
+	            document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
+	            document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
+	            
+	            updateGreeting();
+	            updateBillPayerOptions();
+	            updateBillsList();
+	            updateHistoryDisplay();
+	            updateOverview();
+	            toggleBillTypeVisibility();
+	            showTab('overview');
+	        }
+	    });
+	}
+	
+	window.addNewPerson = customAddNewPerson;
+	window.deleteBill = customDeleteBill;
+	window.deletePerson = customDeletePerson;
+	window.fullReset = customFullReset;
             </script></body></html>
