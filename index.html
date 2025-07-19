@@ -2206,9 +2206,9 @@ function getDayEvents(date) {
        }
    });
    
-   const isViewingFuture = dateStr > today;
+   const isViewingFutureOrToday = dateStr >= today;
    
-   if (isViewingFuture) {
+   if (isViewingFutureOrToday) {
        data.people.forEach(person => {
            if (isPaydayOnDate(person, day, month, year)) {
                if (!paydaysForDay.some(p => p.id === person.id)) {
