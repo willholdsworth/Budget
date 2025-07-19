@@ -9523,6 +9523,38 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	    showModal();
 	}
 	
+	function showCustomAlert(config) {
+	    let modal = document.getElementById('editModal');
+	    let modalContent;
+	    
+	    if (!modal) {
+	        const modalData = createModal();
+	        modal = modalData.modal;
+	        modalContent = modalData.modalContent;
+	    } else {
+	        modalContent = document.getElementById('modalContent');
+	    }
+	
+	    modalContent.innerHTML = `
+	        <h3 style="margin-bottom:20px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};text-align:center;">${config.title}</h3>
+	        <p style="margin-bottom:30px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};text-align:center;font-size:14px;line-height:1.5;">
+	            ${config.message}
+	        </p>
+	        <div style="text-align:center;">
+	            <button id="alertOkBtn">${config.confirmText || 'OK'}</button>
+	        </div>
+	    `;
+	
+	    document.getElementById('alertOkBtn').addEventListener('click', () => {
+	        hideModal();
+	        if (config.onConfirm) {
+	            config.onConfirm();
+	        }
+	    });
+	
+	    showModal();
+	}
+	
 	function customAddNewPerson() {
 	    showCustomPrompt({
 	        title: 'Add New User',
@@ -9531,20 +9563,18 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	        confirmText: 'Add User',
 	        onConfirm: (name) => {
 	            if (!name) {
-	                showCustomConfirm({
+	                showCustomAlert({
 	                    title: 'Invalid Input',
 	                    message: 'Please enter a valid name.',
-	                    confirmText: 'Try Again',
 	                    onConfirm: () => customAddNewPerson()
 	                });
 	                return;
 	            }
 	
 	            if (data.people.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-	                showCustomConfirm({
+	                showCustomAlert({
 	                    title: 'Duplicate Name',
 	                    message: 'A person with this name already exists!',
-	                    confirmText: 'Try Again',
 	                    onConfirm: () => customAddNewPerson()
 	                });
 	                return;
@@ -9653,10 +9683,9 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	    if (!person) return;
 	
 	    if (data.bills.some(b => b.payer === person.id)) {
-	        showCustomConfirm({
+	        showCustomAlert({
 	            title: 'Cannot Delete User',
-	            message: 'Cannot delete person with associated bills. Please reassign or delete their bills first.',
-	            confirmText: 'OK'
+	            message: 'Cannot delete person with associated bills. Please reassign or delete their bills first.'
 	        });
 	        return;
 	    }
@@ -9747,8 +9776,84 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	    });
 	}
 	
+	function customDeleteEvent(eventId) {
+	    const event = data.eventHistory.find(e => e.id === eventId);
+	    if (!event) return;
+	
+	    showCustomConfirm({
+	        title: 'Delete Event',
+	        message: `Are you sure you want to delete this event? This cannot be undone.\n\nEvent: ${event.event}\nDate: ${event.date}`,
+	        confirmText: 'Delete',
+	        isDangerous: true,
+	        onConfirm: () => {
+	            data.eventHistory = data.eventHistory.filter(e => e.id !== eventId);
+	            saveDataToLocalStorage();
+	            updateHistoryDisplay();
+	        }
+	    });
+	}
+	
+	function customDeletePaycheck(paycheckId, personId) {
+	    const paycheck = data.paycheckHistory.find(p => p.id === paycheckId);
+	    if (!paycheck) return;
+	
+	    showCustomConfirm({
+	        title: 'Delete Income Entry',
+	        message: `Are you sure you want to delete this income entry? This cannot be undone.\n\n${paycheck.personName}: ${formatCurrency(paycheck.amount)} on ${paycheck.date}`,
+	        confirmText: 'Delete',
+	        isDangerous: true,
+	        onConfirm: () => {
+	            data.paycheckHistory = data.paycheckHistory.filter(p => p.id !== paycheckId);
+	            
+	            data.eventHistory.push({
+	                id: nextEventId++,
+	                date: getDateString(),
+	                event: 'Paycheck Deleted',
+	                description: `Deleted ${formatCurrency(paycheck.amount)} ${paycheck.type} for ${paycheck.personName} on ${paycheck.date}`
+	            });
+	            
+	            saveDataToLocalStorage();
+	            updatePersonOverview(personId);
+	            updateHistoryDisplay();
+	            updateOverview();
+	            ensureDataConsistency();
+	        }
+	    });
+	}
+	
 	window.addNewPerson = customAddNewPerson;
 	window.deleteBill = customDeleteBill;
 	window.deletePerson = customDeletePerson;
 	window.fullReset = customFullReset;
+	window.deleteEvent = customDeleteEvent;
+	window.deletePaycheck = customDeletePaycheck;
+	
+	window.alert = function(message) {
+	    if (message.includes('Please')) {
+	        showCustomAlert({
+	            title: 'Required Field',
+	            message: message
+	        });
+	    } else if (message.includes('already exists') || message.includes('Duplicate')) {
+	        showCustomAlert({
+	            title: 'Duplicate Entry',
+	            message: message
+	        });
+	    } else if (message.includes('Cannot') || message.includes('Error')) {
+	        showCustomAlert({
+	            title: 'Error',
+	            message: message
+	        });
+	    } else if (message.includes('success') || message.includes('Success') || message.includes('saved') || message.includes('exported') || message.includes('imported')) {
+	        showCustomAlert({
+	            title: 'Success',
+	            message: message
+	        });
+	    } else {
+	        showCustomAlert({
+	            title: 'Notice',
+	            message: message
+	        });
+	    }
+	};
             </script></body></html>
