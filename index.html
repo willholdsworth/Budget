@@ -1917,6 +1917,15 @@ transition: opacity 0.1s ease;
         "savedFileHandle": null
 }</script>
 <script>
+(function() {
+  const darkMode = localStorage.getItem('budget_app_dark_mode');
+  if (darkMode === 'true') {
+    document.documentElement.classList.add('dark-mode');
+    document.body.classList.add('dark-mode');
+  }
+})();
+</script>
+<script>
 let data = {};
 let nextPersonId = 1;
 let nextBillId = 1;
@@ -9254,6 +9263,11 @@ function loadAppData() {
       if (typeof attachPersonEventListeners === 'function') {
         attachPersonEventListeners();
       }
+      
+      setTimeout(() => {
+        processElapsedBills();
+        processElapsedIncome();
+      }, 200);
       
       return true;
     }
