@@ -9133,63 +9133,65 @@ function createOneOffItem(expense) {
 }
 
 function attachEventListeners() {
-    loadData();
-    initializeSession();
-    updateGreeting();
-    updateBillPayerOptions();
-    updateBillsList();
-    updateHistoryDisplay();
-    updateOverview();
-    toggleBillTypeVisibility();
-   
-    data.people.forEach(person => createPersonTab(person));
-   
-    $('hamburgerBtn').addEventListener('click', toggleSidebar);
-    $('addNewPersonBtn').addEventListener('click', addNewPerson);
-    $('toggleDarkModeBtn').addEventListener('click', toggleDarkMode);
-    $('currencySelect').addEventListener('change', updateCurrency);
-    $('weightedBillsSidebar').addEventListener('change', updateWeightedBills);
-    $('addBillBtn').addEventListener('click', addBill);
-    $('isDebt').addEventListener('change', toggleDebtFields);
-    $('billType').addEventListener('change', toggleBillPayerVisibility);
-    $('billFrequency').addEventListener('change', toggleBillFrequencyOptions);
-    $('fullResetBtn').addEventListener('click', fullReset);
-    $('clearHistoryFiltersBtn').addEventListener('click', clearHistoryFilters);
-    $('historyPersonFilter').addEventListener('change', updateHistoryDisplay);
-    $('historyStartDate').addEventListener('change', updateHistoryDisplay);
-    $('historyEndDate').addEventListener('change', updateHistoryDisplay);
-    $('isOneOff').addEventListener('change', toggleOneOffFields);
-   
-    updateEnhancedExportData();
-   
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            if (tab.dataset.tab === 'add-person') {
-                addNewPerson();
-                return;
-            }
-            const tabId = tab.dataset.tab || `person-${tab.dataset.personId}`;
-            showTab(tabId);
-        });
-    });
-   
-    document.addEventListener('click', function(event) {
-        const sidebar = $('sidebar');
-        const hamburgerBtn = $('hamburgerBtn');
-       
-        if (sidebar.classList.contains('open')) {
-            const isClickInsideSidebar = sidebar.contains(event.target);
-            const isClickOnHamburgerBtn = hamburgerBtn.contains(event.target);
-           
-            if (!isClickInsideSidebar && !isClickOnHamburgerBtn) {
-                sidebar.classList.remove('open');
-            }
-        }
-    });
-   
-    window.addEventListener('beforeunload', finalizeSession);
-   
-    updateTabsVisibility();
+   if (!loadAppData()) {
+       loadData();
+   }
+   initializeSession();
+   updateGreeting();
+   updateBillPayerOptions();
+   updateBillsList();
+   updateHistoryDisplay();
+   updateOverview();
+   toggleBillTypeVisibility();
+  
+   data.people.forEach(person => createPersonTab(person));
+  
+   $('hamburgerBtn').addEventListener('click', toggleSidebar);
+   $('addNewPersonBtn').addEventListener('click', addNewPerson);
+   $('toggleDarkModeBtn').addEventListener('click', toggleDarkMode);
+   $('currencySelect').addEventListener('change', updateCurrency);
+   $('weightedBillsSidebar').addEventListener('change', updateWeightedBills);
+   $('addBillBtn').addEventListener('click', addBill);
+   $('isDebt').addEventListener('change', toggleDebtFields);
+   $('billType').addEventListener('change', toggleBillPayerVisibility);
+   $('billFrequency').addEventListener('change', toggleBillFrequencyOptions);
+   $('fullResetBtn').addEventListener('click', fullReset);
+   $('clearHistoryFiltersBtn').addEventListener('click', clearHistoryFilters);
+   $('historyPersonFilter').addEventListener('change', updateHistoryDisplay);
+   $('historyStartDate').addEventListener('change', updateHistoryDisplay);
+   $('historyEndDate').addEventListener('change', updateHistoryDisplay);
+   $('isOneOff').addEventListener('change', toggleOneOffFields);
+  
+   updateEnhancedExportData();
+  
+   document.querySelectorAll('.tab').forEach(tab => {
+       tab.addEventListener('click', () => {
+           if (tab.dataset.tab === 'add-person') {
+               addNewPerson();
+               return;
+           }
+           const tabId = tab.dataset.tab || `person-${tab.dataset.personId}`;
+           showTab(tabId);
+       });
+   });
+  
+   document.addEventListener('click', function(event) {
+       const sidebar = $('sidebar');
+       const hamburgerBtn = $('hamburgerBtn');
+      
+       if (sidebar.classList.contains('open')) {
+           const isClickInsideSidebar = sidebar.contains(event.target);
+           const isClickOnHamburgerBtn = hamburgerBtn.contains(event.target);
+          
+           if (!isClickInsideSidebar && !isClickOnHamburgerBtn) {
+               sidebar.classList.remove('open');
+           }
+       }
+   });
+  
+   window.addEventListener('beforeunload', finalizeSession);
+  
+   updateTabsVisibility();
 }
 
 document.addEventListener('DOMContentLoaded', attachEventListeners);
