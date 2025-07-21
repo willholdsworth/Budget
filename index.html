@@ -4705,8 +4705,7 @@ function clearChanges() {
 
 function loadData() {
     try {
-        localStorage.removeItem('budgetTrackerData');
-        localStorage.removeItem(BUDGET_DATA_KEY);
+        localStorage.removeItem(STORAGE_KEY);
         
         const embeddedScript = document.getElementById('embedded-data');
         data = JSON.parse(embeddedScript.textContent);
@@ -4723,12 +4722,6 @@ function loadData() {
         isPostImport = false;
         importBaseline = {};
        
-        if (!data.billPayments) data.billPayments = [];
-        if (!data.billPaymentId) data.billPaymentId = 1;
-        if (!data.paycheckHistory) data.paycheckHistory = [];
-        if (!data.eventHistory) data.eventHistory = [];
-        if (!data.peopleIncomeSettings) data.peopleIncomeSettings = {};
-        
         initializeBillPaymentIds();
        
         if (data.darkMode) document.body.classList.add('dark-mode');
@@ -4745,32 +4738,9 @@ function loadData() {
         clearChanges();
        
         setTimeout(() => {
-            const billPaymentsBefore = data.billPayments.length;
-            const paychecksBefore = data.paycheckHistory.length;
-            
             processElapsedBills();
             processElapsedIncome();
-            
-            const newBillPayments = data.billPayments.length - billPaymentsBefore;
-            const newPaychecks = data.paycheckHistory.length - paychecksBefore;
-            
-            if (newBillPayments > 0 || newPaychecks > 0) {
-                data.eventHistory.push({
-                    id: nextEventId++,
-                    date: new Date().toISOString().split('T')[0],
-                    event: 'Embedded Data Processing',
-                    description: `Added ${newBillPayments} bill payments and ${newPaychecks} paychecks for elapsed dates`
-                });
-                
-                updateBillsList();
-                updateHistoryDisplay();
-                updateOverview();
-                updateCalendarView();
-                data.people.forEach(p => updatePersonOverview(p.id));
-            }
-            
-            ensureDataConsistency();
-        }, 300);
+        }, 100);
        
         isPostImport = false;
         importBaseline = {};
@@ -4780,7 +4750,6 @@ function loadData() {
         initializeDefaultData();
     }
 }
-
 
 function initializeBillPaymentIds() {
     if (!data.billPayments) data.billPayments = [];
@@ -9267,18 +9236,6 @@ function loadAppData() {
       nextEventId = data.nextEventId || 1;
       nextPaycheckId = data.nextPaycheckId || 1;
       
-      if (!data.billPayments) data.billPayments = [];
-      if (!data.billPaymentId) data.billPaymentId = 1;
-      if (!data.paycheckHistory) data.paycheckHistory = [];
-      if (!data.eventHistory) data.eventHistory = [];
-      if (!data.peopleIncomeSettings) data.peopleIncomeSettings = {};
-      
-      data.billPayments.forEach(payment => {
-        if (!payment.id) {
-          payment.id = data.billPaymentId++;
-        }
-      });
-      
       document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
       document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
       
@@ -9290,8 +9247,8 @@ function loadAppData() {
         data.darkMode = false;
       }
       
-      document.getElementById('currencySelect').value = data.currency || 'USD';
-      document.getElementById('weightedBillsSidebar').checked = data.weightedBills || false;
+      document.getElementById('currencySelect').value = data.currency;
+      document.getElementById('weightedBillsSidebar').checked = data.weightedBills;
       
       data.people.forEach(person => createPersonTab(person));
       
@@ -9308,38 +9265,9 @@ function loadAppData() {
       }
       
       setTimeout(() => {
-        const billPaymentsBefore = data.billPayments.length;
-        const paychecksBefore = data.paycheckHistory.length;
-        
         processElapsedBills();
         processElapsedIncome();
-        
-        const billPaymentsAfter = data.billPayments.length;
-        const paychecksAfter = data.paycheckHistory.length;
-        
-        const newBillPayments = billPaymentsAfter - billPaymentsBefore;
-        const newPaychecks = paychecksAfter - paychecksBefore;
-        
-        if (newBillPayments > 0 || newPaychecks > 0) {
-          data.eventHistory.push({
-            id: nextEventId++,
-            date: new Date().toISOString().split('T')[0],
-            event: 'App Restart Processing',
-            description: `Added ${newBillPayments} bill payments and ${newPaychecks} paychecks for elapsed dates since last app use`
-          });
-          
-          saveAppData();
-          
-          updateBillsList();
-          updateHistoryDisplay();
-          updateOverview();
-          updateCalendarView();
-          data.people.forEach(p => updatePersonOverview(p.id));
-        }
-        
-        ensureDataConsistency();
-        
-      }, 500);
+      }, 200);
       
       return true;
     }
