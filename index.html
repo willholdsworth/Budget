@@ -6740,159 +6740,164 @@ function removeFutureBillPayments(billId, fromDate) {
 }
 
 function addBill() {
-    const name = $('billName').value.trim();
-    const amount = parseFloat($('billAmount').value) || 0;
-    const frequency = $('billFrequency').value;
-    const day = parseInt($('billDate').value);
-    const month = $('billMonth').value ? parseInt($('billMonth').value) : null;
-    const startMonth = $('billStartMonth').value ? parseInt($('billStartMonth').value) : null;
-    const category = $('billCategory').value;
-    const billType = data.people.length <= 1 ? 'individual' : $('billType').value;
-    const isDebt = $('isDebt').checked;
-    const isOneOff = $('isOneOff').checked;
-   
-    let payer;
-    if (data.people.length <= 1) {
-        payer = data.people[0]?.id;
-    } else {
-        const selectedPayer = $('billPayer').value;
-        if (billType === 'joint' && selectedPayer === 'joint') {
-            payer = 'joint';
-        } else {
-            payer = parseInt(selectedPayer);
-        }
-    }
-   
-    if (!name || !amount) {
-        alert('Please fill in bill name and amount');
-        return;
-    }
-   
-    if (!isOneOff && frequency === 'yearly' && !month) {
-        alert('Please select a month for yearly bills');
-        return;
-    }
-   
-    if (!isOneOff && frequency === 'quarterly' && !startMonth) {
-        alert('Please select a start month for quarterly bills');
-        return;
-    }
-   
-    if (!isOneOff && day && month && frequency === 'yearly') {
-        const testDate = new Date(2024, month - 1, day);
-        if (testDate.getMonth() !== month - 1) {
-            alert(`Day ${day} does not exist in ${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month - 1]}. The bill will be moved to the next valid day when that month occurs.`);
-        }
-    }
-   
-    if (!isOneOff && day > 31) {
-        alert('Please select a valid day (1-31)');
-        return;
-    }
-   
-    if (payer !== 'joint' && !data.people.find(p => p.id === payer)) {
-        alert('Please select a valid payer');
-        return;
-    }
-   
-    const today = new Date();
-    const todayString = getDateString();
-   
-    const billDate = isOneOff ? todayString : generateBillDate(day, month, frequency, startMonth);
-   
-    const bill = {
-        id: nextBillId++,
-        name: name,
-        amount: amount,
-        frequency: isOneOff ? 'one-off' : frequency,
-        date: billDate,
-        day: isOneOff ? null : day,
-        month: isOneOff ? null : month,
-        startMonth: frequency === 'quarterly' ? startMonth : null,
-        category: category,
-        billType: billType,
-        payer: payer,
-        isDebt: isDebt,
-        isOneOff: isOneOff,
-        dateCreated: todayString
-    };
-   
-    if (isDebt) {
-        bill.totalDebt = parseFloat($('totalDebt').value) || 0;
-        bill.interestRate = parseFloat($('interestRate').value) || 0;
-        bill.termYears = parseInt($('termYears').value) || 0;
-        bill.termMonths = parseInt($('termMonths').value) || 0;
-        bill.overpayment = parseFloat($('overpayment').value) || 0;
-    }
-   
-    data.bills.push(bill);
-   
-    const payerName = payer === 'joint' ? 'Joint Account' :
-                     data.people.find(p => p.id === parseInt(payer))?.name || 'Unknown';
-   
-    let shouldCreatePayment = false;
-    let paymentReason = '';
-   
-    if (isOneOff) {
-        shouldCreatePayment = true;
-        paymentReason = 'One-off expense';
-    }
-    else if (day === today.getDate()) {
-        shouldCreatePayment = true;
-        paymentReason = 'Due today';
-    }
-    else if (!isOneOff) {
-        const currentMonthBillDate = new Date(today.getFullYear(), today.getMonth(), day);
-       
-        if (getDateString(currentMonthBillDate) < todayString) {
-            shouldCreatePayment = true;
-            paymentReason = 'Past due date in current month';
-        }
-    }
-   
-    if (shouldCreatePayment) {
-        const paymentDate = isOneOff ? billDate :
-                           getDateString(new Date(today.getFullYear(), today.getMonth(), day));
-       
-        const paymentRecord = {
-            id: data.billPaymentId++,
-            billId: bill.id,
-            billName: bill.name,
-            amount: bill.amount + (bill.overpayment || 0),
-            date: paymentDate,
-            category: bill.category,
-            billType: bill.billType,
-            payer: bill.payer,
-            status: isOneOff ? 'One-off expense' : `Auto-processed payment (${paymentReason})`
-        };
-       
-        if (!data.billPayments) data.billPayments = [];
-        data.billPayments.push(paymentRecord);
-    }
-   
-    $('billName').value = '';
-    $('billAmount').value = '';
-    $('billDate').value = '';
-    $('billMonth').value = '';
-    $('billStartMonth').value = '';
-    $('isDebt').checked = false;
-    $('isOneOff').checked = false;
-    $('totalDebt').value = '';
-    $('interestRate').value = '';
-    $('termYears').value = '';
-    $('termMonths').value = '';
-    $('overpayment').value = '';
-    toggleDebtFields();
-    toggleOneOffFields();
-    toggleBillFrequencyOptions();
-   
-    saveDataToLocalStorage();
-    updateBillsList();
-    updateHistoryDisplay();
-    updateOverview();
-    toggleBillTypeVisibility();
-    resetCalendarToCurrentMonth();
-    ensureDataConsistency();
+   const name = $('billName').value.trim();
+   const amount = parseFloat($('billAmount').value) || 0;
+   const frequency = $('billFrequency').value;
+   const day = parseInt($('billDate').value);
+   const month = $('billMonth').value ? parseInt($('billMonth').value) : null;
+   const startMonth = $('billStartMonth').value ? parseInt($('billStartMonth').value) : null;
+   const category = $('billCategory').value;
+   const billType = data.people.length <= 1 ? 'individual' : $('billType').value;
+   const isDebt = $('isDebt').checked;
+   const isOneOff = $('isOneOff').checked;
+  
+   let payer;
+   if (data.people.length <= 1) {
+       payer = data.people[0]?.id;
+   } else {
+       const selectedPayer = $('billPayer').value;
+       if (billType === 'joint' && selectedPayer === 'joint') {
+           payer = 'joint';
+       } else {
+           payer = parseInt(selectedPayer);
+       }
+   }
+  
+   if (!name || !amount) {
+       alert('Please fill in bill name and amount');
+       return;
+   }
+  
+   if (!isOneOff && !day) {
+       alert('Please select a due day for the bill');
+       return;
+   }
+  
+   if (!isOneOff && frequency === 'yearly' && !month) {
+       alert('Please select a month for yearly bills');
+       return;
+   }
+  
+   if (!isOneOff && frequency === 'quarterly' && !startMonth) {
+       alert('Please select a start month for quarterly bills');
+       return;
+   }
+  
+   if (!isOneOff && day && month && frequency === 'yearly') {
+       const testDate = new Date(2024, month - 1, day);
+       if (testDate.getMonth() !== month - 1) {
+           alert(`Day ${day} does not exist in ${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month - 1]}. The bill will be moved to the next valid day when that month occurs.`);
+       }
+   }
+  
+   if (!isOneOff && day > 31) {
+       alert('Please select a valid day (1-31)');
+       return;
+   }
+  
+   if (payer !== 'joint' && !data.people.find(p => p.id === payer)) {
+       alert('Please select a valid payer');
+       return;
+   }
+  
+   const today = new Date();
+   const todayString = getDateString();
+  
+   const billDate = isOneOff ? todayString : generateBillDate(day, month, frequency, startMonth);
+  
+   const bill = {
+       id: nextBillId++,
+       name: name,
+       amount: amount,
+       frequency: isOneOff ? 'one-off' : frequency,
+       date: billDate,
+       day: isOneOff ? null : day,
+       month: isOneOff ? null : month,
+       startMonth: frequency === 'quarterly' ? startMonth : null,
+       category: category,
+       billType: billType,
+       payer: payer,
+       isDebt: isDebt,
+       isOneOff: isOneOff,
+       dateCreated: todayString
+   };
+  
+   if (isDebt) {
+       bill.totalDebt = parseFloat($('totalDebt').value) || 0;
+       bill.interestRate = parseFloat($('interestRate').value) || 0;
+       bill.termYears = parseInt($('termYears').value) || 0;
+       bill.termMonths = parseInt($('termMonths').value) || 0;
+       bill.overpayment = parseFloat($('overpayment').value) || 0;
+   }
+  
+   data.bills.push(bill);
+  
+   const payerName = payer === 'joint' ? 'Joint Account' :
+                    data.people.find(p => p.id === parseInt(payer))?.name || 'Unknown';
+  
+   let shouldCreatePayment = false;
+   let paymentReason = '';
+  
+   if (isOneOff) {
+       shouldCreatePayment = true;
+       paymentReason = 'One-off expense';
+   }
+   else if (day === today.getDate()) {
+       shouldCreatePayment = true;
+       paymentReason = 'Due today';
+   }
+   else if (!isOneOff) {
+       const currentMonthBillDate = new Date(today.getFullYear(), today.getMonth(), day);
+      
+       if (getDateString(currentMonthBillDate) < todayString) {
+           shouldCreatePayment = true;
+           paymentReason = 'Past due date in current month';
+       }
+   }
+  
+   if (shouldCreatePayment) {
+       const paymentDate = isOneOff ? billDate :
+                          getDateString(new Date(today.getFullYear(), today.getMonth(), day));
+      
+       const paymentRecord = {
+           id: data.billPaymentId++,
+           billId: bill.id,
+           billName: bill.name,
+           amount: bill.amount + (bill.overpayment || 0),
+           date: paymentDate,
+           category: bill.category,
+           billType: bill.billType,
+           payer: bill.payer,
+           status: isOneOff ? 'One-off expense' : `Auto-processed payment (${paymentReason})`
+       };
+      
+       if (!data.billPayments) data.billPayments = [];
+       data.billPayments.push(paymentRecord);
+   }
+  
+   $('billName').value = '';
+   $('billAmount').value = '';
+   $('billDate').value = '';
+   $('billMonth').value = '';
+   $('billStartMonth').value = '';
+   $('isDebt').checked = false;
+   $('isOneOff').checked = false;
+   $('totalDebt').value = '';
+   $('interestRate').value = '';
+   $('termYears').value = '';
+   $('termMonths').value = '';
+   $('overpayment').value = '';
+   toggleDebtFields();
+   toggleOneOffFields();
+   toggleBillFrequencyOptions();
+  
+   saveDataToLocalStorage();
+   updateBillsList();
+   updateHistoryDisplay();
+   updateOverview();
+   toggleBillTypeVisibility();
+   resetCalendarToCurrentMonth();
+   ensureDataConsistency();
 }
 
 function editBill(billId) {
