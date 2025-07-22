@@ -6907,383 +6907,410 @@ function editBill(billId) {
 }
 
 function showEditBillModal(bill) {
-    let modal = $('editModal');
-    let modalContent;
-   
-    if (!modal) {
-        const modalData = createModal();
-        modal = modalData.modal;
-        modalContent = modalData.modalContent;
-    } else {
-        modalContent = $('modalContent');
-    }
-   
-    const dayOptions = Array.from({length: 31}, (_, i) => {
-        const day = i + 1;
-        return `<option value="${day}"${bill.day === day ? ' selected' : ''}>${day}</option>`;
-    }).join('');
-   
-    const monthOptions = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-    ].map((month, i) => {
-        const value = i + 1;
-        return `<option value="${value}"${bill.month === value ? ' selected' : ''}>${month}</option>`;
-    }).join('');
-   
-    const startMonthOptions = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-    ].map((month, i) => {
-        const value = i + 1;
-        return `<option value="${value}"${bill.startMonth === value ? ' selected' : ''}>${month}</option>`;
-    }).join('');
-   
-    const categoryOptions = [
-        'Utilities', 'Housing', 'Transportation', 'Insurance', 'Entertainment',
-        'Subscriptions', 'Government', 'Financial', 'Health & Fitness', 'Technology', 'Other'
-    ].map(cat =>
-        `<option value="${cat}"${bill.category === cat ? ' selected' : ''}>${cat}</option>`
-    ).join('');
-   
-    const generatePayerOptions = (currentBillType, currentPayer) => {
-        let options = '';
-       
-        if (currentBillType === 'joint') {
-            options += `<option value="joint"${currentPayer === 'joint' ? ' selected' : ''}>Joint Account</option>`;
-        }
-       
-        data.people.forEach(person => {
-            const isSelected = currentPayer == person.id ? ' selected' : '';
-            options += `<option value="${person.id}"${isSelected}>${person.name}</option>`;
-        });
-       
-        return options;
-    };
-   
-    const billTypeSection = data.people.length > 1 ? `
-        <div class="form-group">
-            <label for="editBillType">Bill Type</label>
-            <select id="editBillType">
-                <option value="individual"${bill.billType === 'individual' ? ' selected' : ''}>Individual</option>
-                <option value="joint"${bill.billType === 'joint' ? ' selected' : ''}>Joint</option>
-            </select>
-        </div>
-        <div class="form-group" id="editBillPayerGroup">
-            <label for="editBillPayer">Paid By</label>
-            <select id="editBillPayer">
-                ${generatePayerOptions(bill.billType, bill.payer)}
-            </select>
-        </div>
-    ` : '';
-   
-    const recurringFieldsHTML = bill.isOneOff ? `
-        <div class="form-group">
-            <label for="editOneOffDate">Date</label>
-            <input type="date" id="editOneOffDate" value="${bill.date}">
-            <div id="futureDateWarning" style="display:none;background:#fff3cd;padding:10px;border-radius:5px;margin-top:8px;color:#856404;font-size:12px;border:1px solid:#ffeaa7;">
-                Moving to a date in the future will remove the expense from your history until the new day elapses.
-            </div>
-        </div>
-    ` : `
-        <div class="form-group">
-            <label for="editBillFrequency">Frequency</label>
-            <select id="editBillFrequency">
-                <option value="monthly"${bill.frequency === 'monthly' ? ' selected' : ''}>Monthly</option>
-                <option value="quarterly"${bill.frequency === 'quarterly' ? ' selected' : ''}>Quarterly</option>
-                <option value="yearly"${bill.frequency === 'yearly' ? ' selected' : ''}>Yearly</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="editBillDate">Due Day of Month</label>
-            <select id="editBillDate">
-                <option value="">Select day...</option>
-                ${dayOptions}
-            </select>
-        </div>
-        <div class="form-group" id="editBillMonthGroup" style="display:${bill.frequency === 'yearly' ? 'block' : 'none'};">
-            <label for="editBillMonth">Month</label>
-            <select id="editBillMonth">
-                ${monthOptions}
-            </select>
-        </div>
-        <div class="form-group" id="editBillStartMonthGroup" style="display:${bill.frequency === 'quarterly' ? 'block' : 'none'};">
-            <label for="editBillStartMonth">Start Month</label>
-            <select id="editBillStartMonth">
-                ${startMonthOptions}
-            </select>
-        </div>
-    `;
+   let modal = $('editModal');
+   let modalContent;
+  
+   if (!modal) {
+       const modalData = createModal();
+       modal = modalData.modal;
+       modalContent = modalData.modalContent;
+   } else {
+       modalContent = $('modalContent');
+   }
+  
+   const dayOptions = Array.from({length: 31}, (_, i) => {
+       const day = i + 1;
+       return `<option value="${day}"${bill.day === day ? ' selected' : ''}>${day}</option>`;
+   }).join('');
+  
+   const monthOptions = [
+       'January', 'February', 'March', 'April', 'May', 'June',
+       'July', 'August', 'September', 'October', 'November', 'December'
+   ].map((month, i) => {
+       const value = i + 1;
+       return `<option value="${value}"${bill.month === value ? ' selected' : ''}>${month}</option>`;
+   }).join('');
+  
+   const startMonthOptions = [
+       'January', 'February', 'March', 'April', 'May', 'June',
+       'July', 'August', 'September', 'October', 'November', 'December'
+   ].map((month, i) => {
+       const value = i + 1;
+       return `<option value="${value}"${bill.startMonth === value ? ' selected' : ''}>${month}</option>`;
+   }).join('');
+  
+   const categoryOptions = [
+       'Utilities', 'Housing', 'Transportation', 'Insurance', 'Entertainment',
+       'Subscriptions', 'Government', 'Financial', 'Health & Fitness', 'Technology', 'Other'
+   ].map(cat =>
+       `<option value="${cat}"${bill.category === cat ? ' selected' : ''}>${cat}</option>`
+   ).join('');
+  
+   const generatePayerOptions = (currentBillType, currentPayer) => {
+       let options = '';
+      
+       if (currentBillType === 'joint') {
+           options += `<option value="joint"${currentPayer === 'joint' ? ' selected' : ''}>Joint Account</option>`;
+       }
+      
+       data.people.forEach(person => {
+           const isSelected = currentPayer == person.id ? ' selected' : '';
+           options += `<option value="${person.id}"${isSelected}>${person.name}</option>`;
+       });
+      
+       return options;
+   };
+  
+   const billTypeSection = data.people.length > 1 ? `
+       <div class="form-group">
+           <label for="editBillType">Bill Type</label>
+           <select id="editBillType">
+               <option value="individual"${bill.billType === 'individual' ? ' selected' : ''}>Individual</option>
+               <option value="joint"${bill.billType === 'joint' ? ' selected' : ''}>Joint</option>
+           </select>
+       </div>
+       <div class="form-group" id="editBillPayerGroup">
+           <label for="editBillPayer">Paid By</label>
+           <select id="editBillPayer">
+               ${generatePayerOptions(bill.billType, bill.payer)}
+           </select>
+       </div>
+   ` : '';
+  
+   const recurringFieldsHTML = bill.isOneOff ? `
+       <div class="form-group">
+           <label for="editOneOffDate">Date</label>
+           <input type="date" id="editOneOffDate" value="${bill.date}">
+           <div id="futureDateWarning" style="display:none;background:#fff3cd;padding:10px;border-radius:5px;margin-top:8px;color:#856404;font-size:12px;border:1px solid:#ffeaa7;">
+               Moving to a date in the future will remove the expense from your history until the new day elapses.
+           </div>
+       </div>
+   ` : `
+       <div class="form-group">
+           <label for="editBillFrequency">Frequency</label>
+           <select id="editBillFrequency">
+               <option value="monthly"${bill.frequency === 'monthly' ? ' selected' : ''}>Monthly</option>
+               <option value="quarterly"${bill.frequency === 'quarterly' ? ' selected' : ''}>Quarterly</option>
+               <option value="yearly"${bill.frequency === 'yearly' ? ' selected' : ''}>Yearly</option>
+           </select>
+       </div>
+       <div class="form-group">
+           <label for="editBillDate">Due Day of Month</label>
+           <select id="editBillDate">
+               <option value="">Select day...</option>
+               ${dayOptions}
+           </select>
+       </div>
+       <div class="form-group" id="editBillMonthGroup" style="display:${bill.frequency === 'yearly' ? 'block' : 'none'};">
+           <label for="editBillMonth">Month</label>
+           <select id="editBillMonth">
+               ${monthOptions}
+           </select>
+       </div>
+       <div class="form-group" id="editBillStartMonthGroup" style="display:${bill.frequency === 'quarterly' ? 'block' : 'none'};">
+           <label for="editBillStartMonth">Start Month</label>
+           <select id="editBillStartMonth">
+               ${startMonthOptions}
+           </select>
+       </div>
+   `;
 
-    modalContent.innerHTML = `
-        <h3 style="margin-bottom:20px;">Edit ${bill.isOneOff ? 'One-off Expense' : 'Bill'}: ${bill.name}</h3>
-        <div style="background:#e3f2fd;padding:15px;border-radius:8px;margin:20px 0;color:#1565c0;font-size:12px;border:1px solid #90caf9;">
-            <strong>Template Edit:</strong> This will update the bill template and adjust ALL existing payment dates to match the new schedule. To edit only a single payment, use the History tab.
-        </div>
-        <div class="form-group">
-            <label for="editBillName">${bill.isOneOff ? 'Expense' : 'Bill'} Name</label>
-            <input type="text" id="editBillName" value="${bill.name}">
-        </div>
-        <div class="form-group">
-            <label for="editBillAmount">Amount</label>
-            <input type="number" id="editBillAmount" value="${bill.amount}" step="0.01">
-        </div>
-        ${recurringFieldsHTML}
-        <div class="form-group">
-            <label for="editBillCategory">Category</label>
-            <select id="editBillCategory">
-                ${categoryOptions}
-            </select>
-        </div>
-        ${billTypeSection}
-        <div class="checkbox-group" ${bill.isOneOff ? 'style="display:none;"' : ''}>
-            <input type="checkbox" id="editIsDebt"${bill.isDebt ? ' checked' : ''} ${bill.isOneOff ? 'disabled' : ''}>
-            <label for="editIsDebt">This is a debt/loan</label>
-        </div>
-        <div id="editDebtFields" style="display:${bill.isDebt && !bill.isOneOff ? 'block' : 'none'};">${bill.isOneOff ? '' : `
-            <div class="form-group">
-                <label for="editTotalDebt">Total Debt Amount</label>
-                <input type="number" id="editTotalDebt" value="${bill.totalDebt || ''}" step="0.01">
-            </div>
-            <div class="form-group">
-                <label for="editInterestRate">Interest Rate (%)</label>
-                <input type="number" id="editInterestRate" value="${bill.interestRate || ''}" step="0.01">
-            </div>
-            <div class="form-group">
-                <label for="editTermYears">Term Length Years</label>
-                <input type="number" id="editTermYears" value="${bill.termYears || ''}" min="0">
-            </div>
-            <div class="form-group">
-                <label for="editTermMonths">Additional Months</label>
-                <input type="number" id="editTermMonths" value="${bill.termMonths || ''}" min="0" max="11">
-            </div>
-            <div class="form-group">
-                <label for="editOverpayment">Monthly Overpayment</label>
-                <input type="number" id="editOverpayment" value="${bill.overpayment || ''}" step="0.01">
-            </div>`}
-        </div>
+   modalContent.innerHTML = `
+       <h3 style="margin-bottom:20px;">Edit ${bill.isOneOff ? 'One-off Expense' : 'Bill'}: ${bill.name}</h3>
+       <div style="background:#e3f2fd;padding:15px;border-radius:8px;margin:20px 0;color:#1565c0;font-size:12px;border:1px solid #90caf9;">
+           <strong>Template Edit:</strong> This will update the bill template and adjust ALL existing payment dates to match the new schedule. To edit only a single payment, use the History tab.
+       </div>
+       <div class="form-group">
+           <label for="editBillName">${bill.isOneOff ? 'Expense' : 'Bill'} Name</label>
+           <input type="text" id="editBillName" value="${bill.name}">
+       </div>
+       <div class="form-group">
+           <label for="editBillAmount">Amount</label>
+           <input type="number" id="editBillAmount" value="${bill.amount}" step="0.01">
+       </div>
+       ${recurringFieldsHTML}
+       <div class="form-group">
+           <label for="editBillCategory">Category</label>
+           <select id="editBillCategory">
+               ${categoryOptions}
+           </select>
+       </div>
+       ${billTypeSection}
+       <div class="checkbox-group" ${bill.isOneOff ? 'style="display:none;"' : ''}>
+           <input type="checkbox" id="editIsDebt"${bill.isDebt ? ' checked' : ''} ${bill.isOneOff ? 'disabled' : ''}>
+           <label for="editIsDebt">This is a debt/loan</label>
+       </div>
+       <div id="editDebtFields" style="display:${bill.isDebt && !bill.isOneOff ? 'block' : 'none'};">${bill.isOneOff ? '' : `
+           <div class="form-group">
+               <label for="editTotalDebt">Total Debt Amount</label>
+               <input type="number" id="editTotalDebt" value="${bill.totalDebt || ''}" step="0.01">
+           </div>
+           <div class="form-group">
+               <label for="editInterestRate">Interest Rate (%)</label>
+               <input type="number" id="editInterestRate" value="${bill.interestRate || ''}" step="0.01">
+           </div>
+           <div class="form-group">
+               <label for="editTermYears">Term Length Years</label>
+               <input type="number" id="editTermYears" value="${bill.termYears || ''}" min="0">
+           </div>
+           <div class="form-group">
+               <label for="editTermMonths">Additional Months</label>
+               <input type="number" id="editTermMonths" value="${bill.termMonths || ''}" min="0" max="11">
+           </div>
+           <div class="form-group">
+               <label for="editOverpayment">Monthly Overpayment</label>
+               <input type="number" id="editOverpayment" value="${bill.overpayment || ''}" step="0.01">
+           </div>`}
+       </div>
+      
+       <div style="display:flex;gap:10px;margin-top:20px;">
+           <button id="saveEditBtn" style="flex:1;">Save Changes</button>
+           <button id="cancelEditBtn" style="flex:1;background:#666;">Cancel</button>
+       </div>
+   `;
+  
+   if (!bill.isOneOff) {
+       $('editBillFrequency').addEventListener('change', () => {
+           const frequency = $('editBillFrequency').value;
+           const monthGroup = $('editBillMonthGroup');
+           const startMonthGroup = $('editBillStartMonthGroup');
+          
+           if (frequency === 'yearly') {
+               monthGroup.style.display = 'block';
+               startMonthGroup.style.display = 'none';
+           } else if (frequency === 'quarterly') {
+               monthGroup.style.display = 'none';
+               startMonthGroup.style.display = 'block';
+           } else {
+               monthGroup.style.display = 'none';
+               startMonthGroup.style.display = 'none';
+           }
+       });
+      
+       $('editIsDebt').addEventListener('change', () => {
+           const isDebt = $('editIsDebt').checked;
+           const debtFields = $('editDebtFields');
+           debtFields.style.display = isDebt ? 'block' : 'none';
+       });
+   } else {
+       const dateInput = $('editOneOffDate');
+       const warningDiv = $('futureDateWarning');
        
-        <div style="display:flex;gap:10px;margin-top:20px;">
-            <button id="saveEditBtn" style="flex:1;">Save Changes</button>
-            <button id="cancelEditBtn" style="flex:1;background:#666;">Cancel</button>
-        </div>
-    `;
-   
-    if (!bill.isOneOff) {
-        $('editBillFrequency').addEventListener('change', () => {
-            const frequency = $('editBillFrequency').value;
-            const monthGroup = $('editBillMonthGroup');
-            const startMonthGroup = $('editBillStartMonthGroup');
+       dateInput.addEventListener('change', () => {
+           const selectedDate = dateInput.value;
+           const today = getDateString();
            
-            if (frequency === 'yearly') {
-                monthGroup.style.display = 'block';
-                startMonthGroup.style.display = 'none';
-            } else if (frequency === 'quarterly') {
-                monthGroup.style.display = 'none';
-                startMonthGroup.style.display = 'block';
-            } else {
-                monthGroup.style.display = 'none';
-                startMonthGroup.style.display = 'none';
-            }
-        });
-       
-        $('editIsDebt').addEventListener('change', () => {
-            const isDebt = $('editIsDebt').checked;
-            const debtFields = $('editDebtFields');
-            debtFields.style.display = isDebt ? 'block' : 'none';
-        });
-    } else {
-        const dateInput = $('editOneOffDate');
-        const warningDiv = $('futureDateWarning');
-        
-        dateInput.addEventListener('change', () => {
-            const selectedDate = dateInput.value;
-            const today = getDateString();
-            
-            if (selectedDate > today) {
-                warningDiv.style.display = 'block';
-            } else {
-                warningDiv.style.display = 'none';
-            }
-        });
-    }
-   
-    if (data.people.length > 1) {
-        $('editBillType').addEventListener('change', () => {
-            const billType = $('editBillType').value;
-            const billPayer = $('editBillPayer');
-           
-            billPayer.innerHTML = '';
-           
-            if (billType === 'joint') {
-                const jointOption = document.createElement('option');
-                jointOption.value = 'joint';
-                jointOption.textContent = 'Joint Account';
-                billPayer.appendChild(jointOption);
-            }
-           
-            data.people.forEach(person => {
-                const option = document.createElement('option');
-                option.value = person.id;
-                option.textContent = person.name;
-                billPayer.appendChild(option);
-            });
-           
-            if (billType === 'joint') {
-                billPayer.value = 'joint';
-            } else if (billPayer.options.length > 0) {
-                billPayer.value = data.people[0].id;
-            }
-        });
-    }
-   
-    $('saveEditBtn').addEventListener('click', () => {
-        const name = $('editBillName').value.trim();
-        const amount = parseFloat($('editBillAmount').value) || 0;
-        let day, month, startMonth, frequency, newDate;
-       
-        if (bill.isOneOff) {
-            const oneOffDate = $('editOneOffDate').value;
-            if (!oneOffDate) {
-                alert('Please select a date for the one-off expense');
-                return;
-            }
-            newDate = oneOffDate;
-        } else {
-            frequency = $('editBillFrequency').value;
-            day = parseInt($('editBillDate').value);
-            month = $('editBillMonth').value ? parseInt($('editBillMonth').value) : null;
-            startMonth = $('editBillStartMonth').value ? parseInt($('editBillStartMonth').value) : null;
-           
-            if (!day) {
-                alert('Please select a due day');
-                return;
-            }
-           
-            if (frequency === 'yearly' && !month) {
-                alert('Please select a month for yearly bills');
-                return;
-            }
-           
-            if (frequency === 'quarterly' && !startMonth) {
-                alert('Please select a start month for quarterly bills');
-                return;
-            }
-        }
-       
-        const category = $('editBillCategory').value;
-        const billType = data.people.length <= 1 ? 'individual' : $('editBillType').value;
-        const isDebt = bill.isOneOff ? false : $('editIsDebt').checked;
-       
-        let payer;
-        if (data.people.length <= 1) {
-            payer = data.people[0]?.id;
-        } else {
-            const selectedPayer = $('editBillPayer').value;
-            if (billType === 'joint' && selectedPayer === 'joint') {
-                payer = 'joint';
-            } else {
-                payer = parseInt(selectedPayer);
-            }
-        }
-       
-        if (!name || !amount) {
-            alert('Please fill in name and amount');
-            return;
-        }
-       
-        if (payer !== 'joint' && !data.people.find(p => p.id === payer)) {
-            alert('Please select a valid payer');
-            return;
-        }
+           if (selectedDate > today) {
+               warningDiv.style.display = 'block';
+           } else {
+               warningDiv.style.display = 'none';
+           }
+       });
+   }
+  
+   if (data.people.length > 1) {
+       $('editBillType').addEventListener('change', () => {
+           const billType = $('editBillType').value;
+           const billPayer = $('editBillPayer');
+          
+           billPayer.innerHTML = '';
+          
+           if (billType === 'joint') {
+               const jointOption = document.createElement('option');
+               jointOption.value = 'joint';
+               jointOption.textContent = 'Joint Account';
+               billPayer.appendChild(jointOption);
+           }
+          
+           data.people.forEach(person => {
+               const option = document.createElement('option');
+               option.value = person.id;
+               option.textContent = person.name;
+               billPayer.appendChild(option);
+           });
+          
+           if (billType === 'joint') {
+               billPayer.value = 'joint';
+           } else if (billPayer.options.length > 0) {
+               billPayer.value = data.people[0].id;
+           }
+       });
+   }
+  
+   $('saveEditBtn').addEventListener('click', () => {
+       const name = $('editBillName').value.trim();
+       const amount = parseFloat($('editBillAmount').value) || 0;
+       let day, month, startMonth, frequency, newDate;
+      
+       if (bill.isOneOff) {
+           const oneOffDate = $('editOneOffDate').value;
+           if (!oneOffDate) {
+               alert('Please select a date for the one-off expense');
+               return;
+           }
+           newDate = oneOffDate;
+       } else {
+           frequency = $('editBillFrequency').value;
+           day = parseInt($('editBillDate').value);
+           month = $('editBillMonth').value ? parseInt($('editBillMonth').value) : null;
+           startMonth = $('editBillStartMonth').value ? parseInt($('editBillStartMonth').value) : null;
+          
+           if (!day) {
+               alert('Please select a due day');
+               return;
+           }
+          
+           if (frequency === 'yearly' && !month) {
+               alert('Please select a month for yearly bills');
+               return;
+           }
+          
+           if (frequency === 'quarterly' && !startMonth) {
+               alert('Please select a start month for quarterly bills');
+               return;
+           }
+       }
+      
+       const category = $('editBillCategory').value;
+       const billType = data.people.length <= 1 ? 'individual' : $('editBillType').value;
+       const isDebt = bill.isOneOff ? false : $('editIsDebt').checked;
+      
+       let payer;
+       if (data.people.length <= 1) {
+           payer = data.people[0]?.id;
+       } else {
+           const selectedPayer = $('editBillPayer').value;
+           if (billType === 'joint' && selectedPayer === 'joint') {
+               payer = 'joint';
+           } else {
+               payer = parseInt(selectedPayer);
+           }
+       }
+      
+       if (!name || !amount) {
+           alert('Please fill in name and amount');
+           return;
+       }
+      
+       if (payer !== 'joint' && !data.people.find(p => p.id === payer)) {
+           alert('Please select a valid payer');
+           return;
+       }
 
-        if (bill.isOneOff) {
-            const oldDate = bill.date;
-            const today = getDateString();
-            
-            bill.name = name;
-            bill.amount = amount;
-            bill.category = category;
-            bill.billType = billType;
-            bill.payer = payer;
-            bill.date = getDateString(newDate);
+       if (bill.isOneOff) {
+           const oldDate = bill.date;
+           const today = getDateString();
            
-            const associatedPayment = data.billPayments.find(p => p.billId === bill.id);
-            if (associatedPayment) {
-                if (newDate > today) {
-                    data.billPayments = data.billPayments.filter(p => p.billId !== bill.id);
-                    bill.isDeleted = false;
-                    delete bill.deletedDate;
-                } else {
-                    associatedPayment.billName = name;
-                    associatedPayment.amount = amount;
-                    associatedPayment.category = category;
-                    associatedPayment.billType = billType;
-                    associatedPayment.payer = payer;
-                    associatedPayment.date = bill.date;
+           bill.name = name;
+           bill.amount = amount;
+           bill.category = category;
+           bill.billType = billType;
+           bill.payer = payer;
+           bill.date = getDateString(newDate);
+          
+           const associatedPayment = data.billPayments.find(p => p.billId === bill.id);
+           if (associatedPayment) {
+               if (newDate > today) {
+                   data.billPayments = data.billPayments.filter(p => p.billId !== bill.id);
+                   bill.isDeleted = false;
+                   delete bill.deletedDate;
+               } else {
+                   associatedPayment.billName = name;
+                   associatedPayment.amount = amount;
+                   associatedPayment.category = category;
+                   associatedPayment.billType = billType;
+                   associatedPayment.payer = payer;
+                   associatedPayment.date = bill.date;
+                  
+                   if (oldDate !== bill.date && !associatedPayment.status.includes('(date changed)')) {
+                       associatedPayment.status += ' (date changed)';
+                   }
+               }
+           }
+          
+           data.eventHistory.push({
+               id: nextEventId++,
+               date: getDateString(),
+               event: 'One-Off Expense Updated',
+               description: `Updated one-off expense: ${name} - ${formatCurrency(amount)}, date: ${bill.date}${newDate > today ? ' (moved to future - removed from history until due)' : ''}`
+           });
+       } else {
+           const oldDay = bill.day;
+           const oldMonth = bill.month;
+           const oldStartMonth = bill.startMonth;
+           const oldFrequency = bill.frequency;
+           
+           bill.name = name;
+           bill.amount = amount;
+           bill.frequency = frequency;
+           bill.day = day;
+           bill.month = month;
+           bill.startMonth = frequency === 'quarterly' ? startMonth : null;
+           bill.category = category;
+           bill.billType = billType;
+           bill.payer = payer;
+           bill.isDebt = isDebt;
+           
+           if (isDebt) {
+               bill.totalDebt = parseFloat($('editTotalDebt').value) || 0;
+               bill.interestRate = parseFloat($('editInterestRate').value) || 0;
+               bill.termYears = parseInt($('editTermYears').value) || 0;
+               bill.termMonths = parseInt($('editTermMonths').value) || 0;
+               bill.overpayment = parseFloat($('editOverpayment').value) || 0;
+           } else {
+               delete bill.totalDebt;
+               delete bill.interestRate;
+               delete bill.termYears;
+               delete bill.termMonths;
+               delete bill.overpayment;
+           }
+           
+           if (oldDay !== day || oldMonth !== month || oldStartMonth !== startMonth || oldFrequency !== frequency) {
+               bill.date = updateBillSchedule(bill, day, month, startMonth, frequency);
+           } else {
+               bill.date = generateBillDate(day, month, frequency, startMonth);
+           }
+           
+           const today = getDateString();
+           const shouldCreatePayment = bill.date <= today;
+           
+           if (shouldCreatePayment) {
+               const paymentExists = data.billPayments.some(payment =>
+                   payment.billId === bill.id &&
+                   payment.date === bill.date
+               );
+               
+               if (!paymentExists) {
+                   const paymentRecord = {
+                       id: data.billPaymentId++,
+                       billId: bill.id,
+                       billName: bill.name,
+                       amount: bill.amount + (bill.overpayment || 0),
+                       date: bill.date,
+                       category: bill.category,
+                       billType: bill.billType,
+                       payer: bill.payer,
+                       status: 'Auto-processed payment (bill date updated)'
+                   };
                    
-                    if (oldDate !== bill.date && !associatedPayment.status.includes('(date changed)')) {
-                        associatedPayment.status += ' (date changed)';
-                    }
-                }
-            }
-           
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'One-Off Expense Updated',
-                description: `Updated one-off expense: ${name} - ${formatCurrency(amount)}, date: ${bill.date}${newDate > today ? ' (moved to future - removed from history until due)' : ''}`
-            });
-        } else {
-            const oldDay = bill.day;
-            const oldMonth = bill.month;
-            const oldStartMonth = bill.startMonth;
-            const oldFrequency = bill.frequency;
-            
-            bill.name = name;
-            bill.amount = amount;
-            bill.frequency = frequency;
-            bill.day = day;
-            bill.month = month;
-            bill.startMonth = frequency === 'quarterly' ? startMonth : null;
-            bill.category = category;
-            bill.billType = billType;
-            bill.payer = payer;
-            bill.isDebt = isDebt;
-            
-            if (isDebt) {
-                bill.totalDebt = parseFloat($('editTotalDebt').value) || 0;
-                bill.interestRate = parseFloat($('editInterestRate').value) || 0;
-                bill.termYears = parseInt($('editTermYears').value) || 0;
-                bill.termMonths = parseInt($('editTermMonths').value) || 0;
-                bill.overpayment = parseFloat($('editOverpayment').value) || 0;
-            } else {
-                delete bill.totalDebt;
-                delete bill.interestRate;
-                delete bill.termYears;
-                delete bill.termMonths;
-                delete bill.overpayment;
-            }
-            
-            if (oldDay !== day || oldMonth !== month || oldStartMonth !== startMonth || oldFrequency !== frequency) {
-                bill.date = updateBillSchedule(bill, day, month, startMonth, frequency);
-            } else {
-                bill.date = generateBillDate(day, month, frequency, startMonth);
-            }
-        }
-       
-        saveDataToLocalStorage();
-        updateBillsList();
-        updateHistoryDisplay();
-        updateOverview();
-        updateOneOffOverview();
-        resetCalendarToCurrentMonth();
-        hideModal();
-    });
-   
-    $('cancelEditBtn').addEventListener('click', hideModal);
-   
-    showModal();
+                   if (!data.billPayments) data.billPayments = [];
+                   data.billPayments.push(paymentRecord);
+               }
+           }
+       }
+      
+       saveDataToLocalStorage();
+       updateBillsList();
+       updateHistoryDisplay();
+       updateOverview();
+       updateOneOffOverview();
+       resetCalendarToCurrentMonth();
+       hideModal();
+   });
+  
+   $('cancelEditBtn').addEventListener('click', hideModal);
+  
+   showModal();
 }
 
 function deleteBill(billId) {
