@@ -9383,9 +9383,9 @@ window.budgetAppPersistence = {
 };
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  loadAppData();
+  attachEventListeners();
 } else {
-  document.addEventListener('DOMContentLoaded', loadAppData);
+  document.addEventListener('DOMContentLoaded', attachEventListeners);
 }
 </script>
 
