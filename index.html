@@ -7272,12 +7272,14 @@ function showEditBillModal(bill) {
            }
            
            const today = getDateString();
-           const shouldCreatePayment = bill.date <= today;
+           const currentYear = new Date().getFullYear();
+           const currentMonth = new Date().getMonth();
+           const currentMonthDate = getDateString(new Date(currentYear, currentMonth, day));
            
-           if (shouldCreatePayment) {
+           if (currentMonthDate <= today) {
                const paymentExists = data.billPayments.some(payment =>
                    payment.billId === bill.id &&
-                   payment.date === bill.date
+                   payment.date === currentMonthDate
                );
                
                if (!paymentExists) {
@@ -7286,7 +7288,7 @@ function showEditBillModal(bill) {
                        billId: bill.id,
                        billName: bill.name,
                        amount: bill.amount + (bill.overpayment || 0),
-                       date: bill.date,
+                       date: currentMonthDate,
                        category: bill.category,
                        billType: bill.billType,
                        payer: bill.payer,
