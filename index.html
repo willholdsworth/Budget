@@ -3938,156 +3938,159 @@ function updatePersonOverview(personId) {
 }
 
 function updateHistoryDisplay() {
-    const incomeHistoryList = $('incomeHistoryList');
-    const billHistoryList = $('billHistoryList');
-    const eventHistoryList = $('eventHistoryList');
-    const personFilterContainer = $('historyPersonFilter');
-    const startDate = $('historyStartDate').value;
-    const endDate = $('historyEndDate').value;
-    const billNameFilter = $('billNameFilter').value.toLowerCase();
+   const incomeHistoryList = $('incomeHistoryList');
+   const billHistoryList = $('billHistoryList');
+   const eventHistoryList = $('eventHistoryList');
+   const personFilterContainer = $('historyPersonFilter');
+   const startDate = $('historyStartDate').value;
+   const endDate = $('historyEndDate').value;
+   const billNameFilter = $('billNameFilter').value.toLowerCase();
+  
+   let selectedPersonId = personFilterContainer.tagName === 'SELECT' ?
+       (personFilterContainer.value === 'all' ? 'all' : parseInt(personFilterContainer.value)) :
+       (data.people.length === 1 ? data.people[0].id : 'all');
+  
+   if (data.people.length === 1) {
+       personFilterContainer.outerHTML = `<span id="historyPersonFilter">${data.people[0].name}</span>`;
+       selectedPersonId = data.people[0].id;
+   } else {
+       const currentValue = personFilterContainer.tagName === 'SELECT' ? personFilterContainer.value : 'all';
+       personFilterContainer.outerHTML = `<select id="historyPersonFilter"><option value="all">All People</option>${data.people.map(p => `<option value="${p.id}" ${p.id == currentValue ? 'selected' : ''}>${p.name}</option>`).join('')}</select>`;
+       const newPersonFilter = $('historyPersonFilter');
+       newPersonFilter.value = currentValue;
+       newPersonFilter.addEventListener('change', updateHistoryDisplay);
+   }
+  
+   let filteredPaychecks = data.paycheckHistory || [];
+   if (selectedPersonId !== 'all') {
+       filteredPaychecks = filteredPaychecks.filter(p => p.personId === selectedPersonId);
+   }
+   if (startDate) {
+       filteredPaychecks = filteredPaychecks.filter(p => p.date >= startDate);
+   }
+   if (endDate) {
+       filteredPaychecks = filteredPaychecks.filter(p => p.date <= endDate);
+   }
+  
+   const sortedPaychecks = filteredPaychecks.sort((a, b) => {
+       return b.date.localeCompare(a.date);
+   });
+  
+   incomeHistoryList.innerHTML = sortedPaychecks.length > 0 ? sortedPaychecks.map(p => {
+       const typeDisplay = p.type === 'bonus' ? 'Bonus' : 'Salary';
+       const companyDisplay = p.employer || '';
+       return `
+           <tr>
+               <td>${p.date}</td>
+               <td>${p.personName}</td>
+               <td>${typeDisplay}</td>
+               <td>${formatCurrency(p.amount)}</td>
+               <td>${companyDisplay}</td>
+               <td>
+                   <button class="btn-small" onclick="showEditPaycheckModal(${p.id})" style="margin-right: 5px; margin-bottom: 5px;">Edit</button>
+               </td>
+           </tr>
+       `;
+   }).join('') : '<tr><td colspan="6">No income data for selected person.</td></tr>';
+  
+   let filteredBillHistory = data.billPayments || [];
+   if (selectedPersonId !== 'all') {
+       filteredBillHistory = filteredBillHistory.filter(p =>
+           p.payer === selectedPersonId ||
+           (p.payer === 'joint' && data.people.find(person => person.id === selectedPersonId))
+       );
+   }
+   if (startDate) {
+       filteredBillHistory = filteredBillHistory.filter(p => p.date >= startDate);
+   }
+   if (endDate) {
+       filteredBillHistory = filteredBillHistory.filter(p => p.date <= endDate);
+   }
+   if (billNameFilter) {
+       filteredBillHistory = filteredBillHistory.filter(p => 
+           p.billName.toLowerCase().includes(billNameFilter)
+       );
+   }
    
-    let selectedPersonId = personFilterContainer.tagName === 'SELECT' ?
-        (personFilterContainer.value === 'all' ? 'all' : parseInt(personFilterContainer.value)) :
-        (data.people.length === 1 ? data.people[0].id : 'all');
-   
-    if (data.people.length === 1) {
-        personFilterContainer.outerHTML = `<span id="historyPersonFilter">${data.people[0].name}</span>`;
-        selectedPersonId = data.people[0].id;
-    } else {
-        const currentValue = personFilterContainer.tagName === 'SELECT' ? personFilterContainer.value : 'all';
-        personFilterContainer.outerHTML = `<select id="historyPersonFilter"><option value="all">All People</option>${data.people.map(p => `<option value="${p.id}" ${p.id == currentValue ? 'selected' : ''}>${p.name}</option>`).join('')}</select>`;
-        const newPersonFilter = $('historyPersonFilter');
-        newPersonFilter.value = currentValue;
-        newPersonFilter.addEventListener('change', updateHistoryDisplay);
-    }
-   
-    let filteredPaychecks = data.paycheckHistory || [];
-    if (selectedPersonId !== 'all') {
-        filteredPaychecks = filteredPaychecks.filter(p => p.personId === selectedPersonId);
-    }
-    if (startDate) {
-        filteredPaychecks = filteredPaychecks.filter(p => p.date >= startDate);
-    }
-    if (endDate) {
-        filteredPaychecks = filteredPaychecks.filter(p => p.date <= endDate);
-    }
-   
-    const sortedPaychecks = filteredPaychecks.sort((a, b) => {
-        return b.date.localeCompare(a.date);
-    });
-   
-    incomeHistoryList.innerHTML = sortedPaychecks.length > 0 ? sortedPaychecks.map(p => {
-        const typeDisplay = p.type === 'bonus' ? 'Bonus' : 'Salary';
-        const companyDisplay = p.employer || '';
-        return `
-            <tr>
-                <td>${p.date}</td>
-                <td>${p.personName}</td>
-                <td>${typeDisplay}</td>
-                <td>${formatCurrency(p.amount)}</td>
-                <td>${companyDisplay}</td>
-                <td>
-                    <button class="btn-small" onclick="showEditPaycheckModal(${p.id})" style="margin-right: 5px; margin-bottom: 5px;">Edit</button>
-                </td>
-            </tr>
-        `;
-    }).join('') : '<tr><td colspan="6">No income data for selected person.</td></tr>';
-   
-    let filteredBillHistory = data.billPayments || [];
-    if (selectedPersonId !== 'all') {
-        filteredBillHistory = filteredBillHistory.filter(p =>
-            p.payer === selectedPersonId ||
-            (p.payer === 'joint' && data.people.find(person => person.id === selectedPersonId))
-        );
-    }
-    if (startDate) {
-        filteredBillHistory = filteredBillHistory.filter(p => p.date >= startDate);
-    }
-    if (endDate) {
-        filteredBillHistory = filteredBillHistory.filter(p => p.date <= endDate);
-    }
-    if (billNameFilter) {
-        filteredBillHistory = filteredBillHistory.filter(p => 
-            p.billName.toLowerCase().includes(billNameFilter)
-        );
-    }
-   
-    if (!data.billPayments) data.billPayments = [];
-    data.billPayments.forEach((payment, index) => {
-        if (!payment.id) {
-            payment.id = (data.billPaymentId || 1);
-            data.billPaymentId = (data.billPaymentId || 1) + 1;
-        }
-    });
-   
-    const sortedBillHistory = filteredBillHistory.sort((a, b) => {
-        return b.date.localeCompare(a.date);
-    });
-   
-    billHistoryList.innerHTML = sortedBillHistory.length > 0 ? sortedBillHistory.map(p => {
-        const originalBill = data.bills.find(b => b.id === p.billId);
-        const isOneOff = originalBill && originalBill.isOneOff;
-        
-        let typeLabel;
-        if (isOneOff) {
-            typeLabel = 'One-Off Expense';
-        } else if (p.billType === 'joint') {
-            if (p.payer === 'joint') {
-                typeLabel = 'Joint - Shared';
-            } else {
-                const payerName = data.people.find(person => person.id === p.payer)?.name || 'Unknown';
-                typeLabel = `Joint - ${payerName}`;
-            }
-        } else {
-            const payerName = data.people.find(person => person.id === p.payer)?.name || 'Unknown';
-            typeLabel = `Individual - ${payerName}`;
-        }
+   const today = getDateString();
+   filteredBillHistory = filteredBillHistory.filter(p => p.date <= today);
+  
+   if (!data.billPayments) data.billPayments = [];
+   data.billPayments.forEach((payment, index) => {
+       if (!payment.id) {
+           payment.id = (data.billPaymentId || 1);
+           data.billPaymentId = (data.billPaymentId || 1) + 1;
+       }
+   });
+  
+   const sortedBillHistory = filteredBillHistory.sort((a, b) => {
+       return b.date.localeCompare(a.date);
+   });
+  
+   billHistoryList.innerHTML = sortedBillHistory.length > 0 ? sortedBillHistory.map(p => {
+       const originalBill = data.bills.find(b => b.id === p.billId);
+       const isOneOff = originalBill && originalBill.isOneOff;
        
-        return `
-        <tr>
-            <td>${p.date}</td>
-            <td>${p.billName}</td>
-            <td>${formatCurrency(p.amount)}</td>
-            <td>${p.category}</td>
-            <td>${typeLabel}</td>
-            <td>
-                <button class="btn-small" onclick="showEditBillPaymentModal(${p.id})" style="margin-right: 5px;">Edit</button>
-            </td>
-        </tr>
-    `}).join('') : '<tr><td colspan="6">No bill payments for selected person.</td></tr>';
-   
-    let filteredEvents = data.eventHistory || [];
-    if (selectedPersonId !== 'all') {
-        const person = data.people.find(p => p.id === selectedPersonId);
-        if (person) {
-            filteredEvents = filteredEvents.filter(e =>
-                e.description.includes(person.name) ||
-                e.event.includes('Savings Goal Changed') ||
-                e.event.includes('Expenses Goal Changed') ||
-                e.event.includes('Currency Changed') ||
-                e.event.includes('One Off Expense Deleted')
-            );
-        }
-    }
-    if (startDate) {
-        filteredEvents = filteredEvents.filter(e => e.date >= startDate);
-    }
-    if (endDate) {
-        filteredEvents = filteredEvents.filter(e => e.date <= endDate);
-    }
-   
-    const sortedEvents = filteredEvents.sort((a, b) => {
-        return b.date.localeCompare(a.date);
-    }).slice(0, 10);
-   
-    eventHistoryList.innerHTML = sortedEvents.length > 0 ? sortedEvents.map(e => `
-        <tr>
-            <td>${e.date}</td>
-            <td>${e.event}</td>
-            <td>${e.description}</td>
-            <td><button class="btn-danger btn-small" onclick="deleteEvent(${e.id})">Delete</button></td>
-        </tr>
-    `).join('') : '<tr><td colspan="4">No events for selected person.</td></tr>';
+       let typeLabel;
+       if (isOneOff) {
+           typeLabel = 'One-Off Expense';
+       } else if (p.billType === 'joint') {
+           if (p.payer === 'joint') {
+               typeLabel = 'Joint - Shared';
+           } else {
+               const payerName = data.people.find(person => person.id === p.payer)?.name || 'Unknown';
+               typeLabel = `Joint - ${payerName}`;
+           }
+       } else {
+           const payerName = data.people.find(person => person.id === p.payer)?.name || 'Unknown';
+           typeLabel = `Individual - ${payerName}`;
+       }
+      
+       return `
+       <tr>
+           <td>${p.date}</td>
+           <td>${p.billName}</td>
+           <td>${formatCurrency(p.amount)}</td>
+           <td>${p.category}</td>
+           <td>${typeLabel}</td>
+           <td>
+               <button class="btn-small" onclick="showEditBillPaymentModal(${p.id})" style="margin-right: 5px;">Edit</button>
+           </td>
+       </tr>
+   `}).join('') : '<tr><td colspan="6">No bill payments for selected person.</td></tr>';
+  
+   let filteredEvents = data.eventHistory || [];
+   if (selectedPersonId !== 'all') {
+       const person = data.people.find(p => p.id === selectedPersonId);
+       if (person) {
+           filteredEvents = filteredEvents.filter(e =>
+               e.description.includes(person.name) ||
+               e.event.includes('Savings Goal Changed') ||
+               e.event.includes('Expenses Goal Changed') ||
+               e.event.includes('Currency Changed') ||
+               e.event.includes('One Off Expense Deleted')
+           );
+       }
+   }
+   if (startDate) {
+       filteredEvents = filteredEvents.filter(e => e.date >= startDate);
+   }
+   if (endDate) {
+       filteredEvents = filteredEvents.filter(e => e.date <= endDate);
+   }
+  
+   const sortedEvents = filteredEvents.sort((a, b) => {
+       return b.date.localeCompare(a.date);
+   }).slice(0, 10);
+  
+   eventHistoryList.innerHTML = sortedEvents.length > 0 ? sortedEvents.map(e => `
+       <tr>
+           <td>${e.date}</td>
+           <td>${e.event}</td>
+           <td>${e.description}</td>
+           <td><button class="btn-danger btn-small" onclick="deleteEvent(${e.id})">Delete</button></td>
+       </tr>
+   `).join('') : '<tr><td colspan="4">No events for selected person.</td></tr>';
 }
 
 function showEditBillPaymentModal(paymentId) {
