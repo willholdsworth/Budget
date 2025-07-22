@@ -9218,66 +9218,57 @@ function saveAppData() {
 }
 
 function loadAppData() {
-  try {
-    const darkMode = localStorage.getItem(DARK_MODE_KEY);
-    if (darkMode === 'true') {
-      document.body.classList.add('dark-mode');
-    } else if (darkMode === 'false') {
-      document.body.classList.remove('dark-mode');
-    }
-    
-    const savedData = localStorage.getItem(BUDGET_DATA_KEY);
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      
-      data = parsedData;
-      
-      nextPersonId = data.nextPersonId || 1;
-      nextBillId = data.nextBillId || 1;
-      nextIncomeId = data.nextIncomeId || 1;
-      nextEventId = data.nextEventId || 1;
-      nextPaycheckId = data.nextPaycheckId || 1;
-      
-      document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
-      document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
-      
-      if (darkMode === 'true') {
-        document.body.classList.add('dark-mode');
-        data.darkMode = true;
-      } else if (darkMode === 'false') {
-        document.body.classList.remove('dark-mode');
-        data.darkMode = false;
-      }
-      
-      document.getElementById('currencySelect').value = data.currency;
-      document.getElementById('weightedBillsSidebar').checked = data.weightedBills;
-      
-      data.people.forEach(person => createPersonTab(person));
-      
-      updateGreeting();
-      updateBillPayerOptions();
-      updateBillsList();
-      updateHistoryDisplay();
-      updateOverview();
-      toggleBillTypeVisibility();
-      updateTabsVisibility();
-      
-      if (typeof attachPersonEventListeners === 'function') {
-        attachPersonEventListeners();
-      }
-      
-      setTimeout(() => {
-        processElapsedBills();
-        processElapsedIncome();
-      }, 200);
-      
-      return true;
-    }
-  } catch (e) {
-    console.error("Failed to load app data:", e);
-  }
-  
-  return false;
+ try {
+   const darkMode = localStorage.getItem(DARK_MODE_KEY);
+   if (darkMode === 'true') {
+     document.body.classList.add('dark-mode');
+   } else if (darkMode === 'false') {
+     document.body.classList.remove('dark-mode');
+   }
+   
+   const savedData = localStorage.getItem(BUDGET_DATA_KEY);
+   if (savedData) {
+     const parsedData = JSON.parse(savedData);
+     
+     data = parsedData;
+     
+     nextPersonId = data.nextPersonId || 1;
+     nextBillId = data.nextBillId || 1;
+     nextIncomeId = data.nextIncomeId || 1;
+     nextEventId = data.nextEventId || 1;
+     nextPaycheckId = data.nextPaycheckId || 1;
+     
+     document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
+     document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
+     
+     if (darkMode === 'true') {
+       document.body.classList.add('dark-mode');
+       data.darkMode = true;
+     } else if (darkMode === 'false') {
+       document.body.classList.remove('dark-mode');
+       data.darkMode = false;
+     }
+     
+     document.getElementById('currencySelect').value = data.currency;
+     document.getElementById('weightedBillsSidebar').checked = data.weightedBills;
+     
+     data.people.forEach(person => createPersonTab(person));
+     
+     updateGreeting();
+     updateBillPayerOptions();
+     updateBillsList();
+     updateHistoryDisplay();
+     updateOverview();
+     toggleBillTypeVisibility();
+     updateTabsVisibility();
+     
+     return true;
+   }
+ } catch (e) {
+   console.error("Failed to load app data:", e);
+ }
+ 
+ return false;
 }
 
 document.addEventListener('click', function(e) {
