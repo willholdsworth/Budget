@@ -3931,6 +3931,73 @@ function updatePersonOverview(personId) {
     }
 }
 
+var histPagState = { income: 1, bill: 1, event: 1, perPage: 10 };
+
+function histPag(key, page) {
+    histPagState[key] = page;
+    applyHistPagination();
+}
+
+function resetHistPag() {
+    histPagState.income = 1;
+    histPagState.bill = 1;
+    histPagState.event = 1;
+}
+
+function applyHistPagination() {
+    var lists = [
+        { id: 'incomeHistoryList', key: 'income' },
+        { id: 'billHistoryList', key: 'bill' },
+        { id: 'eventHistoryList', key: 'event' }
+    ];
+    
+    for (var i = 0; i < lists.length; i++) {
+        var el = document.getElementById(lists[i].id);
+        if (!el) continue;
+        
+        var rows = el.getElementsByTagName('tr');
+        var dataRows = [];
+        for (var j = 0; j < rows.length; j++) {
+            if (!rows[j].cells[0] || rows[j].cells[0].colSpan > 1) continue;
+            dataRows.push(rows[j]);
+        }
+        
+        var total = dataRows.length;
+        var perPage = histPagState.perPage;
+        var totalPages = Math.ceil(total / perPage);
+        var key = lists[i].key;
+        
+        if (histPagState[key] > totalPages && totalPages > 0) histPagState[key] = totalPages;
+        if (histPagState[key] < 1) histPagState[key] = 1;
+        var start = (histPagState[key] - 1) * perPage;
+        
+        for (var j = 0; j < dataRows.length; j++) {
+            dataRows[j].style.display = (j >= start && j < start + perPage) ? '' : 'none';
+        }
+        
+        var wrapper = el.closest('.history-table-wrapper');
+        if (wrapper && wrapper.parentElement) {
+            var old = wrapper.parentElement.querySelector('.pag-ctrl');
+            if (old) old.remove();
+            
+            if (totalPages > 1) {
+                var s = ((histPagState[key]-1)*perPage)+1;
+                var e = Math.min(histPagState[key]*perPage, total);
+                var h = '<div class="pag-ctrl" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:10px;border-top:1px solid #ddd;">';
+                h += '<span style="font-size:13px;color:#666;">Showing '+s+'-'+e+' of '+total+'</span>';
+                h += '<div style="display:flex;gap:5px;align-items:center;">';
+                h += '<button class="btn-small" onclick="histPag(\''+key+'\',1)"'+(histPagState[key]===1?' disabled':'')+' style="padding:5px 8px;">\u00AB</button>';
+                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+(histPagState[key]-1)+')"'+(histPagState[key]===1?' disabled':'')+' style="padding:5px 10px;">\u2039</button>';
+                h += '<span style="padding:0 10px;font-size:13px;">Page '+histPagState[key]+' of '+totalPages+'</span>';
+                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+(histPagState[key]+1)+')"'+(histPagState[key]===totalPages?' disabled':'')+' style="padding:5px 10px;">\u203A</button>';
+                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+totalPages+')"'+(histPagState[key]===totalPages?' disabled':'')+' style="padding:5px 8px;">\u00BB</button>';
+                h += '</div></div>';
+                wrapper.insertAdjacentHTML('afterend', h);
+            }
+        }
+    }
+}
+
 function updateHistoryDisplay() {
    const incomeHistoryList = $('incomeHistoryList');
    const billHistoryList = $('billHistoryList');
@@ -4087,73 +4154,6 @@ function updateHistoryDisplay() {
    `).join('') : '<tr><td colspan="4">No events for selected person.</td></tr>';
    
    applyHistPagination();
-}
-
-var histPagState = { income: 1, bill: 1, event: 1, perPage: 10 };
-
-function histPag(key, page) {
-    histPagState[key] = page;
-    applyHistPagination();
-}
-
-function resetHistPag() {
-    histPagState.income = 1;
-    histPagState.bill = 1;
-    histPagState.event = 1;
-}
-
-function applyHistPagination() {
-    var lists = [
-        { id: 'incomeHistoryList', key: 'income' },
-        { id: 'billHistoryList', key: 'bill' },
-        { id: 'eventHistoryList', key: 'event' }
-    ];
-    
-    for (var i = 0; i < lists.length; i++) {
-        var el = document.getElementById(lists[i].id);
-        if (!el) continue;
-        
-        var rows = el.getElementsByTagName('tr');
-        var dataRows = [];
-        for (var j = 0; j < rows.length; j++) {
-            if (!rows[j].cells[0] || rows[j].cells[0].colSpan > 1) continue;
-            dataRows.push(rows[j]);
-        }
-        
-        var total = dataRows.length;
-        var perPage = histPagState.perPage;
-        var totalPages = Math.ceil(total / perPage);
-        var key = lists[i].key;
-        
-        if (histPagState[key] > totalPages && totalPages > 0) histPagState[key] = totalPages;
-        if (histPagState[key] < 1) histPagState[key] = 1;
-        var start = (histPagState[key] - 1) * perPage;
-        
-        for (var j = 0; j < dataRows.length; j++) {
-            dataRows[j].style.display = (j >= start && j < start + perPage) ? '' : 'none';
-        }
-        
-        var wrapper = el.closest('.history-table-wrapper');
-        if (wrapper && wrapper.parentElement) {
-            var old = wrapper.parentElement.querySelector('.pag-ctrl');
-            if (old) old.remove();
-            
-            if (totalPages > 1) {
-                var s = ((histPagState[key]-1)*perPage)+1;
-                var e = Math.min(histPagState[key]*perPage, total);
-                var h = '<div class="pag-ctrl" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:10px;border-top:1px solid #ddd;">';
-                h += '<span style="font-size:13px;color:#666;">Showing '+s+'-'+e+' of '+total+'</span>';
-                h += '<div style="display:flex;gap:5px;align-items:center;">';
-                h += '<button class="btn-small" onclick="histPag(\''+key+'\',1)"'+(histPagState[key]===1?' disabled':'')+' style="padding:5px 8px;">\u00AB</button>';
-                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+(histPagState[key]-1)+')"'+(histPagState[key]===1?' disabled':'')+' style="padding:5px 10px;">\u2039</button>';
-                h += '<span style="padding:0 10px;font-size:13px;">Page '+histPagState[key]+' of '+totalPages+'</span>';
-                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+(histPagState[key]+1)+')"'+(histPagState[key]===totalPages?' disabled':'')+' style="padding:5px 10px;">\u203A</button>';
-                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+totalPages+')"'+(histPagState[key]===totalPages?' disabled':'')+' style="padding:5px 8px;">\u00BB</button>';
-                h += '</div></div>';
-                wrapper.insertAdjacentHTML('afterend', h);
-            }
-        }
-    }
 }
 
 function showEditBillPaymentModal(paymentId) {
