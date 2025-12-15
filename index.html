@@ -2447,17 +2447,9 @@ function updateImportButtonHandler() {
 }
 
 function enhanceImportExportModal() {
-    const originalShowImportExportModal = showImportExportModal;
-   
-    window.showImportExportModal = function() {
-        originalShowImportExportModal.apply(this, arguments);
-        updateImportButtonHandler();
-    };
 }
 
 function initializeEnhancedImport() {
-    enhanceImportExportModal();
-   
     window.processElapsedIncome = processElapsedIncome;
     window.processImportIncome = processImportIncome;
     window.processImportData = processImportData;
@@ -9052,23 +9044,7 @@ function updateEnhancedExportData() {
         });
        
         document.getElementById('exportBtn').addEventListener('click', () => {
-            const exportData = {
-                people: JSON.parse(JSON.stringify(data.people)),
-                bills: JSON.parse(JSON.stringify(data.bills)),
-                currency: data.currency,
-                darkMode: data.darkMode,
-                weightedBills: data.weightedBills,
-                paycheckHistory: JSON.parse(JSON.stringify(data.paycheckHistory)),
-                billHistory: JSON.parse(JSON.stringify(data.billHistory || [])),
-                eventHistory: JSON.parse(JSON.stringify(data.eventHistory)),
-                billPayments: JSON.parse(JSON.stringify(data.billPayments)),
-                lastProcessedDate: data.lastProcessedDate,
-                peopleIncomeSettings: JSON.parse(JSON.stringify(data.peopleIncomeSettings)),
-                uiPreferences: JSON.parse(JSON.stringify(data.uiPreferences || {})),
-                dataVersion: data.dataVersion || "1.0",
-                lastExportDate: new Date().toISOString(),
-                billHistoryId: data.billHistoryId || 1
-            };
+            const exportData = createCleanExportData();
            
             const exportString = btoa(JSON.stringify(exportData));
             const blob = new Blob([exportString], { type: 'text/plain' });
@@ -9112,8 +9088,87 @@ function updateEnhancedExportData() {
                 alert('Enhanced data exported successfully!');
             }
         });
-       
-        return originalShowImportExportModal.apply(this, arguments);
+        
+        document.getElementById('importBtn').addEventListener('click', () => {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.txt';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            
+            fileInput.click();
+            
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    document.body.removeChild(fileInput);
+                    return;
+                }
+                
+                if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
+                    document.body.removeChild(fileInput);
+                    return;
+                }
+                
+                isImporting = true;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const fileContent = e.target.result;
+                        const importSuccess = processImportData(fileContent);
+                        
+                        if (!importSuccess) {
+                            alert('Failed to import data. The file may be invalid or corrupted.');
+                            document.body.removeChild(fileInput);
+                            isImporting = false;
+                            return;
+                        }
+                        
+                        document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
+                        document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
+                        
+                        if (data.darkMode) {
+                            document.body.classList.add('dark-mode');
+                        } else {
+                            document.body.classList.remove('dark-mode');
+                        }
+                        
+                        $('currencySelect').value = data.currency;
+                        $('weightedBillsSidebar').checked = data.weightedBills;
+                        
+                        data.people.forEach(person => createPersonTab(person));
+                        attachPersonEventListeners();
+                        
+                        updateGreeting();
+                        updateBillPayerOptions();
+                        updateBillsList();
+                        updateHistoryDisplay();
+                        updateOverview();
+                        toggleBillTypeVisibility();
+                        updateTabsVisibility();
+                        
+                        setTimeout(() => {
+                            hideModal();
+                            showTab('overview');
+                        }, 600);
+                        
+                    } catch (e) {
+                        isImporting = false;
+                        console.error('Import error:', e);
+                        alert('Failed to import data. The file may be invalid or corrupted.');
+                    }
+                    
+                    document.body.removeChild(fileInput);
+                };
+                
+                reader.readAsText(file);
+            });
+        });
+        
+        document.getElementById('closeModalBtn').addEventListener('click', hideModal);
+        
+        showModal();
     };
 }
 
