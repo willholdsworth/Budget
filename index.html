@@ -2662,14 +2662,6 @@ function showImportExportModal() {
     `;
    
     $('importBtn').addEventListener('click', () => {
-        if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.importFile) {
-            if (confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
-                isImporting = true;
-                AndroidFileInterface.importFile();
-            }
-            return;
-        }
-        
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.txt';
@@ -2750,13 +2742,6 @@ function showImportExportModal() {
         const exportData = createCleanExportData();
         const exportString = btoa(JSON.stringify(exportData));
         const blob = new Blob([exportString], { type: 'text/plain' });
-        
-        if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.exportData) {
-            AndroidFileInterface.exportData(exportString, 'budget_data.txt');
-            alert('File exported successfully!');
-            saveDataToLocalStorage();
-            return;
-        }
        
         if ('showSaveFilePicker' in window) {
             async function saveWithFilePicker() {
