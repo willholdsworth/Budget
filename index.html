@@ -2720,7 +2720,6 @@ function showImportExportModal() {
     $('exportBtn').addEventListener('click', () => {
         const exportData = createCleanExportData();
         const exportString = btoa(JSON.stringify(exportData));
-        const blob = new Blob([exportString], { type: 'text/plain' });
        
         if ('showSaveFilePicker' in window) {
             async function saveWithFilePicker() {
@@ -2733,7 +2732,8 @@ function showImportExportModal() {
                         }]
                     });
                    
-                    const writable = await handle.createWritable({ keepExistingData: false });
+                    const writable = await handle.createWritable();
+                    await writable.truncate(0);
                     await writable.write(exportString);
                     await writable.close();
                    
@@ -2749,6 +2749,7 @@ function showImportExportModal() {
            
             saveWithFilePicker();
         } else {
+            const blob = new Blob([exportString], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -4936,7 +4937,8 @@ async function saveDataToFile() {
         if ('showSaveFilePicker' in window) {
             if (savedFileHandle) {
                 try {
-                    const writable = await savedFileHandle.createWritable({ keepExistingData: false });
+                    const writable = await savedFileHandle.createWritable();
+                    await writable.truncate(0);
                     await writable.write(htmlContent);
                     await writable.close();
                     alert('File saved successfully!');
@@ -4967,7 +4969,8 @@ async function saveDataToFile() {
                     }]
                 });
                
-                const writable = await fileHandle.createWritable({ keepExistingData: false });
+                const writable = await fileHandle.createWritable();
+                await writable.truncate(0);
                 await writable.write(htmlContent);
                 await writable.close();
                 savedFileHandle = fileHandle;
@@ -8773,7 +8776,8 @@ function exportHistoryReport(reportData, filename = null) {
                     }]
                 });
                
-                const writable = await handle.createWritable({ keepExistingData: false });
+                const writable = await handle.createWritable();
+                await writable.truncate(0);
                 await writable.write(reportString);
                 await writable.close();
                
