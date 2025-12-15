@@ -15,7 +15,6 @@ body {
   font-family: 'Space Grotesk', monospace;
   min-height: 100vh;
   padding: 20px;
-  padding-top: calc(20px + env(safe-area-inset-top, 0px));
   color: #000000;
   transition: all 0.3s ease;
   background: #ffffff;
@@ -33,9 +32,6 @@ body.dark-mode {
   right: 0;
   background: #ffffff;
   padding: 20px;
-  padding-top: calc(20px + env(safe-area-inset-top, 0px));
-  padding-left: calc(20px + env(safe-area-inset-left, 0px));
-  padding-right: calc(20px + env(safe-area-inset-right, 0px));
   z-index: 1000;
   transition: all 0.3s ease;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
@@ -219,9 +215,6 @@ body.dark-mode button:hover {
   background: #ffffff;
   border-right: 2px solid rgba(0, 0, 0, 0.08);
   padding: 80px 20px 20px;
-  padding-top: calc(80px + env(safe-area-inset-top, 0px));
-  padding-left: calc(20px + env(safe-area-inset-left, 0px));
-  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   z-index: 1001;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
@@ -344,7 +337,6 @@ body.dark-mode .sidebar-menu .checkbox-group label {
 .container {
   max-width: 1000px;
   margin: 70px auto 0;
-  margin-top: calc(70px + env(safe-area-inset-top, 0px));
   background: transparent;
 }
 
@@ -3937,7 +3929,7 @@ function updatePersonOverview(personId) {
     }
 }
 
-const historyPagination = {
+var historyPagination = {
     income: { page: 1, perPage: 10 },
     bill: { page: 1, perPage: 10 },
     event: { page: 1, perPage: 10 }
@@ -3945,22 +3937,17 @@ const historyPagination = {
 
 function createPaginationControls(type, currentPage, totalPages, totalItems) {
     if (totalPages <= 1) return '';
-    
-    const startItem = ((currentPage - 1) * historyPagination[type].perPage) + 1;
-    const endItem = Math.min(currentPage * historyPagination[type].perPage, totalItems);
-    
-    return `
-        <div class="pagination-controls" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:10px;border-top:1px solid var(--border-color, #ddd);">
-            <span style="font-size:13px;color:#666;">Showing ${startItem}-${endItem} of ${totalItems}</span>
-            <div style="display:flex;gap:5px;align-items:center;">
-                <button class="btn-small" onclick="changeHistoryPage('${type}', 1)" ${currentPage === 1 ? 'disabled' : ''} style="padding:5px 8px;">&#171;</button>
-                <button class="btn-small" onclick="changeHistoryPage('${type}', ${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} style="padding:5px 10px;">&#8249;</button>
-                <span style="padding:0 10px;font-size:13px;">Page ${currentPage} of ${totalPages}</span>
-                <button class="btn-small" onclick="changeHistoryPage('${type}', ${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} style="padding:5px 10px;">&#8250;</button>
-                <button class="btn-small" onclick="changeHistoryPage('${type}', ${totalPages})" ${currentPage === totalPages ? 'disabled' : ''} style="padding:5px 8px;">&#187;</button>
-            </div>
-        </div>
-    `;
+    var startItem = ((currentPage - 1) * historyPagination[type].perPage) + 1;
+    var endItem = Math.min(currentPage * historyPagination[type].perPage, totalItems);
+    return '<div class="pagination-controls" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:10px;border-top:1px solid #ddd;">' +
+        '<span style="font-size:13px;color:#666;">Showing ' + startItem + '-' + endItem + ' of ' + totalItems + '</span>' +
+        '<div style="display:flex;gap:5px;align-items:center;">' +
+        '<button class="btn-small" onclick="changeHistoryPage(\'' + type + '\', 1)" ' + (currentPage === 1 ? 'disabled' : '') + ' style="padding:5px 8px;">&#171;</button>' +
+        '<button class="btn-small" onclick="changeHistoryPage(\'' + type + '\', ' + (currentPage - 1) + ')" ' + (currentPage === 1 ? 'disabled' : '') + ' style="padding:5px 10px;">&#8249;</button>' +
+        '<span style="padding:0 10px;font-size:13px;">Page ' + currentPage + ' of ' + totalPages + '</span>' +
+        '<button class="btn-small" onclick="changeHistoryPage(\'' + type + '\', ' + (currentPage + 1) + ')" ' + (currentPage === totalPages ? 'disabled' : '') + ' style="padding:5px 10px;">&#8250;</button>' +
+        '<button class="btn-small" onclick="changeHistoryPage(\'' + type + '\', ' + totalPages + ')" ' + (currentPage === totalPages ? 'disabled' : '') + ' style="padding:5px 8px;">&#187;</button>' +
+        '</div></div>';
 }
 
 function changeHistoryPage(type, page) {
@@ -3995,7 +3982,7 @@ function updateHistoryDisplay() {
        personFilterContainer.outerHTML = `<select id="historyPersonFilter"><option value="all">All People</option>${data.people.map(p => `<option value="${p.id}" ${p.id == currentValue ? 'selected' : ''}>${p.name}</option>`).join('')}</select>`;
        const newPersonFilter = $('historyPersonFilter');
        newPersonFilter.value = currentValue;
-       newPersonFilter.addEventListener('change', () => { resetHistoryPagination(); updateHistoryDisplay(); });
+       newPersonFilter.addEventListener('change', function() { resetHistoryPagination(); updateHistoryDisplay(); });
    }
   
    let filteredPaychecks = data.paycheckHistory || [];
@@ -4013,19 +4000,19 @@ function updateHistoryDisplay() {
        return b.date.localeCompare(a.date);
    });
    
-   const incomeTotal = sortedPaychecks.length;
-   const incomePerPage = historyPagination.income.perPage;
-   const incomeTotalPages = Math.ceil(incomeTotal / incomePerPage);
+   var incomeTotal = sortedPaychecks.length;
+   var incomePerPage = historyPagination.income.perPage;
+   var incomeTotalPages = Math.ceil(incomeTotal / incomePerPage);
    if (historyPagination.income.page > incomeTotalPages && incomeTotalPages > 0) {
        historyPagination.income.page = incomeTotalPages;
    }
-   const incomeStart = (historyPagination.income.page - 1) * incomePerPage;
-   const paginatedPaychecks = sortedPaychecks.slice(incomeStart, incomeStart + incomePerPage);
-  
-   const incomeTableWrapper = incomeHistoryList.closest('.history-table-wrapper');
-   let incomePaginationDiv = incomeTableWrapper.parentElement.querySelector('.pagination-controls');
-   if (incomePaginationDiv) incomePaginationDiv.remove();
+   var incomeStart = (historyPagination.income.page - 1) * incomePerPage;
+   var paginatedPaychecks = sortedPaychecks.slice(incomeStart, incomeStart + incomePerPage);
    
+   var incomeTableWrapper = incomeHistoryList.closest('.history-table-wrapper');
+   var existingIncomePagination = incomeTableWrapper ? incomeTableWrapper.parentElement.querySelector('.pagination-controls') : null;
+   if (existingIncomePagination) existingIncomePagination.remove();
+  
    incomeHistoryList.innerHTML = paginatedPaychecks.length > 0 ? paginatedPaychecks.map(p => {
        const typeDisplay = p.type === 'bonus' ? 'Bonus' : 'Salary';
        const companyDisplay = p.employer || '';
@@ -4043,7 +4030,7 @@ function updateHistoryDisplay() {
        `;
    }).join('') : '<tr><td colspan="6">No income data for selected person.</td></tr>';
    
-   if (incomeTotalPages > 1) {
+   if (incomeTotalPages > 1 && incomeTableWrapper) {
        incomeTableWrapper.insertAdjacentHTML('afterend', createPaginationControls('income', historyPagination.income.page, incomeTotalPages, incomeTotal));
    }
   
@@ -4081,18 +4068,18 @@ function updateHistoryDisplay() {
        return b.date.localeCompare(a.date);
    });
    
-   const billTotal = sortedBillHistory.length;
-   const billPerPage = historyPagination.bill.perPage;
-   const billTotalPages = Math.ceil(billTotal / billPerPage);
+   var billTotal = sortedBillHistory.length;
+   var billPerPage = historyPagination.bill.perPage;
+   var billTotalPages = Math.ceil(billTotal / billPerPage);
    if (historyPagination.bill.page > billTotalPages && billTotalPages > 0) {
        historyPagination.bill.page = billTotalPages;
    }
-   const billStart = (historyPagination.bill.page - 1) * billPerPage;
-   const paginatedBillHistory = sortedBillHistory.slice(billStart, billStart + billPerPage);
+   var billStart = (historyPagination.bill.page - 1) * billPerPage;
+   var paginatedBillHistory = sortedBillHistory.slice(billStart, billStart + billPerPage);
    
-   const billTableWrapper = billHistoryList.closest('.history-table-wrapper');
-   let billPaginationDiv = billTableWrapper.parentElement.querySelector('.pagination-controls');
-   if (billPaginationDiv) billPaginationDiv.remove();
+   var billTableWrapper = billHistoryList.closest('.history-table-wrapper');
+   var existingBillPagination = billTableWrapper ? billTableWrapper.parentElement.querySelector('.pagination-controls') : null;
+   if (existingBillPagination) existingBillPagination.remove();
   
    billHistoryList.innerHTML = paginatedBillHistory.length > 0 ? paginatedBillHistory.map(p => {
        const originalBill = data.bills.find(b => b.id === p.billId);
@@ -4126,7 +4113,7 @@ function updateHistoryDisplay() {
        </tr>
    `}).join('') : '<tr><td colspan="6">No bill payments for selected person.</td></tr>';
    
-   if (billTotalPages > 1) {
+   if (billTotalPages > 1 && billTableWrapper) {
        billTableWrapper.insertAdjacentHTML('afterend', createPaginationControls('bill', historyPagination.bill.page, billTotalPages, billTotal));
    }
   
@@ -4154,18 +4141,18 @@ function updateHistoryDisplay() {
        return b.date.localeCompare(a.date);
    });
    
-   const eventTotal = sortedEvents.length;
-   const eventPerPage = historyPagination.event.perPage;
-   const eventTotalPages = Math.ceil(eventTotal / eventPerPage);
+   var eventTotal = sortedEvents.length;
+   var eventPerPage = historyPagination.event.perPage;
+   var eventTotalPages = Math.ceil(eventTotal / eventPerPage);
    if (historyPagination.event.page > eventTotalPages && eventTotalPages > 0) {
        historyPagination.event.page = eventTotalPages;
    }
-   const eventStart = (historyPagination.event.page - 1) * eventPerPage;
-   const paginatedEvents = sortedEvents.slice(eventStart, eventStart + eventPerPage);
+   var eventStart = (historyPagination.event.page - 1) * eventPerPage;
+   var paginatedEvents = sortedEvents.slice(eventStart, eventStart + eventPerPage);
    
-   const eventTableWrapper = eventHistoryList.closest('.history-table-wrapper');
-   let eventPaginationDiv = eventTableWrapper.parentElement.querySelector('.pagination-controls');
-   if (eventPaginationDiv) eventPaginationDiv.remove();
+   var eventTableWrapper = eventHistoryList.closest('.history-table-wrapper');
+   var existingEventPagination = eventTableWrapper ? eventTableWrapper.parentElement.querySelector('.pagination-controls') : null;
+   if (existingEventPagination) existingEventPagination.remove();
   
    eventHistoryList.innerHTML = paginatedEvents.length > 0 ? paginatedEvents.map(e => `
        <tr>
@@ -4176,7 +4163,7 @@ function updateHistoryDisplay() {
        </tr>
    `).join('') : '<tr><td colspan="4">No events for selected person.</td></tr>';
    
-   if (eventTotalPages > 1) {
+   if (eventTotalPages > 1 && eventTableWrapper) {
        eventTableWrapper.insertAdjacentHTML('afterend', createPaginationControls('event', historyPagination.event.page, eventTotalPages, eventTotal));
    }
 }
@@ -9165,9 +9152,9 @@ function attachEventListeners() {
    $('billFrequency').addEventListener('change', toggleBillFrequencyOptions);
    $('fullResetBtn').addEventListener('click', fullReset);
    $('clearHistoryFiltersBtn').addEventListener('click', clearHistoryFilters);
-   $('historyPersonFilter').addEventListener('change', () => { resetHistoryPagination(); updateHistoryDisplay(); });
-   $('historyStartDate').addEventListener('change', () => { resetHistoryPagination(); updateHistoryDisplay(); });
-   $('historyEndDate').addEventListener('change', () => { resetHistoryPagination(); updateHistoryDisplay(); });
+   $('historyPersonFilter').addEventListener('change', function() { resetHistoryPagination(); updateHistoryDisplay(); });
+   $('historyStartDate').addEventListener('change', function() { resetHistoryPagination(); updateHistoryDisplay(); });
+   $('historyEndDate').addEventListener('change', function() { resetHistoryPagination(); updateHistoryDisplay(); });
    $('isOneOff').addEventListener('change', toggleOneOffFields);
   
    updateEnhancedExportData();
