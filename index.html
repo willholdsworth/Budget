@@ -977,117 +977,6 @@ function frequencyToMonthly(amount, frequency) {
     }
 }
 
-function updateImportButtonHandler() {
-    $('importBtn').addEventListener('click', () => {
-        if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.importFile) {
-            if (confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
-                isImporting = true;
-                AndroidFileInterface.importFile();
-            }
-            return;
-        }
-        
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.txt';
-        fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
-       
-        fileInput.click();
-       
-        fileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) {
-                document.body.removeChild(fileInput);
-                return;
-            }
-           
-            if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
-                document.body.removeChild(fileInput);
-                return;
-            }
-           
-            isImporting = true;
-           
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const fileContent = e.target.result;
-                   
-                    const importSuccess = processImportData(fileContent);
-                   
-                    if (!importSuccess) {
-                        alert('Failed to import data. The file may be invalid or corrupted.');
-                        document.body.removeChild(fileInput);
-                        isImporting = false;
-                        return;
-                    }
-                   
-                    document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
-                    document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
-                   
-                    const userDarkMode = isDark();
-                    data.darkMode = userDarkMode;
-                   
-                    $('currencySelect').value = data.currency;
-                    $('weightedBillsSidebar').checked = data.weightedBills;
-                   
-                    data.people.forEach(person => createPersonTab(person));
-                    attachPersonEventListeners();
-                   
-                    updateGreeting();
-                    updateBillPayerOptions();
-                    updateBillsList();
-                    updateHistoryDisplay();
-                    updateOverview();
-                    toggleBillTypeVisibility();
-                    updateTabsVisibility();
-                   
-                    setTimeout(() => {
-                        data.eventHistory.push({
-                            id: nextEventId++,
-                            date: getDateString(),
-                            event: 'Data Imported',
-                            description: 'Imported data from a budget file'
-                        });
-                       
-                        hideModal();
-                        showTab('overview');
-                       
-                        alert('Data imported successfully!');
-                    }, 600);
-                   
-                } catch (e) {
-                    isImporting = false;
-                    console.error('Import error:', e);
-                    alert('Failed to import data. The file may be invalid or corrupted.');
-                }
-               
-                document.body.removeChild(fileInput);
-            };
-           
-            reader.readAsText(file);
-        });
-    });
-}
-
-function enhanceImportExportModal() {
-}
-
-function initializeEnhancedImport() {
-    window.processElapsedIncome = processElapsedIncome;
-    window.processImportIncome = processImportIncome;
-}
-
-function enhanceAttachEventListeners() {
-    const originalAttachEventListeners = attachEventListeners;
-   
-    window.attachEventListeners = function() {
-        originalAttachEventListeners.apply(this, arguments);
-        initializeEnhancedImport();
-    };
-}
-
 async function processImportData(fileContent) {
     isImporting = true;
    
@@ -1343,180 +1232,6 @@ function createCleanExportData() {
 }
 
 function showImportExportModal() {
-    let modal = $('editModal');
-    let modalContent;
-   
-    if (!modal) {
-        const modalData = createModal();
-        modal = modalData.modal;
-        modalContent = modalData.modalContent;
-    } else {
-        modalContent = $('modalContent');
-    }
-   
-    modalContent.innerHTML = `
-        <h3 style="margin-bottom:10px;color:${isDark() ? '#fff' : '#000'};text-align:center;">SAVE/IMPORT</h3>
-       
-        <p style="text-align:center;margin-bottom:25px;padding:10px;background-color:${isDark() ? '#333' : '#f5f5f5'};border-radius:5px;font-size:14px;color:${isDark() ? '#ff9' : '#800'};">
-            For security, your data is only stored on your device unless you export it.  Remember to share/backup your budget to a safe place after making changes. Make sure only one person edits the budget at a time and re-shares the latest version with you.
-        </p>
-       
-        <div style="display:flex;flex-direction:column;gap:20px;margin-bottom:20px;">
-            <div>
-                <button id="importBtn" style="width:100%;height:60px;font-size:16px;font-weight:bold;">IMPORT</button>
-                <p style="margin-top:5px;font-size:13px;color:${isDark() ? '#ccc' : '#666'};">
-                    Load your previously exported .txt file to view your budget.
-                </p>
-            </div>
-           
-            <div>
-                <button id="exportBtn" style="width:100%;height:60px;font-size:16px;font-weight:bold;">EXPORT</button>
-                <p style="margin-top:5px;font-size:13px;color:${isDark() ? '#ccc' : '#666'};">
-                    Create a unique encoded .txt file with your budget data. Save to your device, or to a cloud service to access from any device or to share with others.
-                </p>
-            </div>
-        </div>
-       
-        <div style="margin-top:20px;text-align:center;">
-            <button id="closeModalBtn" style="background:#666;width:150px;">Close</button>
-        </div>
-    `;
-   
-    $('importBtn').addEventListener('click', () => {
-        if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.importFile) {
-            if (confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
-                isImporting = true;
-                AndroidFileInterface.importFile();
-            }
-            return;
-        }
-        
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.txt';
-        fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
-       
-        fileInput.click();
-       
-        fileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) {
-                document.body.removeChild(fileInput);
-                return;
-            }
-           
-            if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
-                document.body.removeChild(fileInput);
-                return;
-            }
-           
-            isImporting = true;
-           
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const fileContent = e.target.result;
-                    const importSuccess = processImportData(fileContent);
-                   
-                    if (!importSuccess) {
-                        alert('Failed to import data. The file may be invalid or corrupted.');
-                        document.body.removeChild(fileInput);
-                        isImporting = false;
-                        return;
-                    }
-                   
-                    document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
-                    document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
-                   
-                    const userDarkMode = isDark();
-                    data.darkMode = userDarkMode;
-                   
-                    $('currencySelect').value = data.currency;
-                    $('weightedBillsSidebar').checked = data.weightedBills;
-                   
-                    data.people.forEach(person => createPersonTab(person));
-                    attachPersonEventListeners();
-                   
-                    updateGreeting();
-                    updateBillPayerOptions();
-                    updateBillsList();
-                    updateHistoryDisplay();
-                    updateOverview();
-                    toggleBillTypeVisibility();
-                    updateTabsVisibility();
-                   
-                    setTimeout(() => {
-                        hideModal();
-                        showTab('overview');
-                    }, 600);
-                   
-                } catch (e) {
-                    isImporting = false;
-                    console.error('Import error:', e);
-                    alert('Failed to import data. The file may be invalid or corrupted.');
-                }
-               
-                document.body.removeChild(fileInput);
-            };
-           
-            reader.readAsText(file);
-        });
-    });
-   
-    $('exportBtn').addEventListener('click', () => {
-        const exportData = createCleanExportData();
-        const exportString = btoa(JSON.stringify(exportData));
-        const blob = new Blob([exportString], { type: 'text/plain' });
-        
-        if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.exportData) {
-            AndroidFileInterface.exportData(exportString, 'budget_data.txt');
-            alert('File exported successfully!');
-            saveDataToLocalStorage();
-        } else if ('showSaveFilePicker' in window) {
-            async function saveWithFilePicker() {
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: 'budget_data.txt',
-                        types: [{
-                            description: 'Text Files',
-                            accept: { 'text/plain': ['.txt'] }
-                        }]
-                    });
-                   
-                    const writable = await handle.createWritable();
-                    await writable.write(exportString);
-                    await writable.close();
-                   
-                    alert('File exported successfully!');
-                    saveDataToLocalStorage();
-                } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        console.error('Error saving file:', err);
-                        alert('Error saving file. Please try again.');
-                    }
-                }
-            }
-           
-            saveWithFilePicker();
-        } else {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'budget_data.txt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            alert('File exported successfully!');
-           
-            saveDataToLocalStorage();
-        }
-    });
-   
-    $('closeModalBtn').addEventListener('click', hideModal);
-   
-    showModal();
 }
 
 function calculateMonthlyBudget(person) {
@@ -1580,65 +1295,6 @@ function calculateMonthlyBudget(person) {
    }
    
    return 0;
-}
-
-function updateOverview() {
-   const today = new Date();
-   const currentYear = today.getFullYear();
-   const currentMonth = today.getMonth();
-   
-   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-   let billsTotal = 0;
-   let incomeTotal = 0;
-   
-   for (let day = 1; day <= daysInMonth; day++) {
-       const dayDate = new Date(currentYear, currentMonth, day);
-       const dayEvents = getDayEvents(dayDate);
-       
-       const billItems = getBillItemsFromEvents(dayEvents);
-       billItems.forEach(bill => {
-           billsTotal += bill.amount;
-       });
-       
-       const oneOffItems = getOneOffItemsFromEvents(dayEvents);
-       oneOffItems.forEach(oneOff => {
-           billsTotal += oneOff.amount;
-       });
-       
-       const paydayItems = getPaydayItemsFromEvents(dayEvents);
-       paydayItems.forEach(payday => {
-           incomeTotal += payday.amount;
-       });
-       
-       const bonusItems = getBonusItemsFromEvents(dayEvents);
-       bonusItems.forEach(bonus => {
-           incomeTotal += bonus.amount;
-       });
-   }
-   
-   const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
-   const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
-   
-   const leftover = incomeTotal - billsTotal - totalMonthlySavings - totalMonthlyExpenses;
-   
-   $('totalIncome').textContent = formatCurrency(incomeTotal);
-   $('totalBills').textContent = formatCurrency(billsTotal);
-   $('totalSavings').textContent = formatCurrency(totalMonthlySavings);
-   $('totalLeftover').textContent = formatCurrency(leftover);
-   
-   $('billsPercentage').textContent = incomeTotal ?
-       `${((billsTotal / incomeTotal) * 100).toFixed(1)}%` : '0%';
-   $('savingsPercentage').textContent = incomeTotal ?
-       `${((totalMonthlySavings / incomeTotal) * 100).toFixed(1)}%` : '0%';
-   $('leftoverPercentage').textContent = incomeTotal ?
-       `${((leftover / incomeTotal) * 100).toFixed(1)}%` : '0%';
-   
-   updatePeopleOverview();
-   updateDebtOverview();
-   updateOneOffOverview();
-   updateTransfersOverview();
-   resetCalendarToCurrentMonth();
-   data.people.forEach(p => updatePersonOverview(p.id));
 }
 
 function getPaydayItemsFromEvents(dayEvents) {
@@ -4899,14 +4555,6 @@ function createYearlyIncomeView(personId) {
     return html;
 }
 
-function formatCurrency(amount) {
-    const formatter = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: data.currency || 'USD'
-    });
-    return formatter.format(amount);
-}
-
 function calculateDebtInfo(bill) {
     if (!bill.isDebt || !bill.totalDebt || !bill.interestRate) return null;
    
@@ -5051,56 +4699,6 @@ function generateBillDate(day, month, frequency, startMonth) {
 }
 
 
-
-function isPaydayOnDate(person, day, month, year) {
-    if (!person.paymentDate || !person.frequency) return false;
-   
-    const paymentDate = new Date(person.paymentDate);
-    const checkDate = new Date(year, month, day);
-   
-    if (person.frequency === 'monthly') {
-        const payDay = paymentDate.getDate();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-       
-        if (payDay > daysInMonth) {
-            return day === daysInMonth;
-        }
-        return payDay === day;
-    }
-   
-    if (person.frequency === 'biweekly') {
-        const timeDiff = checkDate.getTime() - paymentDate.getTime();
-        const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-        return daysDiff >= 0 && daysDiff % 14 === 0;
-    }
-   
-    if (person.frequency === 'quarterly') {
-        const payDay = paymentDate.getDate();
-        const payMonth = paymentDate.getMonth();
-       
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const adjustedPayDay = payDay > daysInMonth ? daysInMonth : payDay;
-       
-        if (adjustedPayDay !== day) return false;
-       
-        const monthsDiff = (year - paymentDate.getFullYear()) * 12 + (month - payMonth);
-        return monthsDiff >= 0 && monthsDiff % 3 === 0;
-    }
-   
-    if (person.frequency === 'yearly') {
-        const payDay = paymentDate.getDate();
-        const payMonth = paymentDate.getMonth();
-       
-        if (month !== payMonth) return false;
-       
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const adjustedPayDay = payDay > daysInMonth ? daysInMonth : payDay;
-       
-        return adjustedPayDay === day && year >= paymentDate.getFullYear();
-    }
-   
-    return false;
-}
 
 function toggleBillTypeVisibility() {
     const billTypeGroup = $('billTypeGroup');
@@ -7586,8 +7184,6 @@ function mergeImportBaselineWithChanges() {
 }
 
 function updateEnhancedExportData() {
-    const originalShowImportExportModal = showImportExportModal;
-   
     window.showImportExportModal = function() {
         let modal = $('editModal');
         let modalContent;
@@ -7713,8 +7309,6 @@ function updateEnhancedExportData() {
                 alert('Enhanced data exported successfully!');
             }
         });
-       
-        return originalShowImportExportModal.apply(this, arguments);
     };
 }
 
@@ -8112,9 +7706,6 @@ if (originalProcessImportData) {
 window.addEventListener('beforeunload', saveAppData);
 window.addEventListener('pagehide', saveAppData);
 document.addEventListener('pause', saveAppData);
-
-$('currencySelect').addEventListener('change', saveAppData);
-$('weightedBillsSidebar').addEventListener('change', saveAppData);
 
 window.budgetAppPersistence = {
   save: saveAppData,
