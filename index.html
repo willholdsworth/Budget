@@ -9999,7 +9999,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	};
             </script>
 <script>
-(function(){
+document.addEventListener('DOMContentLoaded', function() {
     var pag = { income: 1, bill: 1, event: 1 };
     var perPage = 10;
     var wrapped = false;
@@ -10085,6 +10085,6 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
             paginate();
         });
     }
-})();
+});
 </script>
 </body></html>
