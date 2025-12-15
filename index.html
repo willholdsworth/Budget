@@ -1072,17 +1072,9 @@ function updateImportButtonHandler() {
 }
 
 function enhanceImportExportModal() {
-    const originalShowImportExportModal = showImportExportModal;
-   
-    window.showImportExportModal = function() {
-        originalShowImportExportModal.apply(this, arguments);
-        updateImportButtonHandler();
-    };
 }
 
 function initializeEnhancedImport() {
-    enhanceImportExportModal();
-   
     window.processElapsedIncome = processElapsedIncome;
     window.processImportIncome = processImportIncome;
 }
