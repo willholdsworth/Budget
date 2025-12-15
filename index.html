@@ -1951,7 +1951,7 @@ window.Date.prototype = OriginalDate.prototype;
 window.Date.now = OriginalDate.now;
 window.Date.parse = OriginalDate.parse;
 window.Date.UTC = OriginalDate.UTC;
-const STORAGE_KEY = 'budgetTrackerData';
+const STORAGE_KEY = 'budget_app_data';
 const $ = id => document.getElementById(id);
 const colorPalette = [
     {name: 'Moss', value: '#b9b99d'},
@@ -9206,7 +9206,18 @@ function loadAppData() {
       document.body.classList.remove('dark-mode');
     }
     
-    const savedData = localStorage.getItem(BUDGET_DATA_KEY);
+    var savedData = localStorage.getItem(BUDGET_DATA_KEY);
+    
+    if (!savedData) {
+      var oldData = localStorage.getItem('budgetTrackerData');
+      if (oldData) {
+        console.log('Migrating data from old storage key...');
+        savedData = oldData;
+        localStorage.setItem(BUDGET_DATA_KEY, oldData);
+        localStorage.removeItem('budgetTrackerData');
+      }
+    }
+    
     if (savedData) {
       const parsedData = JSON.parse(savedData);
       
@@ -9242,12 +9253,12 @@ function loadAppData() {
       toggleBillTypeVisibility();
       updateTabsVisibility();
       
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         initCalendarInteractions();
         processElapsedBills();
         processElapsedIncome();
         saveAppData();
-      }, 1000);
+      });
       
       return true;
     }
