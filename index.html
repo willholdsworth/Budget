@@ -1982,13 +1982,10 @@ function updateCalendarView(year = null, month = null) {
 }
 
 function markAsPostImport() {
-    setTimeout(() => {
-        isPostImport = true;
-        importBaseline = JSON.parse(JSON.stringify(data));
-        localStorage.removeItem(STORAGE_KEY);
-        isImporting = false;
-        console.log('Post-import mode activated, localStorage cleared');
-    }, 500);
+    isImporting = false;
+    isPostImport = false;
+    importBaseline = {};
+    saveDataToLocalStorage();
 }
 
 
@@ -2575,31 +2572,19 @@ async function processImportData(fileContent) {
 }
 
 function createCleanExportData() {
-   let exportData;
-   
-   if (isPostImport && Object.keys(importBaseline).length > 0) {
-       exportData = mergeImportBaselineWithChanges();
-       if (exportData) {
-           validateExportData(exportData);
-           return exportData;
-       }
-   }
-
-   exportData = {
+   var exportData = {
        people: JSON.parse(JSON.stringify(data.people)),
        bills: JSON.parse(JSON.stringify(data.bills)),
-       billPayments: JSON.parse(JSON.stringify(data.billPayments)),
+       billPayments: JSON.parse(JSON.stringify(data.billPayments || [])),
        billPaymentId: data.billPaymentId || 1,
-       uiActionHistory: JSON.parse(JSON.stringify(data.uiActionHistory || [])),
-       sessionId: data.sessionId,
        currency: data.currency,
        darkMode: data.darkMode,
        weightedBills: data.weightedBills,
-       paycheckHistory: JSON.parse(JSON.stringify(data.paycheckHistory)),
+       paycheckHistory: JSON.parse(JSON.stringify(data.paycheckHistory || [])),
        billHistory: JSON.parse(JSON.stringify(data.billHistory || [])),
-       eventHistory: JSON.parse(JSON.stringify(data.eventHistory)),
+       eventHistory: JSON.parse(JSON.stringify(data.eventHistory || [])),
        lastProcessedDate: data.lastProcessedDate,
-       peopleIncomeSettings: JSON.parse(JSON.stringify(data.peopleIncomeSettings)),
+       peopleIncomeSettings: JSON.parse(JSON.stringify(data.peopleIncomeSettings || {})),
        uiPreferences: JSON.parse(JSON.stringify(data.uiPreferences || {})),
        dataVersion: data.dataVersion || "1.0",
        lastExportDate: new Date().toISOString(),
@@ -4870,43 +4855,18 @@ function initializeDefaultData() {
 
 function saveDataToLocalStorage() {
     if (isImporting) {
-        console.log('Skipping save during import process');
         return;
     }
    
     try {
-        if (isPostImport && Object.keys(importBaseline).length > 0) {
-            const changes = calculateChanges();
-            if (Object.keys(changes).length > 0) {
-                const deltaData = {
-                    isPostImport: true,
-                    changes: changes,
-                    counters: {
-                        nextPersonId: nextPersonId,
-                        nextBillId: nextBillId,
-                        nextIncomeId: nextIncomeId,
-                        nextEventId: nextEventId,
-                        nextPaycheckId: nextPaycheckId
-                    },
-                    lastSaveTime: new Date().toISOString()
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(deltaData));
-            }
-        } else {
-            data.nextPersonId = nextPersonId;
-            data.nextBillId = nextBillId;
-            data.nextIncomeId = nextIncomeId;
-            data.nextEventId = nextEventId;
-            data.nextPaycheckId = nextPaycheckId;
-            data.savedFileHandle = savedFileHandle;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            markAsChanged();
-        }
+        data.nextPersonId = nextPersonId;
+        data.nextBillId = nextBillId;
+        data.nextIncomeId = nextIncomeId;
+        data.nextEventId = nextEventId;
+        data.nextPaycheckId = nextPaycheckId;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
         console.error('Failed to save to localStorage:', e);
-        if (e.name === 'QuotaExceededError') {
-            console.log('Storage quota exceeded, but continuing...');
-        }
     }
 }
 
