@@ -15,6 +15,7 @@ body {
   font-family: 'Space Grotesk', monospace;
   min-height: 100vh;
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
   color: #000000;
   transition: all 0.3s ease;
   background: #ffffff;
@@ -32,6 +33,9 @@ body.dark-mode {
   right: 0;
   background: #ffffff;
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  padding-left: calc(20px + env(safe-area-inset-left, 0px));
+  padding-right: calc(20px + env(safe-area-inset-right, 0px));
   z-index: 1000;
   transition: all 0.3s ease;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
@@ -215,6 +219,9 @@ body.dark-mode button:hover {
   background: #ffffff;
   border-right: 2px solid rgba(0, 0, 0, 0.08);
   padding: 80px 20px 20px;
+  padding-top: calc(80px + env(safe-area-inset-top, 0px));
+  padding-left: calc(20px + env(safe-area-inset-left, 0px));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   z-index: 1001;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
@@ -337,6 +344,7 @@ body.dark-mode .sidebar-menu .checkbox-group label {
 .container {
   max-width: 1000px;
   margin: 70px auto 0;
+  margin-top: calc(70px + env(safe-area-inset-top, 0px));
   background: transparent;
 }
 
@@ -1891,7 +1899,7 @@ transition: opacity 0.1s ease;
 <h3>Bill History</h3>
 <div class="form-group">
     <label for="billNameFilter">Filter by Bill Name</label>
-    <input type="text" id="billNameFilter" placeholder="Enter bill name" onkeyup="updateHistoryDisplay()">
+    <input type="text" id="billNameFilter" placeholder="Enter bill name" onkeyup="resetHistoryPagination(); updateHistoryDisplay()">
 </div>
 <div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Bill Name</th><th>Amount</th><th>Category</th><th>Type</th><th>Actions</th></tr></thead><tbody id="billHistoryList"><tr><td colspan="6">No bill payments for selected person.</td></tr></tbody></table></div></div>
 <div class="card cascade-item"><h3>Event History</h3><div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Event</th><th>Description</th><th>Actions</th></tr></thead><tbody id="eventHistoryList"><tr><td colspan="4">No events for selected person.</td></tr></tbody></table></div></div>
@@ -2654,6 +2662,14 @@ function showImportExportModal() {
     `;
    
     $('importBtn').addEventListener('click', () => {
+        if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.importFile) {
+            if (confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
+                isImporting = true;
+                AndroidFileInterface.importFile();
+            }
+            return;
+        }
+        
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.txt';
@@ -2734,6 +2750,13 @@ function showImportExportModal() {
         const exportData = createCleanExportData();
         const exportString = btoa(JSON.stringify(exportData));
         const blob = new Blob([exportString], { type: 'text/plain' });
+        
+        if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.exportData) {
+            AndroidFileInterface.exportData(exportString, 'budget_data.txt');
+            alert('File exported successfully!');
+            saveDataToLocalStorage();
+            return;
+        }
        
         if ('showSaveFilePicker' in window) {
             async function saveWithFilePicker() {
@@ -3929,6 +3952,43 @@ function updatePersonOverview(personId) {
     }
 }
 
+const historyPagination = {
+    income: { page: 1, perPage: 10 },
+    bill: { page: 1, perPage: 10 },
+    event: { page: 1, perPage: 10 }
+};
+
+function createPaginationControls(type, currentPage, totalPages, totalItems) {
+    if (totalPages <= 1) return '';
+    
+    const startItem = ((currentPage - 1) * historyPagination[type].perPage) + 1;
+    const endItem = Math.min(currentPage * historyPagination[type].perPage, totalItems);
+    
+    return `
+        <div class="pagination-controls" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:10px;border-top:1px solid var(--border-color, #ddd);">
+            <span style="font-size:13px;color:#666;">Showing ${startItem}-${endItem} of ${totalItems}</span>
+            <div style="display:flex;gap:5px;align-items:center;">
+                <button class="btn-small" onclick="changeHistoryPage('${type}', 1)" ${currentPage === 1 ? 'disabled' : ''} style="padding:5px 8px;">&#171;</button>
+                <button class="btn-small" onclick="changeHistoryPage('${type}', ${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} style="padding:5px 10px;">&#8249;</button>
+                <span style="padding:0 10px;font-size:13px;">Page ${currentPage} of ${totalPages}</span>
+                <button class="btn-small" onclick="changeHistoryPage('${type}', ${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} style="padding:5px 10px;">&#8250;</button>
+                <button class="btn-small" onclick="changeHistoryPage('${type}', ${totalPages})" ${currentPage === totalPages ? 'disabled' : ''} style="padding:5px 8px;">&#187;</button>
+            </div>
+        </div>
+    `;
+}
+
+function changeHistoryPage(type, page) {
+    historyPagination[type].page = page;
+    updateHistoryDisplay();
+}
+
+function resetHistoryPagination() {
+    historyPagination.income.page = 1;
+    historyPagination.bill.page = 1;
+    historyPagination.event.page = 1;
+}
+
 function updateHistoryDisplay() {
    const incomeHistoryList = $('incomeHistoryList');
    const billHistoryList = $('billHistoryList');
@@ -3950,7 +4010,7 @@ function updateHistoryDisplay() {
        personFilterContainer.outerHTML = `<select id="historyPersonFilter"><option value="all">All People</option>${data.people.map(p => `<option value="${p.id}" ${p.id == currentValue ? 'selected' : ''}>${p.name}</option>`).join('')}</select>`;
        const newPersonFilter = $('historyPersonFilter');
        newPersonFilter.value = currentValue;
-       newPersonFilter.addEventListener('change', updateHistoryDisplay);
+       newPersonFilter.addEventListener('change', () => { resetHistoryPagination(); updateHistoryDisplay(); });
    }
   
    let filteredPaychecks = data.paycheckHistory || [];
@@ -3967,8 +4027,21 @@ function updateHistoryDisplay() {
    const sortedPaychecks = filteredPaychecks.sort((a, b) => {
        return b.date.localeCompare(a.date);
    });
+   
+   const incomeTotal = sortedPaychecks.length;
+   const incomePerPage = historyPagination.income.perPage;
+   const incomeTotalPages = Math.ceil(incomeTotal / incomePerPage);
+   if (historyPagination.income.page > incomeTotalPages && incomeTotalPages > 0) {
+       historyPagination.income.page = incomeTotalPages;
+   }
+   const incomeStart = (historyPagination.income.page - 1) * incomePerPage;
+   const paginatedPaychecks = sortedPaychecks.slice(incomeStart, incomeStart + incomePerPage);
   
-   incomeHistoryList.innerHTML = sortedPaychecks.length > 0 ? sortedPaychecks.map(p => {
+   const incomeTableWrapper = incomeHistoryList.closest('.history-table-wrapper');
+   let incomePaginationDiv = incomeTableWrapper.parentElement.querySelector('.pagination-controls');
+   if (incomePaginationDiv) incomePaginationDiv.remove();
+   
+   incomeHistoryList.innerHTML = paginatedPaychecks.length > 0 ? paginatedPaychecks.map(p => {
        const typeDisplay = p.type === 'bonus' ? 'Bonus' : 'Salary';
        const companyDisplay = p.employer || '';
        return `
@@ -3984,6 +4057,10 @@ function updateHistoryDisplay() {
            </tr>
        `;
    }).join('') : '<tr><td colspan="6">No income data for selected person.</td></tr>';
+   
+   if (incomeTotalPages > 1) {
+       incomeTableWrapper.insertAdjacentHTML('afterend', createPaginationControls('income', historyPagination.income.page, incomeTotalPages, incomeTotal));
+   }
   
    let filteredBillHistory = data.billPayments || [];
    if (selectedPersonId !== 'all') {
@@ -4018,8 +4095,21 @@ function updateHistoryDisplay() {
    const sortedBillHistory = filteredBillHistory.sort((a, b) => {
        return b.date.localeCompare(a.date);
    });
+   
+   const billTotal = sortedBillHistory.length;
+   const billPerPage = historyPagination.bill.perPage;
+   const billTotalPages = Math.ceil(billTotal / billPerPage);
+   if (historyPagination.bill.page > billTotalPages && billTotalPages > 0) {
+       historyPagination.bill.page = billTotalPages;
+   }
+   const billStart = (historyPagination.bill.page - 1) * billPerPage;
+   const paginatedBillHistory = sortedBillHistory.slice(billStart, billStart + billPerPage);
+   
+   const billTableWrapper = billHistoryList.closest('.history-table-wrapper');
+   let billPaginationDiv = billTableWrapper.parentElement.querySelector('.pagination-controls');
+   if (billPaginationDiv) billPaginationDiv.remove();
   
-   billHistoryList.innerHTML = sortedBillHistory.length > 0 ? sortedBillHistory.map(p => {
+   billHistoryList.innerHTML = paginatedBillHistory.length > 0 ? paginatedBillHistory.map(p => {
        const originalBill = data.bills.find(b => b.id === p.billId);
        const isOneOff = originalBill && originalBill.isOneOff;
        
@@ -4050,6 +4140,10 @@ function updateHistoryDisplay() {
            </td>
        </tr>
    `}).join('') : '<tr><td colspan="6">No bill payments for selected person.</td></tr>';
+   
+   if (billTotalPages > 1) {
+       billTableWrapper.insertAdjacentHTML('afterend', createPaginationControls('bill', historyPagination.bill.page, billTotalPages, billTotal));
+   }
   
    let filteredEvents = data.eventHistory || [];
    if (selectedPersonId !== 'all') {
@@ -4073,9 +4167,22 @@ function updateHistoryDisplay() {
   
    const sortedEvents = filteredEvents.sort((a, b) => {
        return b.date.localeCompare(a.date);
-   }).slice(0, 10);
+   });
+   
+   const eventTotal = sortedEvents.length;
+   const eventPerPage = historyPagination.event.perPage;
+   const eventTotalPages = Math.ceil(eventTotal / eventPerPage);
+   if (historyPagination.event.page > eventTotalPages && eventTotalPages > 0) {
+       historyPagination.event.page = eventTotalPages;
+   }
+   const eventStart = (historyPagination.event.page - 1) * eventPerPage;
+   const paginatedEvents = sortedEvents.slice(eventStart, eventStart + eventPerPage);
+   
+   const eventTableWrapper = eventHistoryList.closest('.history-table-wrapper');
+   let eventPaginationDiv = eventTableWrapper.parentElement.querySelector('.pagination-controls');
+   if (eventPaginationDiv) eventPaginationDiv.remove();
   
-   eventHistoryList.innerHTML = sortedEvents.length > 0 ? sortedEvents.map(e => `
+   eventHistoryList.innerHTML = paginatedEvents.length > 0 ? paginatedEvents.map(e => `
        <tr>
            <td>${e.date}</td>
            <td>${e.event}</td>
@@ -4083,6 +4190,10 @@ function updateHistoryDisplay() {
            <td><button class="btn-danger btn-small" onclick="deleteEvent(${e.id})">Delete</button></td>
        </tr>
    `).join('') : '<tr><td colspan="4">No events for selected person.</td></tr>';
+   
+   if (eventTotalPages > 1) {
+       eventTableWrapper.insertAdjacentHTML('afterend', createPaginationControls('event', historyPagination.event.page, eventTotalPages, eventTotal));
+   }
 }
 
 function showEditBillPaymentModal(paymentId) {
@@ -9069,9 +9180,9 @@ function attachEventListeners() {
    $('billFrequency').addEventListener('change', toggleBillFrequencyOptions);
    $('fullResetBtn').addEventListener('click', fullReset);
    $('clearHistoryFiltersBtn').addEventListener('click', clearHistoryFilters);
-   $('historyPersonFilter').addEventListener('change', updateHistoryDisplay);
-   $('historyStartDate').addEventListener('change', updateHistoryDisplay);
-   $('historyEndDate').addEventListener('change', updateHistoryDisplay);
+   $('historyPersonFilter').addEventListener('change', () => { resetHistoryPagination(); updateHistoryDisplay(); });
+   $('historyStartDate').addEventListener('change', () => { resetHistoryPagination(); updateHistoryDisplay(); });
+   $('historyEndDate').addEventListener('change', () => { resetHistoryPagination(); updateHistoryDisplay(); });
    $('isOneOff').addEventListener('change', toggleOneOffFields);
   
    updateEnhancedExportData();
