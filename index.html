@@ -5865,6 +5865,13 @@ function updatePeopleOverview() {
                 }
             } else if (bill.frequency === 'monthly') {
                 individualBillsMonthly += totalAmount;
+            } else if (bill.frequency === 'biweekly') {
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                let count = 0;
+                for (let d = 1; d <= daysInMonth; d++) {
+                    if (isBillDueOnDate(bill, new Date(currentYear, currentMonth, d))) count++;
+                }
+                individualBillsMonthly += totalAmount * count;
             } else if (bill.frequency === 'quarterly') {
                 quarterlySetAside += calculateSetAsideAmount(totalAmount, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt);
             } else if (bill.frequency === 'yearly') {
@@ -5877,6 +5884,7 @@ function updatePeopleOverview() {
         let jointYearlySetAside = 0;
        
         const jointBills = data.bills.filter(b => b.billType === 'joint' && !b.isDeleted);
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
         jointBills.forEach(bill => {
             const totalAmount = bill.amount + (bill.overpayment || 0);
             const personShare = calculateWeightedShare(totalAmount, person.id, data.weightedBills);
@@ -5888,6 +5896,12 @@ function updatePeopleOverview() {
                 }
             } else if (bill.frequency === 'monthly') {
                 jointBillsShare += personShare;
+            } else if (bill.frequency === 'biweekly') {
+                let count = 0;
+                for (let d = 1; d <= daysInMonth; d++) {
+                    if (isBillDueOnDate(bill, new Date(currentYear, currentMonth, d))) count++;
+                }
+                jointBillsShare += personShare * count;
             } else if (bill.frequency === 'quarterly') {
                 const setAsideAmount = calculateSetAsideAmount(totalAmount, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt);
                 jointQuarterlySetAside += calculateWeightedShare(setAsideAmount, person.id, data.weightedBills);
@@ -7756,6 +7770,9 @@ window.addEventListener('beforeunload', saveAppData);
 window.addEventListener('pagehide', saveAppData);
 document.addEventListener('pause', saveAppData);
 
+document.getElementById('currencySelect').addEventListener('change', saveAppData);
+document.getElementById('weightedBillsSidebar').addEventListener('change', saveAppData);
+
 window.budgetAppPersistence = {
   save: saveAppData,
   load: loadAppData
@@ -7770,7 +7787,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 
 
 <script>
-                if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+                if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function() {
                         navigator.serviceWorker.register('./sw.js')
                             .then(function(registration) {
@@ -7859,7 +7876,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                 }
             </script>
 <script>
-                if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+                if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function() {
                         navigator.serviceWorker.register('./sw.js')
                             .then(function(registration) {
