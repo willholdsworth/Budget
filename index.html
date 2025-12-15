@@ -7309,6 +7309,102 @@ function updateEnhancedExportData() {
                 alert('Enhanced data exported successfully!');
             }
         });
+        
+        $('importBtn').addEventListener('click', () => {
+            if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.importFile) {
+                if (confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
+                    isImporting = true;
+                    AndroidFileInterface.importFile();
+                }
+                return;
+            }
+            
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.txt';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            
+            fileInput.click();
+            
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    document.body.removeChild(fileInput);
+                    return;
+                }
+                
+                if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
+                    document.body.removeChild(fileInput);
+                    return;
+                }
+                
+                isImporting = true;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const fileContent = e.target.result;
+                        
+                        const importSuccess = processImportData(fileContent);
+                        
+                        if (!importSuccess) {
+                            alert('Failed to import data. The file may be invalid or corrupted.');
+                            document.body.removeChild(fileInput);
+                            isImporting = false;
+                            return;
+                        }
+                        
+                        document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
+                        document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
+                        
+                        const userDarkMode = isDark();
+                        data.darkMode = userDarkMode;
+                        
+                        $('currencySelect').value = data.currency;
+                        $('weightedBillsSidebar').checked = data.weightedBills;
+                        
+                        data.people.forEach(person => createPersonTab(person));
+                        attachPersonEventListeners();
+                        
+                        updateGreeting();
+                        updateBillPayerOptions();
+                        updateBillsList();
+                        updateHistoryDisplay();
+                        updateOverview();
+                        toggleBillTypeVisibility();
+                        updateTabsVisibility();
+                        
+                        setTimeout(() => {
+                            data.eventHistory.push({
+                                id: nextEventId++,
+                                date: getDateString(),
+                                event: 'Data Imported',
+                                description: 'Imported data from a budget file'
+                            });
+                            
+                            hideModal();
+                            showTab('overview');
+                            
+                            alert('Data imported successfully!');
+                        }, 600);
+                        
+                    } catch (e) {
+                        isImporting = false;
+                        console.error('Import error:', e);
+                        alert('Failed to import data. The file may be invalid or corrupted.');
+                    }
+                    
+                    document.body.removeChild(fileInput);
+                };
+                
+                reader.readAsText(file);
+            });
+        });
+        
+        $('closeModalBtn').addEventListener('click', hideModal);
+        
+        showModal();
     };
 }
 
