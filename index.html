@@ -1891,7 +1891,7 @@ transition: opacity 0.1s ease;
 <h3>Bill History</h3>
 <div class="form-group">
     <label for="billNameFilter">Filter by Bill Name</label>
-    <input type="text" id="billNameFilter" placeholder="Enter bill name" onkeyup="updateHistoryDisplay()">
+    <input type="text" id="billNameFilter" placeholder="Enter bill name" onkeyup="resetHistPag();updateHistoryDisplay()">
 </div>
 <div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Bill Name</th><th>Amount</th><th>Category</th><th>Type</th><th>Actions</th></tr></thead><tbody id="billHistoryList"><tr><td colspan="6">No bill payments for selected person.</td></tr></tbody></table></div></div>
 <div class="card cascade-item"><h3>Event History</h3><div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Event</th><th>Description</th><th>Actions</th></tr></thead><tbody id="eventHistoryList"><tr><td colspan="4">No events for selected person.</td></tr></tbody></table></div></div>
@@ -2447,12 +2447,6 @@ function updateImportButtonHandler() {
 }
 
 function enhanceImportExportModal() {
-    const originalShowImportExportModal = showImportExportModal;
-   
-    window.showImportExportModal = function() {
-        originalShowImportExportModal.apply(this, arguments);
-        updateImportButtonHandler();
-    };
 }
 
 function initializeEnhancedImport() {
@@ -3937,6 +3931,73 @@ function updatePersonOverview(personId) {
     }
 }
 
+var histPagState = { income: 1, bill: 1, event: 1, perPage: 10 };
+
+function histPag(key, page) {
+    histPagState[key] = page;
+    applyHistPagination();
+}
+
+function resetHistPag() {
+    histPagState.income = 1;
+    histPagState.bill = 1;
+    histPagState.event = 1;
+}
+
+function applyHistPagination() {
+    var lists = [
+        { id: 'incomeHistoryList', key: 'income' },
+        { id: 'billHistoryList', key: 'bill' },
+        { id: 'eventHistoryList', key: 'event' }
+    ];
+    
+    for (var i = 0; i < lists.length; i++) {
+        var el = document.getElementById(lists[i].id);
+        if (!el) continue;
+        
+        var rows = el.getElementsByTagName('tr');
+        var dataRows = [];
+        for (var j = 0; j < rows.length; j++) {
+            if (!rows[j].cells[0] || rows[j].cells[0].colSpan > 1) continue;
+            dataRows.push(rows[j]);
+        }
+        
+        var total = dataRows.length;
+        var perPage = histPagState.perPage;
+        var totalPages = Math.ceil(total / perPage);
+        var key = lists[i].key;
+        
+        if (histPagState[key] > totalPages && totalPages > 0) histPagState[key] = totalPages;
+        if (histPagState[key] < 1) histPagState[key] = 1;
+        var start = (histPagState[key] - 1) * perPage;
+        
+        for (var j = 0; j < dataRows.length; j++) {
+            dataRows[j].style.display = (j >= start && j < start + perPage) ? '' : 'none';
+        }
+        
+        var wrapper = el.closest('.history-table-wrapper');
+        if (wrapper && wrapper.parentElement) {
+            var old = wrapper.parentElement.querySelector('.pag-ctrl');
+            if (old) old.remove();
+            
+            if (totalPages > 1) {
+                var s = ((histPagState[key]-1)*perPage)+1;
+                var e = Math.min(histPagState[key]*perPage, total);
+                var h = '<div class="pag-ctrl" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:10px;border-top:1px solid #ddd;">';
+                h += '<span style="font-size:13px;color:#666;">Showing '+s+'-'+e+' of '+total+'</span>';
+                h += '<div style="display:flex;gap:5px;align-items:center;">';
+                h += '<button class="btn-small" onclick="histPag(\''+key+'\',1)"'+(histPagState[key]===1?' disabled':'')+' style="padding:5px 8px;">\u00AB</button>';
+                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+(histPagState[key]-1)+')"'+(histPagState[key]===1?' disabled':'')+' style="padding:5px 10px;">\u2039</button>';
+                h += '<span style="padding:0 10px;font-size:13px;">Page '+histPagState[key]+' of '+totalPages+'</span>';
+                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+(histPagState[key]+1)+')"'+(histPagState[key]===totalPages?' disabled':'')+' style="padding:5px 10px;">\u203A</button>';
+                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+totalPages+')"'+(histPagState[key]===totalPages?' disabled':'')+' style="padding:5px 8px;">\u00BB</button>';
+                h += '</div></div>';
+                wrapper.insertAdjacentHTML('afterend', h);
+            }
+        }
+    }
+}
+
 function updateHistoryDisplay() {
    const incomeHistoryList = $('incomeHistoryList');
    const billHistoryList = $('billHistoryList');
@@ -4091,6 +4152,8 @@ function updateHistoryDisplay() {
            <td><button class="btn-danger btn-small" onclick="deleteEvent(${e.id})">Delete</button></td>
        </tr>
    `).join('') : '<tr><td colspan="4">No events for selected person.</td></tr>';
+   
+   applyHistPagination();
 }
 
 function showEditBillPaymentModal(paymentId) {
@@ -8997,124 +9060,6 @@ function mergeImportBaselineWithChanges() {
 }
 
 function updateEnhancedExportData() {
-    const originalShowImportExportModal = showImportExportModal;
-   
-    window.showImportExportModal = function() {
-        let modal = document.getElementById('editModal');
-        let modalContent;
-       
-        if (!modal) {
-            const modalData = createModal();
-            modal = modalData.modal;
-            modalContent = modalData.modalContent;
-        } else {
-            modalContent = document.getElementById('modalContent');
-        }
-       
-        modalContent.innerHTML = `
-            <h3 style="margin-bottom:10px;color:${document.body.classList.contains('dark-mode') ? '#fff' : '#000'};text-align:center;">SAVE/IMPORT</h3>
-           
-            <p style="text-align:center;margin-bottom:25px;padding:10px;background-color:${document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5'};border-radius:5px;font-size:14px;color:${document.body.classList.contains('dark-mode') ? '#ff9' : '#800'};">
-                Enhanced tracking now includes complete history of all changes, debt payments, and user interactions.
-            </p>
-           
-            <div style="display:flex;flex-direction:column;gap:20px;margin-bottom:20px;">
-                <div>
-                    <button id="importBtn" style="width:100%;height:60px;font-size:16px;font-weight:bold;">IMPORT</button>
-                    <p style="margin-top:5px;font-size:13px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};">
-                        Load your previously exported .txt file with full history tracking.
-                    </p>
-                </div>
-               
-                <div>
-                    <button id="exportBtn" style="width:100%;height:60px;font-size:16px;font-weight:bold;">EXPORT</button>
-                    <p style="margin-top:5px;font-size:13px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};">
-                        Create enhanced .txt file with comprehensive tracking data.
-                    </p>
-                </div>
-               
-                <div>
-                    <button id="exportHistoryReportBtn" style="width:100%;height:60px;font-size:16px;font-weight:bold;background:#4CAF50;">EXPORT HISTORY REPORT</button>
-                    <p style="margin-top:5px;font-size:13px;color:${document.body.classList.contains('dark-mode') ? '#ccc' : '#666'};">
-                        Generate detailed JSON report of all historical data and changes.
-                    </p>
-                </div>
-            </div>
-           
-            <div style="margin-top:20px;text-align:center;">
-                <button id="closeModalBtn" style="background:#666;width:150px;">Close</button>
-            </div>
-        `;
-       
-        document.getElementById('exportHistoryReportBtn').addEventListener('click', () => {
-            const report = generateComprehensiveReport();
-            exportHistoryReport(report);
-        });
-       
-        document.getElementById('exportBtn').addEventListener('click', () => {
-            const exportData = {
-                people: JSON.parse(JSON.stringify(data.people)),
-                bills: JSON.parse(JSON.stringify(data.bills)),
-                currency: data.currency,
-                darkMode: data.darkMode,
-                weightedBills: data.weightedBills,
-                paycheckHistory: JSON.parse(JSON.stringify(data.paycheckHistory)),
-                billHistory: JSON.parse(JSON.stringify(data.billHistory || [])),
-                eventHistory: JSON.parse(JSON.stringify(data.eventHistory)),
-                billPayments: JSON.parse(JSON.stringify(data.billPayments)),
-                lastProcessedDate: data.lastProcessedDate,
-                peopleIncomeSettings: JSON.parse(JSON.stringify(data.peopleIncomeSettings)),
-                uiPreferences: JSON.parse(JSON.stringify(data.uiPreferences || {})),
-                dataVersion: data.dataVersion || "1.0",
-                lastExportDate: new Date().toISOString(),
-                billHistoryId: data.billHistoryId || 1
-            };
-           
-            const exportString = btoa(JSON.stringify(exportData));
-            const blob = new Blob([exportString], { type: 'text/plain' });
-           
-            if ('showSaveFilePicker' in window) {
-                async function saveWithFilePicker() {
-                    try {
-                        const handle = await window.showSaveFilePicker({
-                            suggestedName: 'budget_data_enhanced.txt',
-                            types: [{
-                                description: 'Text Files',
-                                accept: { 'text/plain': ['.txt'] }
-                            }]
-                        });
-                       
-                        const writable = await handle.createWritable();
-                        await writable.write(exportString);
-                        await writable.close();
-                       
-                        recordUIAction('data_exported', { method: 'file_picker', enhanced: true });
-                        alert('Enhanced data exported successfully!');
-                    } catch (err) {
-                        if (err.name !== 'AbortError') {
-                            console.error('Error saving file:', err);
-                            alert('Error saving file. Please try again.');
-                        }
-                    }
-                }
-                saveWithFilePicker();
-            } else {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'budget_data_enhanced.txt';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-               
-                recordUIAction('data_exported', { method: 'download', enhanced: true });
-                alert('Enhanced data exported successfully!');
-            }
-        });
-       
-        return originalShowImportExportModal.apply(this, arguments);
-    };
 }
 
 function validateExportData(exportData) {
@@ -9194,9 +9139,9 @@ function attachEventListeners() {
    $('billFrequency').addEventListener('change', toggleBillFrequencyOptions);
    $('fullResetBtn').addEventListener('click', fullReset);
    $('clearHistoryFiltersBtn').addEventListener('click', clearHistoryFilters);
-   $('historyPersonFilter').addEventListener('change', updateHistoryDisplay);
-   $('historyStartDate').addEventListener('change', updateHistoryDisplay);
-   $('historyEndDate').addEventListener('change', updateHistoryDisplay);
+   $('historyPersonFilter').addEventListener('change', function(){resetHistPag();updateHistoryDisplay();});
+   $('historyStartDate').addEventListener('change', function(){resetHistPag();updateHistoryDisplay();});
+   $('historyEndDate').addEventListener('change', function(){resetHistPag();updateHistoryDisplay();});
    $('isOneOff').addEventListener('change', toggleOneOffFields);
   
    updateEnhancedExportData();
@@ -9230,8 +9175,6 @@ function attachEventListeners() {
   
    updateTabsVisibility();
 }
-
-document.addEventListener('DOMContentLoaded', attachEventListeners);
 
 const BUDGET_DATA_KEY = 'budget_app_data';
 const DARK_MODE_KEY = 'budget_app_dark_mode';
@@ -9425,95 +9368,6 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 </script>
 
 
-<script>
-                if ('serviceWorker' in navigator) {
-                    window.addEventListener('load', function() {
-                        navigator.serviceWorker.register('./sw.js')
-                            .then(function(registration) {
-                                console.log('ServiceWorker registration successful for scope:', registration.scope);
-                            })
-                            .catch(function(err) {
-                                console.log('ServiceWorker registration failed: ', err);
-                            });
-                    });
-                }
-
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    console.log('PWA install prompt available');
-                });
-
-                window.addEventListener('appinstalled', () => {
-                    console.log('PWA installed successfully');
-                });
-
-                function showSplashScreen() {
-                    const isDarkMode = document.body.classList.contains('dark-mode') || 
-                                     window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    
-                    const splash = document.createElement('div');
-                    splash.id = 'pwa-splash';
-                    splash.style.cssText = `
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100vw;
-                        height: 100vh;
-                        background: ${isDarkMode ? '#000000' : '#ffffff'};
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;
-                        z-index: 10000;
-                        transition: opacity 0.5s ease-out;
-                    `;
-                    
-                    const textColor = isDarkMode ? '#ffffff' : '#333333';
-                    const subTextColor = isDarkMode ? '#cccccc' : '#666666';
-                    
-                    const splashImageSrc = isDarkMode ? "./splash-screen-dark.png" : "./splash-screen.png";
-                    
-                    splash.innerHTML = `
-                        <img src="${splashImageSrc}" style="max-width: 90vw; max-height: 60vh; object-fit: contain;" 
-                             onerror="this.style.display='none'; document.getElementById('fallback-splash').style.display='block';">
-                        <div id="fallback-splash" style="display: none; text-align: center;">
-                            <div style="width: 100px; height: 100px; background: #4facfe; border-radius: 20px; margin: 0 auto 20px;"></div>
-                            <h2 style="color: ${textColor}; margin-bottom: 10px;">Budget Base</h2>
-                            <p style="color: ${subTextColor};">Loading...</p>
-                        </div>
-                    `;
-                    
-                    document.body.appendChild(splash);
-                    
-                    setTimeout(() => {
-                        splash.style.opacity = '0';
-                        setTimeout(() => {
-                            if (splash.parentNode) {
-                                splash.parentNode.removeChild(splash);
-                            }
-                        }, 500);
-                    }, 3000);
-                }
-
-                function initializeSplash() {
-                    const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-                    const isIOSStandalone = window.navigator.standalone === true;
-                    const isAndroidApp = document.referrer.includes('android-app://');
-                    
-                    if (isStandalone || isIOSStandalone || isAndroidApp) {
-                        if (document.readyState === 'loading') {
-                            showSplashScreen();
-                        } else {
-                            requestAnimationFrame(showSplashScreen);
-                        }
-                    }
-                }
-                
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initializeSplash);
-                } else {
-                    initializeSplash();
-                }
-            </script>
 <script>
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function() {
