@@ -4918,7 +4918,6 @@ function calculateChanges() {
 }
 
 
-
 async function saveDataToFile() {
     try {
         const exportData = createCleanExportData();
@@ -4937,8 +4936,7 @@ async function saveDataToFile() {
         if ('showSaveFilePicker' in window) {
             if (savedFileHandle) {
                 try {
-                    const writable = await savedFileHandle.createWritable();
-                    await writable.truncate(0);
+                    const writable = await savedFileHandle.createWritable({ keepExistingData: false });
                     await writable.write(htmlContent);
                     await writable.close();
                     alert('File saved successfully!');
@@ -4969,8 +4967,7 @@ async function saveDataToFile() {
                     }]
                 });
                
-                const writable = await fileHandle.createWritable();
-                await writable.truncate(0);
+                const writable = await fileHandle.createWritable({ keepExistingData: false });
                 await writable.write(htmlContent);
                 await writable.close();
                 savedFileHandle = fileHandle;
@@ -5006,6 +5003,7 @@ async function saveDataToFile() {
         alert('Failed to save file. Please try again.');
     }
 }
+
 
 function recordEvent(eventType, description) {
   if (!data.eventHistory) {
