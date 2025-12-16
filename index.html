@@ -2732,8 +2732,7 @@ function showImportExportModal() {
                         }]
                     });
                    
-                    const writable = await handle.createWritable();
-                    await writable.truncate(0);
+                    const writable = await handle.createWritable({ keepExistingData: false });
                     await writable.write(exportString);
                     await writable.close();
                    
@@ -8774,8 +8773,7 @@ function exportHistoryReport(reportData, filename = null) {
                     }]
                 });
                
-                const writable = await handle.createWritable();
-                await writable.truncate(0);
+                const writable = await handle.createWritable({ keepExistingData: false });
                 await writable.write(reportString);
                 await writable.close();
                
