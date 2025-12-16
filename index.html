@@ -1443,6 +1443,51 @@ body.dark-mode .person-color-dot {
   animation-delay: 0.5s;
 }
 
+.pag-ctrl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  margin-top: 10px;
+  border-top: 1px solid #ddd;
+  gap: 8px;
+}
+
+body.dark-mode .pag-ctrl {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.pag-buttons {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.pag-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pag-text {
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.pag-showing {
+  font-size: 13px;
+  color: #666;
+}
+
+body.dark-mode .pag-showing {
+  color: #999;
+}
+
 @media (max-width: 1200px) {
   .overview-grid {
     grid-template-columns: repeat(4, 1fr);
@@ -1498,6 +1543,11 @@ body.dark-mode .person-color-dot {
   }
   .stat-value {
     font-size: 18px;
+  }
+  .pag-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 15px;
   }
   .calendar-day {
     min-height: 80px;
@@ -3969,15 +4019,16 @@ function applyHistPagination() {
             if (totalPages > 1) {
                 var s = ((histPagState[key]-1)*perPage)+1;
                 var e = Math.min(histPagState[key]*perPage, total);
-                var h = '<div class="pag-ctrl" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:10px;border-top:1px solid #ddd;">';
-                h += '<span style="font-size:13px;color:#666;">Showing '+s+'-'+e+' of '+total+'</span>';
-                h += '<div style="display:flex;gap:5px;align-items:center;">';
-                h += '<button class="btn-small" onclick="histPag(\''+key+'\',1)"'+(histPagState[key]===1?' disabled':'')+' style="padding:5px 8px;">\u00AB</button>';
-                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+(histPagState[key]-1)+')"'+(histPagState[key]===1?' disabled':'')+' style="padding:5px 10px;">\u2039</button>';
-                h += '<span style="padding:0 10px;font-size:13px;">Page '+histPagState[key]+' of '+totalPages+'</span>';
-                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+(histPagState[key]+1)+')"'+(histPagState[key]===totalPages?' disabled':'')+' style="padding:5px 10px;">\u203A</button>';
-                h += '<button class="btn-small" onclick="histPag(\''+key+'\','+totalPages+')"'+(histPagState[key]===totalPages?' disabled':'')+' style="padding:5px 8px;">\u00BB</button>';
-                h += '</div></div>';
+                var h = '<div class="pag-ctrl">';
+                h += '<div class="pag-buttons">';
+                h += '<button class="pag-btn" onclick="histPag(\''+key+'\',1)"'+(histPagState[key]===1?' disabled':'')+'>\u00AB</button>';
+                h += '<button class="pag-btn" onclick="histPag(\''+key+'\','+(histPagState[key]-1)+')"'+(histPagState[key]===1?' disabled':'')+'>\u2039</button>';
+                h += '<span class="pag-text">Page '+histPagState[key]+' of '+totalPages+'</span>';
+                h += '<button class="pag-btn" onclick="histPag(\''+key+'\','+(histPagState[key]+1)+')"'+(histPagState[key]===totalPages?' disabled':'')+'>\u203A</button>';
+                h += '<button class="pag-btn" onclick="histPag(\''+key+'\','+totalPages+')"'+(histPagState[key]===totalPages?' disabled':'')+'>\u00BB</button>';
+                h += '</div>';
+                h += '<span class="pag-showing">Showing '+s+'-'+e+' of '+total+'</span>';
+                h += '</div>';
                 wrapper.insertAdjacentHTML('afterend', h);
             }
         }
