@@ -68,6 +68,10 @@ body.dark-mode .fixed-header {
   margin: 0 auto;
   text-align: center;
   flex-grow: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0 120px;
 }
 
 .hamburger-btn {
@@ -1707,198 +1711,7 @@ transition: opacity 0.1s ease;
 <div class="stat-card cascade-item"><div class="stat-value" id="totalSavings">£0.00</div><div class="stat-value" id="savingsPercentage" style="font-size:16px;margin-top:4px;">0%</div><div class="stat-label">Total Savings</div></div>
 <div class="stat-card cascade-item"><div class="stat-value" id="totalLeftover">£0.00</div><div class="stat-value" id="leftoverPercentage" style="font-size:16px;margin-top:4px;">0%</div><div class="stat-label">Leftover</div></div>
 </div>
-<div id="billCalendar" class="cascade-item">
-       <div class="calendar-container">
-           <h4>June 2025</h4>
-           <div class="calendar-grid">
-               <div class="calendar-header">Sun</div>
-               <div class="calendar-header">Mon</div>
-               <div class="calendar-header">Tue</div>
-               <div class="calendar-header">Wed</div>
-               <div class="calendar-header">Thu</div>
-               <div class="calendar-header">Fri</div>
-               <div class="calendar-header">Sat</div>
-   
-           <div class="calendar-day ">
-               <div class="day-number">1</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">2</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">3</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">4</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">5</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">6</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">7</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">8</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">9</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">10</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">11</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">12</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">13</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">14</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">15</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">16</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">17</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">18</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">19</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">20</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">21</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">22</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">23</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">24</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day today">
-               <div class="day-number">25</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">26</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">27</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">28</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">29</div>
-               
-               
-           </div>
-       
-           <div class="calendar-day ">
-               <div class="day-number">30</div>
-               
-               
-           </div>
-       </div></div></div>
+<div id="billCalendar" class="cascade-item"></div>
 <div id="peopleOverview" class="person-overview"></div>
 <div id="oneOffOverview" class="card cascade-item" style="display:none;"><h3>One-off Expenses This Month</h3><div id="oneOffList"></div></div>
 <div id="debtOverview" class="card cascade-item" style="display:none;"><h3>Debt Overview</h3><div id="debtsList"></div></div>
@@ -2207,6 +2020,10 @@ function getDayEvents(date) {
        if (billIdsWithPayments.has(bill.id)) {
            return;
        }
+
+       if (dateStr < today && !bill.isOneOff) {
+           return;
+       }
        
        if (isBillDueOnDate(bill, date)) {
            const payer = bill.payer === 'joint' ? null : data.people.find(p => p.id === bill.payer);
@@ -2387,13 +2204,6 @@ function navigateCalendar(direction) {
     updateCalendarView();
 }
 
-function resetCalendarToCurrentMonth() {
-    const today = new Date();
-    currentViewMonth = today.getMonth();
-    currentViewYear = today.getFullYear();
-    updateCalendarView();
-}
-
 function frequencyToMonthly(amount, frequency) {
     switch (frequency) {
         case 'weekly': return amount * 4.33;
@@ -2430,11 +2240,11 @@ function updateImportButtonHandler() {
             isImporting = true;
            
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const fileContent = e.target.result;
                    
-                    const importSuccess = processImportData(fileContent);
+                    const importSuccess = await processImportData(fileContent);
                    
                     if (!importSuccess) {
                         alert('Failed to import data. The file may be invalid or corrupted.');
@@ -2446,11 +2256,8 @@ function updateImportButtonHandler() {
                     document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
                     document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
                    
-                    if (data.darkMode) {
-                        document.body.classList.add('dark-mode');
-                    } else {
-                        document.body.classList.remove('dark-mode');
-                    }
+                    const currentDarkMode = document.body.classList.contains('dark-mode');
+                    data.darkMode = currentDarkMode;
                    
                     $('currencySelect').value = data.currency;
                     $('weightedBillsSidebar').checked = data.weightedBills;
@@ -2465,6 +2272,8 @@ function updateImportButtonHandler() {
                     updateOverview();
                     toggleBillTypeVisibility();
                     updateTabsVisibility();
+
+                    saveAppData();
                    
                     setTimeout(() => {
                         data.eventHistory.push({
@@ -2473,6 +2282,7 @@ function updateImportButtonHandler() {
                             event: 'Data Imported',
                             description: 'Imported data from a budget file'
                         });
+                        saveAppData();
                        
                         hideModal();
                         showTab('overview');
@@ -2590,12 +2400,15 @@ async function processImportData(fileContent) {
             billHistory: JSON.parse(JSON.stringify(importData.billHistory || [])),
             eventHistory: importData.eventHistory || [],
             billPayments: importData.billPayments || [],
+            billPaymentId: importData.billPaymentId || 1,
             lastProcessedDate: importData.lastProcessedDate || null,
             peopleIncomeSettings: JSON.parse(JSON.stringify(importData.peopleIncomeSettings || {})),
             uiPreferences: JSON.parse(JSON.stringify(importData.uiPreferences || {})),
-            dataVersion: importData.dataVersion || "1.0",
+            dataVersion: importData.dataVersion || "2.0",
             billHistoryId: importData.billHistoryId || 1
         };
+
+        stripBloat();
        
         nextPersonId = data.people.length > 0 ? Math.max(...data.people.map(p => p.id)) + 1 : 1;
         nextBillId = data.bills.length > 0 ? Math.max(...data.bills.map(b => b.id)) + 1 : 1;
@@ -2715,10 +2528,10 @@ function showImportExportModal() {
             isImporting = true;
            
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const fileContent = e.target.result;
-                    const importSuccess = processImportData(fileContent);
+                    const importSuccess = await processImportData(fileContent);
                    
                     if (!importSuccess) {
                         alert('Failed to import data. The file may be invalid or corrupted.');
@@ -2730,11 +2543,8 @@ function showImportExportModal() {
                     document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
                     document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
                    
-                    if (data.darkMode) {
-                        document.body.classList.add('dark-mode');
-                    } else {
-                        document.body.classList.remove('dark-mode');
-                    }
+                    const currentDarkMode2 = document.body.classList.contains('dark-mode');
+                    data.darkMode = currentDarkMode2;
                    
                     $('currencySelect').value = data.currency;
                     $('weightedBillsSidebar').checked = data.weightedBills;
@@ -2749,6 +2559,8 @@ function showImportExportModal() {
                     updateOverview();
                     toggleBillTypeVisibility();
                     updateTabsVisibility();
+
+                    saveAppData();
                    
                     setTimeout(() => {
                         hideModal();
@@ -2880,65 +2692,6 @@ function calculateMonthlyBudget(person) {
    }
    
    return 0;
-}
-
-function updateOverview() {
-   const today = new Date();
-   const currentYear = today.getFullYear();
-   const currentMonth = today.getMonth();
-   
-   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-   let billsTotal = 0;
-   let incomeTotal = 0;
-   
-   for (let day = 1; day <= daysInMonth; day++) {
-       const dayDate = new Date(currentYear, currentMonth, day);
-       const dayEvents = getDayEvents(dayDate);
-       
-       const billItems = getBillItemsFromEvents(dayEvents);
-       billItems.forEach(bill => {
-           billsTotal += bill.amount;
-       });
-       
-       const oneOffItems = getOneOffItemsFromEvents(dayEvents);
-       oneOffItems.forEach(oneOff => {
-           billsTotal += oneOff.amount;
-       });
-       
-       const paydayItems = getPaydayItemsFromEvents(dayEvents);
-       paydayItems.forEach(payday => {
-           incomeTotal += payday.amount;
-       });
-       
-       const bonusItems = getBonusItemsFromEvents(dayEvents);
-       bonusItems.forEach(bonus => {
-           incomeTotal += bonus.amount;
-       });
-   }
-   
-   const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
-   const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
-   
-   const leftover = incomeTotal - billsTotal - totalMonthlySavings - totalMonthlyExpenses;
-   
-   $('totalIncome').textContent = formatCurrency(incomeTotal);
-   $('totalBills').textContent = formatCurrency(billsTotal);
-   $('totalSavings').textContent = formatCurrency(totalMonthlySavings);
-   $('totalLeftover').textContent = formatCurrency(leftover);
-   
-   $('billsPercentage').textContent = incomeTotal ?
-       `${((billsTotal / incomeTotal) * 100).toFixed(1)}%` : '0%';
-   $('savingsPercentage').textContent = incomeTotal ?
-       `${((totalMonthlySavings / incomeTotal) * 100).toFixed(1)}%` : '0%';
-   $('leftoverPercentage').textContent = incomeTotal ?
-       `${((leftover / incomeTotal) * 100).toFixed(1)}%` : '0%';
-   
-   updatePeopleOverview();
-   updateDebtOverview();
-   updateOneOffOverview();
-   updateTransfersOverview();
-   resetCalendarToCurrentMonth();
-   data.people.forEach(p => updatePersonOverview(p.id));
 }
 
 function getPaydayItemsFromEvents(dayEvents) {
@@ -3175,14 +2928,12 @@ function updatePersonIncome(personId) {
        generateHistoricalPayments(personId, person, new Date(newStartDate), income, frequency, employer);
       
    } else if (!isFutureDate && hasAmountChange && !hasDateChange && !hasFrequencyChange) {
-       const startDate = getDateString(paymentDate);
-      
        const paychecksToUpdate = data.paycheckHistory.filter(p =>
            p.personId === personId &&
            p.type === 'salary' &&
            p.isAutoLogged &&
            !p.isAdditional &&
-           p.date >= startDate
+           p.date >= today
        );
       
        paychecksToUpdate.forEach(paycheck => {
@@ -3218,6 +2969,9 @@ function updatePersonIncome(personId) {
    updateOverview();
    updatePersonOverview(personId);
    ensureDataConsistency();
+
+   const dateField = $(`paymentDate-${personId}`);
+   if (dateField) dateField.value = getDateString();
 }
 
 function rebuildScheduleFromDate(personId, newStartDate, income, frequency, employer) {
@@ -3691,59 +3445,6 @@ function updatePaycheckDate(personId, oldDate, newDate) {
     }
 }
 
-function getNextPaymentDate(currentDate, frequency) {
-    const nextDate = new Date(currentDate.getTime());
-   
-    switch (frequency) {
-        case 'weekly':
-            nextDate.setDate(currentDate.getDate() + 7);
-            break;
-        case 'biweekly':
-            nextDate.setDate(currentDate.getDate() + 14);
-            break;
-        case 'monthly':
-            const currentDay = currentDate.getDate();
-            const nextMonth = currentDate.getMonth() + 1;
-            const nextYear = nextMonth > 11 ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
-            const actualNextMonth = nextMonth > 11 ? 0 : nextMonth;
-           
-            const daysInNextMonth = new Date(nextYear, actualNextMonth + 1, 0).getDate();
-            const actualDay = currentDay > daysInNextMonth ? daysInNextMonth : currentDay;
-           
-            nextDate.setFullYear(nextYear);
-            nextDate.setMonth(actualNextMonth);
-            nextDate.setDate(actualDay);
-            break;
-        case 'quarterly':
-            const currentDayQ = currentDate.getDate();
-            const nextMonthQ = currentDate.getMonth() + 3;
-            const nextYearQ = nextMonthQ > 11 ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
-            const actualNextMonthQ = nextMonthQ > 11 ? nextMonthQ - 12 : nextMonthQ;
-           
-            const daysInTargetMonthQ = new Date(nextYearQ, actualNextMonthQ + 1, 0).getDate();
-            const actualDayQ = currentDayQ > daysInTargetMonthQ ? daysInTargetMonthQ : currentDayQ;
-           
-            nextDate.setFullYear(nextYearQ);
-            nextDate.setMonth(actualNextMonthQ);
-            nextDate.setDate(actualDayQ);
-            break;
-        case 'yearly':
-            const currentDayY = currentDate.getDate();
-            const currentMonthY = currentDate.getMonth();
-            const nextYearY = currentDate.getFullYear() + 1;
-           
-            const daysInTargetMonthY = new Date(nextYearY, currentMonthY + 1, 0).getDate();
-            const actualDayY = currentDayY > daysInTargetMonthY ? daysInTargetMonthY : currentDayY;
-           
-            nextDate.setFullYear(nextYearY);
-            nextDate.setMonth(currentMonthY);
-            nextDate.setDate(actualDayY);
-            break;
-    }
-   
-    return nextDate;
-}
-
 function updatePersonSavingsExpenses(personId) {
     const person = data.people.find(p => p.id === personId);
     if (!person) return;
@@ -3788,40 +3489,6 @@ function updatePersonSavingsExpenses(personId) {
     saveDataToLocalStorage();
     updateOverview();
     updatePersonOverview(personId);
-}
-
-function deletePerson(personId) {
-    if (!confirm(`Are you sure you want to delete this person and their associated data? This cannot be undone.`)) return;
-   
-    const person = data.people.find(p => p.id === personId);
-    if (!person) return;
-   
-    if (data.bills.some(b => b.payer === person.id)) {
-        alert('Cannot delete person with associated bills. Please reassign or delete their bills first.');
-        return;
-    }
-   
-    data.people = data.people.filter(p => p.id !== personId);
-    data.paycheckHistory = data.paycheckHistory.filter(p => p.personId !== personId);
-   
-    recordEvent('Person Deleted', `Deleted ${person.name} from budget tracker`);
-   
-    saveDataToLocalStorage();
-   
-    const tab = document.querySelector(`button.tab[data-person-id="${personId}"]`);
-    if (tab) tab.remove();
-   
-    const content = $(`person-${personId}`);
-    if (content) content.remove();
-   
-    updateGreeting();
-    updateBillPayerOptions();
-    updateHistoryDisplay();
-    updateOverview();
-    toggleBillTypeVisibility();
-    updateTabsVisibility();
-   
-    showTab('overview');
 }
 
 function addPaycheck(personId) {
@@ -3928,26 +3595,6 @@ function addBonus(personId) {
    updateOverview();
    updatePersonOverview(personId);
    ensureDataConsistency();
-}
-
-function deletePaycheck(paycheckId, personId) {
-    const paycheck = data.paycheckHistory.find(p => p.id === paycheckId);
-    if (!paycheck) return;
-   
-    data.paycheckHistory = data.paycheckHistory.filter(p => p.id !== paycheckId);
-   
-    data.eventHistory.push({
-        id: nextEventId++,
-        date: getDateString(),
-        event: 'Paycheck Deleted',
-        description: `Deleted ${formatCurrency(paycheck.amount)} ${paycheck.type} for ${paycheck.personName} on ${paycheck.date}`
-    });
-   
-    saveDataToLocalStorage();
-    updatePersonOverview(personId);
-    updateHistoryDisplay();
-    updateOverview();
-    ensureDataConsistency();
 }
 
 function updatePersonOverview(personId) {
@@ -4060,6 +3707,8 @@ function updateHistoryDisplay() {
    }
   
    let filteredPaychecks = data.paycheckHistory || [];
+   const histToday = getDateString();
+   filteredPaychecks = filteredPaychecks.filter(p => p.date <= histToday);
    if (selectedPersonId !== 'all') {
        filteredPaychecks = filteredPaychecks.filter(p => p.personId === selectedPersonId);
    }
@@ -4112,14 +3761,6 @@ function updateHistoryDisplay() {
    
    const today = getDateString();
    filteredBillHistory = filteredBillHistory.filter(p => p.date <= today);
-  
-   if (!data.billPayments) data.billPayments = [];
-   data.billPayments.forEach((payment, index) => {
-       if (!payment.id) {
-           payment.id = (data.billPaymentId || 1);
-           data.billPaymentId = (data.billPaymentId || 1) + 1;
-       }
-   });
   
    const sortedBillHistory = filteredBillHistory.sort((a, b) => {
        return b.date.localeCompare(a.date);
@@ -4193,194 +3834,6 @@ function updateHistoryDisplay() {
    applyHistPagination();
 }
 
-function showEditBillPaymentModal(paymentId) {
-    const payment = data.billPayments.find(p => p.id === paymentId);
-    if (!payment) return;
-   
-    const originalBill = data.bills.find(b => b.id === payment.billId);
-   
-    let modal = $('editModal');
-    let modalContent;
-   
-    if (!modal) {
-        const modalData = createModal();
-        modal = modalData.modal;
-        modalContent = modalData.modalContent;
-    } else {
-        modalContent = $('modalContent');
-    }
-   
-    const categoryOptions = [
-        'Utilities', 'Housing', 'Transportation', 'Insurance', 'Entertainment',
-        'Subscriptions', 'Government', 'Financial', 'Health & Fitness', 'Technology', 'Other'
-    ].map(cat =>
-        `<option value="${cat}"${payment.category === cat ? ' selected' : ''}>${cat}</option>`
-    ).join('');
-   
-    const payerOptions = data.people.map(person =>
-        `<option value="${person.id}"${payment.payer == person.id ? ' selected' : ''}>${person.name}</option>`
-    ).join('') + (payment.payer === 'joint' ? '<option value="joint" selected>Joint Account</option>' : '<option value="joint">Joint Account</option>');
-   
-    modalContent.innerHTML = `
-        <h3 style="margin-bottom:20px;">Edit Bill Payment: ${payment.billName}</h3>
-        <div class="form-group">
-            <label for="editPaymentAmount">Amount</label>
-            <input type="number" id="editPaymentAmount" value="${payment.amount}" step="0.01">
-        </div>
-        <div class="form-group">
-            <label for="editPaymentDate">Date</label>
-            <input type="date" id="editPaymentDate" value="${payment.date}">
-            <div id="futureDateWarning" style="display:none;background:#fff3cd;padding:10px;border-radius:5px;margin-top:8px;color:#856404;font-size:12px;border:1px solid:#ffeaa7;">
-                Moving to a date in the future will remove the expense from your history until the new day elapses.
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="editPaymentBillName">Bill Name</label>
-            <input type="text" id="editPaymentBillName" value="${payment.billName}">
-        </div>
-        <div class="form-group">
-            <label for="editPaymentCategory">Category</label>
-            <select id="editPaymentCategory">
-                ${categoryOptions}
-            </select>
-        </div>
-        ${data.people.length > 1 ? `
-        <div class="form-group">
-            <label for="editPaymentPayer">Paid By</label>
-            <select id="editPaymentPayer">
-                ${payerOptions}
-            </select>
-        </div>` : ''}
-        <div class="form-group">
-            <label for="editPaymentStatus">Status</label>
-            <input type="text" id="editPaymentStatus" value="${payment.status || ''}">
-        </div>
-       
-        <div style="display:flex;gap:10px;margin-top:20px;">
-            <button id="savePaymentEditBtn" style="flex:1;">Save Changes</button>
-            <button id="deletePaymentFromModalBtn" class="btn-danger" style="flex:1;">Delete Payment</button>
-            <button id="cancelPaymentEditBtn" style="flex:1;background:#666;">Cancel</button>
-        </div>
-    `;
-
-    const dateInput = $('editPaymentDate');
-    const warningDiv = $('futureDateWarning');
-    
-    dateInput.addEventListener('change', () => {
-        const selectedDate = dateInput.value;
-        const today = getDateString();
-        
-        if (originalBill && originalBill.isOneOff && selectedDate > today) {
-            warningDiv.style.display = 'block';
-        } else {
-            warningDiv.style.display = 'none';
-        }
-    });
-   
-    $('savePaymentEditBtn').addEventListener('click', () => {
-        const amount = parseFloat($('editPaymentAmount').value) || 0;
-        const date = $('editPaymentDate').value;
-        const billName = $('editPaymentBillName').value.trim();
-        const category = $('editPaymentCategory').value;
-        const payer = data.people.length <= 1 ? data.people[0]?.id : $('editPaymentPayer').value;
-        const status = $('editPaymentStatus').value.trim();
-        const today = getDateString();
-       
-        if (!amount || !date || !billName) {
-            alert('Please fill in amount, date, and bill name');
-            return;
-        }
-
-        if (originalBill && originalBill.isOneOff && date > today) {
-            const wasFutureDate = true;
-            
-            payment.amount = amount;
-            payment.date = date;
-            payment.billName = billName;
-            payment.category = category;
-            payment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
-            payment.status = status + ' (edited)';
-           
-            originalBill.name = billName;
-            originalBill.amount = amount;
-            originalBill.date = date;
-            originalBill.category = category;
-            originalBill.payer = payment.payer;
-            
-            data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
-            originalBill.isDeleted = false;
-            delete originalBill.deletedDate;
-            
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'Bill Payment Edited',
-                description: `Edited payment: ${billName} - ${formatCurrency(amount)} on ${date} (moved to future - removed from history until due)`
-            });
-        } else {
-            payment.amount = amount;
-            payment.date = date;
-            payment.billName = billName;
-            payment.category = category;
-            payment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
-            payment.status = status + ' (edited)';
-           
-            if (originalBill && originalBill.isOneOff) {
-                originalBill.name = billName;
-                originalBill.amount = amount;
-                originalBill.date = date;
-                originalBill.category = category;
-                originalBill.payer = payment.payer;
-            }
-           
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'Bill Payment Edited',
-                description: `Edited payment: ${billName} - ${formatCurrency(amount)} on ${date}`
-            });
-        }
-       
-        saveDataToLocalStorage();
-        updateHistoryDisplay();
-        updateBillsList();
-        updateOverview();
-        updateOneOffOverview();
-        updateCalendarView();
-        hideModal();
-    });
-   
-    $('deletePaymentFromModalBtn').addEventListener('click', () => {
-        if (!confirm('Are you sure you want to delete this payment record? This cannot be undone.')) return;
-       
-        data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
-       
-        if (originalBill && originalBill.isOneOff) {
-            originalBill.isDeleted = true;
-            originalBill.deletedDate = getDateString();
-        }
-       
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: getDateString(),
-            event: 'Bill Payment Deleted',
-            description: `Deleted payment record: ${payment.billName} - ${formatCurrency(payment.amount)} from ${payment.date}`
-        });
-       
-        saveDataToLocalStorage();
-        updateHistoryDisplay();
-        updateBillsList();
-        updateOverview();
-        updateOneOffOverview();
-        updateCalendarView();
-        hideModal();
-    });
-   
-    $('cancelPaymentEditBtn').addEventListener('click', hideModal);
-   
-    showModal();
-}
-
 function showEditPaycheckModal(paycheckId) {
     const paycheck = data.paycheckHistory.find(p => p.id === paycheckId);
     if (!paycheck) return;
@@ -4421,7 +3874,7 @@ function showEditPaycheckModal(paycheckId) {
         <h3 style="margin-bottom:20px;">Edit ${paycheck.type === 'bonus' ? 'Bonus' : 'Salary'}: ${paycheck.personName}</h3>
         <div class="form-group">
             <label for="editPaycheckAmount">Amount</label>
-            <input type="number" id="editPaycheckAmount" value="${paycheck.amount}" step="0.01">
+            <input type="number" id="editPaycheckAmount" value="${(paycheck.amount || 0).toFixed(2)}" step="0.01">
         </div>
         <div class="form-group">
             <label for="editPaycheckDate">Date</label>
@@ -4461,6 +3914,9 @@ function showEditPaycheckModal(paycheckId) {
         </div>
     `;
    
+        const _b0 = $('savePaycheckEditBtn'); const _fb0 = _b0.cloneNode(true); _b0.parentNode.replaceChild(_fb0, _b0);
+    const _b1 = $('deletePaycheckFromModalBtn'); const _fb1 = _b1.cloneNode(true); _b1.parentNode.replaceChild(_fb1, _b1);
+    const _b2 = $('cancelPaycheckEditBtn'); const _fb2 = _b2.cloneNode(true); _b2.parentNode.replaceChild(_fb2, _b2);
     $('savePaycheckEditBtn').addEventListener('click', () => {
         const amount = parseFloat($('editPaycheckAmount').value) || 0;
         const date = $('editPaycheckDate').value;
@@ -4477,22 +3933,21 @@ function showEditPaycheckModal(paycheckId) {
         const selectedDate = getDateString(date);
         const today = getDateString();
         const currentMonthStart = getDateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-       
-        paycheck.amount = amount;
-        paycheck.date = selectedDate;
-        paycheck.type = type;
-        paycheck.frequency = frequency;
-        paycheck.employer = employer;
-        paycheck.description = description + ' (edited)';
-        paycheck.isHistorical = selectedDate < currentMonthStart;
-        paycheck.monthApplied = `${new Date(selectedDate).getFullYear()}-${String(new Date(selectedDate).getMonth() + 1).padStart(2, '0')}`;
-       
-        data.eventHistory.push({
-            id: nextEventId++,
-            date: getDateString(),
-            event: 'Income Entry Edited',
-            description: `Edited ${type} entry: ${formatCurrency(amount)} for ${paycheck.personName} on ${selectedDate}${employer ? ` from ${employer}` : ''}`
-        });
+
+        if (selectedDate > today) {
+            data.paycheckHistory = data.paycheckHistory.filter(p => p.id !== paycheckId);
+            recordEvent('Income Entry Removed', `${paycheck.personName} income of ${formatCurrency(amount)} moved to future date ${selectedDate} — removed from history`);
+        } else {
+            paycheck.amount = amount;
+            paycheck.date = selectedDate;
+            paycheck.type = type;
+            paycheck.frequency = frequency;
+            paycheck.employer = employer;
+            paycheck.description = (description || type) + ' (edited)';
+            paycheck.isHistorical = selectedDate < currentMonthStart;
+            paycheck.monthApplied = `${new Date(selectedDate).getFullYear()}-${String(new Date(selectedDate).getMonth() + 1).padStart(2, '0')}`;
+            recordEvent('Income Entry Edited', `Edited ${type}: ${formatCurrency(amount)} for ${paycheck.personName} on ${selectedDate}${employer ? ` from ${employer}` : ''}`);
+        }
        
         saveDataToLocalStorage();
         updateHistoryDisplay();
@@ -4509,17 +3964,6 @@ function showEditPaycheckModal(paycheckId) {
     $('cancelPaycheckEditBtn').addEventListener('click', hideModal);
    
     showModal();
-}
-
-function deleteEvent(eventId) {
-    if (!confirm('Are you sure you want to delete this event? This cannot be undone.')) return;
-   
-    const event = data.eventHistory.find(e => e.id === eventId);
-    if (!event) return;
-   
-    data.eventHistory = data.eventHistory.filter(e => e.id !== eventId);
-    saveDataToLocalStorage();
-    updateHistoryDisplay();
 }
 
 function clearHistoryFilters() {
@@ -4644,55 +4088,6 @@ function handleNextMonth(e) {
     navigateCalendar(1);
 }
 
-function fullReset() {
-    if (!confirm('Are you sure you want to reset all data? This cannot be undone.')) return;
-   
-    data = {
-        people: [],
-        bills: [],
-        currency: "USD",
-        darkMode: document.body.classList.contains('dark-mode'),
-        weightedBills: false,
-        nextPersonId: 1,
-        nextBillId: 1,
-        nextIncomeId: 1,
-        nextEventId: 1,
-        nextPaycheckId: 1,
-        paycheckHistory: [],
-        billHistory: [],
-        eventHistory: [],
-        billPayments: [],
-        lastProcessedDate: null,
-        peopleIncomeSettings: {},
-        uiPreferences: {},
-        savedFileHandle: null,
-        billHistoryId: 1,
-        dataVersion: "1.0"
-    };
-   
-    nextPersonId = 1;
-    nextBillId = 1;
-    nextIncomeId = 1;
-    nextEventId = 1;
-    nextPaycheckId = 1;
-    savedFileHandle = null;
-   
-    localStorage.removeItem(STORAGE_KEY);
-    isPostImport = false;
-    importBaseline = {};
-   
-    document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
-    document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
-   
-    updateGreeting();
-    updateBillPayerOptions();
-    updateBillsList();
-    updateHistoryDisplay();
-    updateOverview();
-    toggleBillTypeVisibility();
-    showTab('overview');
-}
-
 function updatePersonColor(personId, colorValue) {
     const person = data.people.find(p => p.id === personId);
     if (person) {
@@ -4802,7 +4197,6 @@ function markAsChanged() {
 
 function clearChanges() {
     hasChanges = false;
-    localStorage.removeItem(STORAGE_KEY);
     originalEmbeddedData = JSON.parse(JSON.stringify(data));
 }
 
@@ -4905,6 +4299,24 @@ function initializeDefaultData() {
     importBaseline = {};
 }
 
+function stripBloat() {
+    data.uiActionHistory = [];
+    if (data.people) {
+        data.people.forEach(p => {
+            p.savingsHistory = [];
+            p.expensesHistory = [];
+            p.incomeChangeHistory = [];
+            p.employerHistory = [];
+            p.colorHistory = [];
+        });
+    }
+    if (data.bills) {
+        data.bills.forEach(b => {
+            if (b.debtPaymentHistory) b.debtPaymentHistory = [];
+        });
+    }
+}
+
 function saveDataToLocalStorage() {
     if (isImporting) {
         return;
@@ -4916,6 +4328,9 @@ function saveDataToLocalStorage() {
         data.nextIncomeId = nextIncomeId;
         data.nextEventId = nextEventId;
         data.nextPaycheckId = nextPaycheckId;
+
+        stripBloat();
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
         console.error('Failed to save to localStorage:', e);
@@ -5149,10 +4564,10 @@ function processElapsedBills() {
                   
                    if (bill.isDebt) {
                        const monthlyRate = (bill.interestRate || 0) / 100 / 12;
-                       const interest = bill.totalDebt * monthlyRate;
-                       const principal = Math.min(paymentAmount - interest, bill.totalDebt);
+                       const interest = Math.round(bill.totalDebt * monthlyRate * 100) / 100;
+                       const principal = Math.round(Math.min(paymentAmount - interest, bill.totalDebt) * 100) / 100;
                       
-                       bill.totalDebt = Math.max(0, bill.totalDebt - principal);
+                       bill.totalDebt = Math.max(0, Math.round((bill.totalDebt - principal) * 100) / 100);
                        billsUpdated = true;
 
                        const paymentRecord = {
@@ -5323,17 +4738,20 @@ function ensureDataConsistency() {
     if (!nextBillId) nextBillId = 1;
     if (!nextEventId) nextEventId = 1;
     if (!nextPaycheckId) nextPaycheckId = 1;
-   
-    data.billPayments.forEach(payment => {
-        if (!payment.id) {
-            payment.id = data.billPaymentId++;
-        }
-    });
-   
+
     if (data.billPayments.length > 0) {
-        const maxBillPaymentId = Math.max(...data.billPayments.map(p => p.id || 0));
+        const maxBillPaymentId = Math.max(...data.billPayments.filter(p => p.id).map(p => p.id || 0), 0);
         data.billPaymentId = Math.max(data.billPaymentId, maxBillPaymentId + 1);
     }
+
+    const usedIds = new Set(data.billPayments.filter(p => p.id).map(p => p.id));
+    data.billPayments.forEach(payment => {
+        if (!payment.id) {
+            while (usedIds.has(data.billPaymentId)) data.billPaymentId++;
+            payment.id = data.billPaymentId++;
+            usedIds.add(payment.id);
+        }
+    });
    
     if (data.people.length > 0) {
         const maxPersonId = Math.max(...data.people.map(p => p.id || 0));
@@ -5498,6 +4916,20 @@ function generateMissingBillPayments(startDate, endDate) {
 function processImportBills() {
     if (!data.billPayments) data.billPayments = [];
     if (!data.billPaymentId) data.billPaymentId = 1;
+
+    if (data.billPayments.length > 0) {
+        const maxId = Math.max(...data.billPayments.filter(p => p.id).map(p => p.id), 0);
+        data.billPaymentId = Math.max(data.billPaymentId, maxId + 1);
+    }
+
+    const seenIds = new Set();
+    data.billPayments.forEach(payment => {
+        if (!payment.id || seenIds.has(payment.id)) {
+            while (seenIds.has(data.billPaymentId)) data.billPaymentId++;
+            payment.id = data.billPaymentId++;
+        }
+        seenIds.add(payment.id);
+    });
     
     const billPaymentsCountBefore = data.billPayments.length;
    
@@ -5506,7 +4938,6 @@ function processImportBills() {
     const billPaymentsAdded = data.billPayments.length - billPaymentsCountBefore;
    
     if (billPaymentsAdded > 0) {
-        console.log(`Added ${billPaymentsAdded} bill payments during import processing`);
         data.eventHistory.push({
             id: nextEventId++,
             date: new Date().toISOString().split('T')[0],
@@ -5680,7 +5111,6 @@ function getNextPaymentDate(currentDate, frequency) {
 }
 
 function processImportIncome() {
-    console.log("Processing incomes after import...");
    
     const payCheckCountBefore = data.paycheckHistory.length;
    
@@ -5689,7 +5119,6 @@ function processImportIncome() {
     const payChecksAdded = data.paycheckHistory.length - payCheckCountBefore;
    
     if (payChecksAdded > 0) {
-        console.log(`Added ${payChecksAdded} missing paychecks during import processing`);
         data.eventHistory.push({
             id: nextEventId++,
             date: new Date().toISOString().split('T')[0],
@@ -5697,15 +5126,20 @@ function processImportIncome() {
             description: `Added ${payChecksAdded} missing paychecks for all users during import processing`
         });
     } else {
-        console.log("No missing paychecks found during import processing");
     }
    
     return payChecksAdded > 0;
 }
 
 function updateGreeting() {
-    const names = data.people.map(p => p.name).join(' & ');
-    $('greeting').textContent = names ? `Hello, ${names}!` : 'Hello, Welcome!';
+    const el = $('greeting');
+    if (!el) return;
+    const names = data.people.map(p => p.name);
+    if (!names.length) { el.textContent = 'Hello, Welcome!'; return; }
+    el.textContent = `Hello, ${names.join(' & ')}!`;
+    if (el.scrollWidth > el.clientWidth) {
+        el.textContent = 'Hello, Everyone!';
+    }
 }
 
 function toggleDarkMode() {
@@ -5732,25 +5166,6 @@ function updateCurrency() {
   data.people.forEach(p => updatePersonOverview(p.id));
   updateCalendarView();
   ensureDataConsistency();
-}
-
-function formatCurrency(amount) {
-const roundedAmount = Math.round((amount + Number.EPSILON) * 100) / 100;
-    const currencySymbols = {
-        'USD': '$',
-        'EUR': '€',
-        'GBP': '£',
-        'JPY': '¥',
-        'CAD': '$'
-    };
-   
-    const symbol = currencySymbols[data.currency] || '$';
-    const formattedAmount = new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: data.currency === 'JPY' ? 0 : 2,
-        maximumFractionDigits: data.currency === 'JPY' ? 0 : 2
-    }).format(amount);
-   
-    return `${symbol}${formattedAmount}`;
 }
 
 function updateWeightedBills() {
@@ -5796,49 +5211,6 @@ function updateTabsVisibility() {
     } else {
         addPersonTab.style.display = 'none';
     }
-}
-
-function addNewPerson() {
-  const name = prompt('Enter User Name Below\nAdd more users using the sidemenu ☰');
-  if (!name || !name.trim()) return;
- 
-  const trimmedName = name.trim();
-  if (data.people.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())) {
-    alert('A person with this name already exists!');
-    return;
-  }
- 
-  const newPerson = {
-    id: nextPersonId++,
-    name: trimmedName,
-    income: 0,
-    frequency: 'monthly',
-    paymentDate: '',
-    savings: 0,
-    expenses: 0,
-    employer: '',
-    color: colorPalette[data.people.length % colorPalette.length].value
-  };
- 
-  data.people.push(newPerson);
-  recordEvent('Person Added', `Added ${trimmedName} to budget tracker`);
- 
-  saveDataToLocalStorage();
-  createPersonTab(newPerson);
-  attachPersonEventListeners();
-  updateGreeting();
-  updateBillPayerOptions();
-  updateHistoryDisplay();
-  updateOverview();
-  toggleBillTypeVisibility();
-  updateTabsVisibility();
- 
-  const sidebar = $('sidebar');
-  if (sidebar.classList.contains('open')) {
-    sidebar.classList.remove('open');
-  }
- 
-  showTab(`person-${newPerson.id}`);
 }
 
 function calculateJointBillTransfers() {
@@ -6598,7 +5970,7 @@ function showEditBillPaymentModal(paymentId) {
         <h3 style="margin-bottom:20px;">Edit Bill Payment: ${payment.billName}</h3>
         <div class="form-group">
             <label for="editPaymentAmount">Amount</label>
-            <input type="number" id="editPaymentAmount" value="${payment.amount}" step="0.01">
+            <input type="number" id="editPaymentAmount" value="${(payment.amount || 0).toFixed(2)}" step="0.01">
         </div>
         <div class="form-group">
             <label for="editPaymentDate">Date</label>
@@ -6650,13 +6022,15 @@ function showEditBillPaymentModal(paymentId) {
         }
     });
    
-    $('savePaymentEditBtn').addEventListener('click', () => {
+    const _sb0 = $('savePaymentEditBtn'); const _fsb0 = _sb0.cloneNode(true); _sb0.parentNode.replaceChild(_fsb0, _sb0);
+    const _sb1 = $('deletePaymentFromModalBtn'); const _fsb1 = _sb1.cloneNode(true); _sb1.parentNode.replaceChild(_fsb1, _sb1);
+    const _sb2 = $('cancelPaymentEditBtn'); const _fsb2 = _sb2.cloneNode(true); _sb2.parentNode.replaceChild(_fsb2, _sb2);
+        $('savePaymentEditBtn').addEventListener('click', () => {
         const amount = parseFloat($('editPaymentAmount').value) || 0;
         const date = $('editPaymentDate').value;
         const billName = $('editPaymentBillName').value.trim();
         const category = $('editPaymentCategory').value;
         const payer = data.people.length <= 1 ? data.people[0]?.id : $('editPaymentPayer').value;
-        const status = $('editPaymentStatus').value.trim();
         const today = getDateString();
        
         if (!amount || !date || !billName) {
@@ -6664,52 +6038,35 @@ function showEditBillPaymentModal(paymentId) {
             return;
         }
 
-        if (originalBill && originalBill.isOneOff && date > today) {
-            payment.amount = amount;
-            payment.date = date;
-            payment.billName = billName;
-            payment.category = category;
-            payment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
-            payment.status = status + ' (edited)';
-           
-            originalBill.name = billName;
-            originalBill.amount = amount;
-            originalBill.date = date;
-            originalBill.category = category;
-            originalBill.payer = payment.payer;
-            
+        if (date > today) {
             data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
-            originalBill.isDeleted = false;
-            delete originalBill.deletedDate;
-            
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'Bill Payment Edited',
-                description: `Edited payment: ${billName} - ${formatCurrency(amount)} on ${date} (moved to future - removed from history until due)`
-            });
-        } else {
-            payment.amount = amount;
-            payment.date = date;
-            payment.billName = billName;
-            payment.category = category;
-            payment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
-            payment.status = status + ' (edited)';
-           
             if (originalBill && originalBill.isOneOff) {
                 originalBill.name = billName;
                 originalBill.amount = amount;
                 originalBill.date = date;
                 originalBill.category = category;
-                originalBill.payer = payment.payer;
+                originalBill.payer = payer === 'joint' ? 'joint' : parseInt(payer);
+                originalBill.isDeleted = false;
+                delete originalBill.deletedDate;
             }
-           
-            data.eventHistory.push({
-                id: nextEventId++,
-                date: getDateString(),
-                event: 'Bill Payment Edited',
-                description: `Edited payment: ${billName} - ${formatCurrency(amount)} on ${date}`
-            });
+            recordEvent('Bill Payment Moved to Future', `${billName} - ${formatCurrency(amount)} moved to ${date} — removed from history until due`);
+        } else {
+            const livePayment = data.billPayments.find(p => p.id === paymentId);
+            if (!livePayment) { hideModal(); return; }
+            livePayment.amount = amount;
+            livePayment.date = date;
+            livePayment.billName = billName;
+            livePayment.category = category;
+            livePayment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
+            livePayment.status = (livePayment.status || '').replace(' (edited)', '') + ' (edited)';
+            if (originalBill && originalBill.isOneOff) {
+                originalBill.name = billName;
+                originalBill.amount = amount;
+                originalBill.date = date;
+                originalBill.category = category;
+                originalBill.payer = livePayment.payer;
+            }
+            recordEvent('Bill Payment Edited', `${billName} - ${formatCurrency(amount)} on ${date}`);
         }
        
         saveDataToLocalStorage();
@@ -6898,7 +6255,9 @@ function addBill() {
    };
   
    if (isDebt) {
-       bill.totalDebt = parseFloat($('totalDebt').value) || 0;
+       const initialDebt = parseFloat($('totalDebt').value) || 0;
+       bill.totalDebt = initialDebt;
+       bill.originalDebt = initialDebt;
        bill.interestRate = parseFloat($('interestRate').value) || 0;
        bill.termYears = parseInt($('termYears').value) || 0;
        bill.termMonths = parseInt($('termMonths').value) || 0;
@@ -7101,7 +6460,7 @@ function showEditBillModal(bill) {
        </div>
        <div class="form-group">
            <label for="editBillAmount">Amount</label>
-           <input type="number" id="editBillAmount" value="${bill.amount}" step="0.01">
+           <input type="number" id="editBillAmount" value="${(bill.amount || 0).toFixed(2)}" step="0.01">
        </div>
        ${recurringFieldsHTML}
        <div class="form-group">
@@ -7118,7 +6477,7 @@ function showEditBillModal(bill) {
        <div id="editDebtFields" style="display:${bill.isDebt && !bill.isOneOff ? 'block' : 'none'};">${bill.isOneOff ? '' : `
            <div class="form-group">
                <label for="editTotalDebt">Total Debt Amount</label>
-               <input type="number" id="editTotalDebt" value="${bill.totalDebt || ''}" step="0.01">
+               <input type="number" id="editTotalDebt" value="${bill.totalDebt ? (Math.round(bill.totalDebt * 100) / 100).toFixed(2) : ''}" step="0.01">
            </div>
            <div class="form-group">
                <label for="editInterestRate">Interest Rate (%)</label>
@@ -7212,7 +6571,11 @@ function showEditBillModal(bill) {
        });
    }
   
-   $('saveEditBtn').addEventListener('click', () => {
+   const saveBtn = $('saveEditBtn');
+   const freshSaveBtn = saveBtn.cloneNode(true);
+   saveBtn.parentNode.replaceChild(freshSaveBtn, saveBtn);
+
+   freshSaveBtn.addEventListener('click', () => {
        const name = $('editBillName').value.trim();
        const amount = parseFloat($('editBillAmount').value) || 0;
        let day, month, startMonth, frequency, newDate;
@@ -7314,9 +6677,12 @@ function showEditBillModal(bill) {
            const oldMonth = bill.month;
            const oldStartMonth = bill.startMonth;
            const oldFrequency = bill.frequency;
-           
+           const oldAmount = bill.amount;
+           const today = getDateString();
+           const nextMonthStart = getDateString(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1));
+
            bill.name = name;
-           bill.amount = amount;
+           bill.amount = parseFloat($('editBillAmount').value) || 0;
            bill.frequency = frequency;
            bill.day = day;
            bill.month = month;
@@ -7325,9 +6691,14 @@ function showEditBillModal(bill) {
            bill.billType = billType;
            bill.payer = payer;
            bill.isDebt = isDebt;
-           
+
            if (isDebt) {
-               bill.totalDebt = parseFloat($('editTotalDebt').value) || 0;
+               const inputDebt = parseFloat($('editTotalDebt').value) || 0;
+               const storedDebt = Math.round(bill.totalDebt * 100) / 100;
+               if (Math.abs(inputDebt - storedDebt) > 0.005) {
+                   bill.totalDebt = inputDebt;
+                   bill.originalDebt = inputDebt;
+               }
                bill.interestRate = parseFloat($('editInterestRate').value) || 0;
                bill.termYears = parseInt($('editTermYears').value) || 0;
                bill.termMonths = parseInt($('editTermMonths').value) || 0;
@@ -7339,41 +6710,26 @@ function showEditBillModal(bill) {
                delete bill.termMonths;
                delete bill.overpayment;
            }
-           
-           if (oldDay !== day || oldMonth !== month || oldStartMonth !== startMonth || oldFrequency !== frequency) {
-               bill.date = updateBillSchedule(bill, day, month, startMonth, frequency);
-           } else {
-               bill.date = generateBillDate(day, month, frequency, startMonth);
+
+           const scheduleChanged = oldDay !== day || oldMonth !== month || oldStartMonth !== startMonth || oldFrequency !== frequency;
+           const amountChanged = oldAmount !== bill.amount;
+
+           if (scheduleChanged) {
+               data.billPayments = data.billPayments.filter(p => {
+                   if (p.billId !== bill.id) return true;
+                   return p.date < nextMonthStart;
+               });
+           } else if (amountChanged) {
+               data.billPayments.forEach(p => {
+                   if (p.billId !== bill.id) return;
+                   if (p.date >= nextMonthStart) {
+                       p.amount = bill.amount + (bill.overpayment || 0);
+                   }
+               });
            }
-           
-           const today = getDateString();
-           const currentYear = new Date().getFullYear();
-           const currentMonth = new Date().getMonth();
-           const currentMonthDate = getDateString(new Date(currentYear, currentMonth, day));
-           
-           if (currentMonthDate <= today) {
-               const paymentExists = data.billPayments.some(payment =>
-                   payment.billId === bill.id &&
-                   payment.date === currentMonthDate
-               );
-               
-               if (!paymentExists) {
-                   const paymentRecord = {
-                       id: data.billPaymentId++,
-                       billId: bill.id,
-                       billName: bill.name,
-                       amount: bill.amount + (bill.overpayment || 0),
-                       date: currentMonthDate,
-                       category: bill.category,
-                       billType: bill.billType,
-                       payer: bill.payer,
-                       status: 'Auto-processed payment (bill date updated)'
-                   };
-                   
-                   if (!data.billPayments) data.billPayments = [];
-                   data.billPayments.push(paymentRecord);
-               }
-           }
+
+           bill.date = generateBillDate(day, month, frequency, startMonth);
+           recordEvent('Bill Updated', `Updated bill: ${name}`);
        }
       
        saveDataToLocalStorage();
@@ -7385,64 +6741,12 @@ function showEditBillModal(bill) {
        hideModal();
    });
   
-   $('cancelEditBtn').addEventListener('click', hideModal);
+   const cancelBtn = $('cancelEditBtn');
+   const freshCancelBtn = cancelBtn.cloneNode(true);
+   cancelBtn.parentNode.replaceChild(freshCancelBtn, cancelBtn);
+   freshCancelBtn.addEventListener('click', hideModal);
   
    showModal();
-}
-
-function deleteBill(billId) {
-  const bill = data.bills.find(b => b.id === billId);
-  if (!bill) return;
- 
-  const confirmMessage = bill.isOneOff ?
-      'Delete this one off expense? This will remove it completely from all records and history.' :
-      'Are you sure you want to stop this bill? This will prevent future payments but keep the payment history.';
- 
-  if (!confirm(confirmMessage)) return;
-
-  const today = getDateString();
-
-  bill.isDeleted = true;
-  bill.deletedDate = today;
-
-  if (bill.isOneOff) {
-      const relatedPayments = data.billPayments.filter(payment => payment.billId === bill.id);
-     
-      if (relatedPayments.length > 0) {
-          data.billPayments = data.billPayments.filter(payment => payment.billId !== bill.id);
-      }
-     
-      recordEvent('One Off Expense Deleted', `Deleted one-off expense: ${bill.name} - ${formatCurrency(bill.amount + (bill.overpayment || 0))}. All records removed.`);
-  } else {
-      const futurePayments = data.billPayments.filter(payment =>
-          payment.billId === bill.id &&
-          payment.date > today
-      );
-
-      if (futurePayments.length > 0) {
-          data.billPayments = data.billPayments.filter(payment =>
-              !(payment.billId === bill.id && payment.date > today)
-          );
-      }
-  }
-
-  if (bill.isDebt) {
-      bill.isDebt = false;
-      bill.totalDebt = 0;
-      bill.interestRate = 0;
-      bill.termYears = 0;
-      bill.termMonths = 0;
-      bill.overpayment = 0;
-  }
-
-  saveDataToLocalStorage();
-  updateBillsList();
-  updateHistoryDisplay();
-  updateOverview();
-  updateOneOffOverview();
-  resetCalendarToCurrentMonth();
-  toggleBillTypeVisibility();
-  ensureDataConsistency();
 }
 
 function getNextBillDueDate(billDate, billDay, frequency, month, startMonth) {
@@ -7626,53 +6930,68 @@ function updateOverview() {
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
-   
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    let incomeTotal = 0;
+    const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+    const todayStr = getDateString();
+
     let billsTotal = 0;
-   
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayDate = new Date(currentYear, currentMonth, day);
-        const dayEvents = getDayEvents(dayDate);
-       
-        const billItems = getBillItemsFromEvents(dayEvents);
-        billItems.forEach(bill => {
-            billsTotal += bill.amount;
-        });
-       
-        const oneOffItems = getOneOffItemsFromEvents(dayEvents);
-        oneOffItems.forEach(oneOff => {
-            billsTotal += oneOff.amount;
-        });
-       
-        const paydayItems = getPaydayItemsFromEvents(dayEvents);
-        paydayItems.forEach(payday => {
-            incomeTotal += payday.amount;
-        });
-       
-        const bonusItems = getBonusItemsFromEvents(dayEvents);
-        bonusItems.forEach(bonus => {
-            incomeTotal += bonus.amount;
-        });
-    }
-   
+    let incomeTotal = 0;
+
+    const currentMonthPayments = data.billPayments.filter(p =>
+        p.date.startsWith(currentMonthStr) && p.date <= todayStr
+    );
+    currentMonthPayments.forEach(payment => {
+        billsTotal += payment.amount;
+    });
+
+    const paidBillIds = new Set(currentMonthPayments.map(p => p.billId));
+    data.bills.forEach(bill => {
+        if (bill.isDeleted || bill.isOneOff) return;
+        if (paidBillIds.has(bill.id)) return;
+        for (let d = 1; d <= today.getDate(); d++) {
+            const checkDate = new Date(currentYear, currentMonth, d);
+            if (getDateString(checkDate) > todayStr) break;
+            if (isBillDueOnDate(bill, checkDate)) {
+                billsTotal += bill.amount + (bill.overpayment || 0);
+                break;
+            }
+        }
+    });
+
+    const currentMonthPaychecks = data.paycheckHistory.filter(p =>
+        p.date.startsWith(currentMonthStr) && p.date <= todayStr
+    );
+    currentMonthPaychecks.forEach(p => { incomeTotal += p.amount; });
+
+    data.people.forEach(person => {
+        if (!person.paymentDate || !person.income || !person.frequency) return;
+        for (let d = 1; d <= today.getDate(); d++) {
+            const checkStr = `${currentMonthStr}-${String(d).padStart(2, '0')}`;
+            if (checkStr > todayStr) break;
+            if (isPaydayOnDate(person, d, currentMonth, currentYear)) {
+                const logged = data.paycheckHistory.some(p =>
+                    p.personId === person.id && p.date === checkStr && p.type === 'salary'
+                );
+                if (!logged) incomeTotal += person.income;
+            }
+        }
+    });
+
     const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
     const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
-   
     const leftover = incomeTotal - billsTotal - totalMonthlySavings - totalMonthlyExpenses;
-   
+
     $('totalIncome').textContent = formatCurrency(incomeTotal);
     $('totalBills').textContent = formatCurrency(billsTotal);
     $('totalSavings').textContent = formatCurrency(totalMonthlySavings);
     $('totalLeftover').textContent = formatCurrency(leftover);
-   
+
     $('billsPercentage').textContent = incomeTotal ?
         `${((billsTotal / incomeTotal) * 100).toFixed(1)}%` : '0%';
     $('savingsPercentage').textContent = incomeTotal ?
         `${((totalMonthlySavings / incomeTotal) * 100).toFixed(1)}%` : '0%';
     $('leftoverPercentage').textContent = incomeTotal ?
         `${((leftover / incomeTotal) * 100).toFixed(1)}%` : '0%';
-   
+
     updatePeopleOverview();
     updateDebtOverview();
     updateOneOffOverview();
@@ -7743,16 +7062,20 @@ function updatePeopleOverview() {
         let individualBillsMonthly = 0;
         let quarterlySetAside = 0;
         let yearlySetAside = 0;
-       
+        
+        const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+        
         individualBills.forEach(bill => {
             const totalAmount = bill.amount + (bill.overpayment || 0);
             if (bill.isOneOff) {
                 const billDate = new Date(bill.date);
                 if (billDate.getMonth() === currentMonth && billDate.getFullYear() === currentYear) {
-                    individualBillsMonthly += totalAmount;
+                    const payment = data.billPayments.find(p => p.billId === bill.id && p.date.startsWith(currentMonthStr));
+                    individualBillsMonthly += payment ? payment.amount : totalAmount;
                 }
             } else if (bill.frequency === 'monthly') {
-                individualBillsMonthly += totalAmount;
+                const payment = data.billPayments.find(p => p.billId === bill.id && p.date.startsWith(currentMonthStr));
+                individualBillsMonthly += payment ? payment.amount : totalAmount;
             } else if (bill.frequency === 'quarterly') {
                 quarterlySetAside += calculateSetAsideAmount(totalAmount, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt);
             } else if (bill.frequency === 'yearly') {
@@ -7767,7 +7090,9 @@ function updatePeopleOverview() {
         const jointBills = data.bills.filter(b => b.billType === 'joint' && !b.isDeleted);
         jointBills.forEach(bill => {
             const totalAmount = bill.amount + (bill.overpayment || 0);
-            const personShare = calculateWeightedShare(totalAmount, person.id, data.weightedBills);
+            const payment = data.billPayments.find(p => p.billId === bill.id && p.date.startsWith(currentMonthStr));
+            const effectiveAmount = payment ? payment.amount : totalAmount;
+            const personShare = calculateWeightedShare(effectiveAmount, person.id, data.weightedBills);
            
             if (bill.isOneOff) {
                 const billDate = new Date(bill.date);
@@ -7777,10 +7102,10 @@ function updatePeopleOverview() {
             } else if (bill.frequency === 'monthly') {
                 jointBillsShare += personShare;
             } else if (bill.frequency === 'quarterly') {
-                const setAsideAmount = calculateSetAsideAmount(totalAmount, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt);
+                const setAsideAmount = calculateSetAsideAmount(effectiveAmount, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt);
                 jointQuarterlySetAside += calculateWeightedShare(setAsideAmount, person.id, data.weightedBills);
             } else if (bill.frequency === 'yearly') {
-                const setAsideAmount = calculateSetAsideAmount(totalAmount, 'yearly', bill.isDebt, bill.interestRate, bill.totalDebt);
+                const setAsideAmount = calculateSetAsideAmount(effectiveAmount, 'yearly', bill.isDebt, bill.interestRate, bill.totalDebt);
                 jointYearlySetAside += calculateWeightedShare(setAsideAmount, person.id, data.weightedBills);
             }
         });
@@ -7916,7 +7241,7 @@ function createDebtItem(debt) {
         ${debtCalc && debtCalc.monthlyInterest ? `
             <div class="info-item">
                 <span class="info-label">Est. Monthly Interest</span>
-                <span class="info-value">${formatCurrency(debtCalc.monthlyInterest)} (estimate)</span>
+                <span class="info-value">${formatCurrency(debtCalc.monthlyInterest)}</span>
             </div>
         ` : ''}
         ${debtCalc && debtCalc.payoffMonths ? `
@@ -8090,7 +7415,7 @@ function createPersonTab(person) {
 			</div>
 			<div class="form-group">
 				<label for="paymentDate-${person.id}">Payment Start Date</label>
-				<input type="date" id="paymentDate-${person.id}" value="${person.paymentDate || ''}"
+				<input type="date" id="paymentDate-${person.id}" value="${getDateString()}"
 					   onchange="validateIncomeDate(this)">
 			</div>
 			<div class="form-group">
@@ -8368,6 +7693,7 @@ function initializePersonHistoryTracking() {
 }
 
 function recordBillHistoryEntry(bill, action, details = {}) {
+    if (!data.billHistory) data.billHistory = [];
     const historyEntry = {
         id: data.billHistoryId++,
         billId: bill.id,
@@ -8389,7 +7715,10 @@ function recordBillHistoryEntry(bill, action, details = {}) {
     };
    
     data.billHistory.push(historyEntry);
-    saveDataToLocalStorage();
+
+    if (data.billHistory.length > 500) {
+        data.billHistory = data.billHistory.slice(-300);
+    }
 }
 
 function getBillHistory(billId = null, action = null, startDate = null, endDate = null) {
@@ -8607,12 +7936,6 @@ function recordUIAction(action, details = {}) {
     if (data.uiActionHistory.length > 200) {
         data.uiActionHistory = data.uiActionHistory.slice(-100);
     }
-   
-    try {
-        saveDataToLocalStorage();
-    } catch (e) {
-        console.warn('Failed to save UI action, continuing without save');
-    }
 }
 
 function getColorHistory(personId, startDate = null, endDate = null) {
@@ -8656,7 +7979,6 @@ function recordDebtPayment(bill, paymentAmount, interestPaid, principalPaid, pre
     };
    
     bill.debtPaymentHistory.push(paymentEntry);
-    saveDataToLocalStorage();
 }
 
 function calculateRemainingMonths(balance, monthlyPayment, interestRate) {
@@ -8986,8 +8308,11 @@ function initializeSession() {
         darkMode: document.body.classList.contains('dark-mode')
     });
    
-    initializePersonHistoryTracking();
-    updateExistingFunctionsWithTracking();
+    if (!window._trackingInitialized) {
+        initializePersonHistoryTracking();
+        updateExistingFunctionsWithTracking();
+        window._trackingInitialized = true;
+    }
 }
 
 function finalizeSession() {
@@ -9129,17 +8454,16 @@ function createOneOffItem(expense) {
 function attachEventListeners() {
    if (!loadAppData()) {
        loadData();
+       data.people.forEach(person => createPersonTab(person));
+       updateGreeting();
+       updateBillPayerOptions();
+       updateBillsList();
+       updateHistoryDisplay();
+       updateOverview();
+       toggleBillTypeVisibility();
+       updateTabsVisibility();
    }
    initializeSession();
-   updateGreeting();
-   updateBillPayerOptions();
-   updateBillsList();
-   updateHistoryDisplay();
-   updateOverview();
-   toggleBillTypeVisibility();
-  
-   data.people.forEach(person => createPersonTab(person));
-  
    $('hamburgerBtn').addEventListener('click', toggleSidebar);
    $('addNewPersonBtn').addEventListener('click', addNewPerson);
    $('toggleDarkModeBtn').addEventListener('click', toggleDarkMode);
@@ -9188,9 +8512,6 @@ function attachEventListeners() {
    updateTabsVisibility();
 }
 
-const BUDGET_DATA_KEY = 'budget_app_data';
-const DARK_MODE_KEY = 'budget_app_dark_mode';
-
 function saveAppData() {
   try {
     data.nextPersonId = nextPersonId;
@@ -9198,9 +8519,11 @@ function saveAppData() {
     data.nextIncomeId = nextIncomeId;
     data.nextEventId = nextEventId;
     data.nextPaycheckId = nextPaycheckId;
-    
-    localStorage.setItem(BUDGET_DATA_KEY, JSON.stringify(data));
-    localStorage.setItem(DARK_MODE_KEY, document.body.classList.contains('dark-mode'));
+
+    stripBloat();
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem('budget_app_dark_mode', document.body.classList.contains('dark-mode'));
     
     return true;
   } catch (e) {
@@ -9211,27 +8534,30 @@ function saveAppData() {
 
 function loadAppData() {
   try {
-    const darkMode = localStorage.getItem(DARK_MODE_KEY);
+    const darkMode = localStorage.getItem('budget_app_dark_mode');
     if (darkMode === 'true') {
       document.body.classList.add('dark-mode');
     } else if (darkMode === 'false') {
       document.body.classList.remove('dark-mode');
     }
     
-    var savedData = localStorage.getItem(BUDGET_DATA_KEY);
+    var savedData = localStorage.getItem(STORAGE_KEY);
     
     if (!savedData) {
       var oldData = localStorage.getItem('budgetTrackerData');
       if (oldData) {
-        console.log('Migrating data from old storage key...');
         savedData = oldData;
-        localStorage.setItem(BUDGET_DATA_KEY, oldData);
+        localStorage.setItem(STORAGE_KEY, oldData);
         localStorage.removeItem('budgetTrackerData');
       }
     }
     
     if (savedData) {
       const parsedData = JSON.parse(savedData);
+      if (!parsedData || !Array.isArray(parsedData.people) || !Array.isArray(parsedData.bills)) {
+        console.error("Stored data is invalid, falling back to embedded data");
+        return false;
+      }
       
       data = parsedData;
       
@@ -9252,11 +8578,34 @@ function loadAppData() {
         data.darkMode = false;
       }
       
-      document.getElementById('currencySelect').value = data.currency;
-      document.getElementById('weightedBillsSidebar').checked = data.weightedBills;
+      document.getElementById('currencySelect').value = data.currency || 'GBP';
+      document.getElementById('weightedBillsSidebar').checked = data.weightedBills || false;
       
       data.people.forEach(person => createPersonTab(person));
-      
+
+      if (!window._trackingInitialized) {
+          initializePersonHistoryTracking();
+          updateExistingFunctionsWithTracking();
+          window._trackingInitialized = true;
+      }
+
+      if (data.billPayments && data.billPayments.length > 0) {
+          const maxBpId = Math.max(...data.billPayments.filter(p => p.id).map(p => p.id), 0);
+          data.billPaymentId = Math.max(data.billPaymentId || 1, maxBpId + 1);
+      }
+
+      const seenPaymentIds = new Set();
+      data.billPayments && data.billPayments.forEach(payment => {
+          if (!payment.id || seenPaymentIds.has(payment.id)) {
+              while (seenPaymentIds.has(data.billPaymentId)) data.billPaymentId++;
+              payment.id = data.billPaymentId++;
+          }
+          seenPaymentIds.add(payment.id);
+      });
+
+      processElapsedBills();
+      processElapsedIncome();
+
       updateGreeting();
       updateBillPayerOptions();
       updateBillsList();
@@ -9264,18 +8613,16 @@ function loadAppData() {
       updateOverview();
       toggleBillTypeVisibility();
       updateTabsVisibility();
-      
+
       requestAnimationFrame(() => {
         initCalendarInteractions();
-        processElapsedBills();
-        processElapsedIncome();
-        saveAppData();
       });
       
       return true;
     }
   } catch (e) {
     console.error("Failed to load app data:", e);
+    return false;
   }
   
   return false;
@@ -9283,6 +8630,7 @@ function loadAppData() {
 
 document.addEventListener('click', function(e) {
   if (!e.target) return;
+  if (isImporting) return;
   
   const actionButtons = [
     'addBillBtn', 'saveEditBtn', 'updatePersonBasic', 'updatePersonIncome', 
@@ -9318,7 +8666,7 @@ const originalToggleDarkMode = window.toggleDarkMode;
 if (originalToggleDarkMode) {
   window.toggleDarkMode = function() {
     const result = originalToggleDarkMode.apply(this, arguments);
-    localStorage.setItem(DARK_MODE_KEY, document.body.classList.contains('dark-mode'));
+    localStorage.setItem('budget_app_dark_mode', document.body.classList.contains('dark-mode'));
     return result;
   };
 }
@@ -9352,9 +8700,9 @@ if (originalAddNewPerson) {
 
 const originalProcessImportData = window.processImportData;
 if (originalProcessImportData) {
-  window.processImportData = function() {
+  window.processImportData = async function() {
     const wasDarkMode = document.body.classList.contains('dark-mode');
-    const result = originalProcessImportData.apply(this, arguments);
+    const result = await originalProcessImportData.apply(this, arguments);
     
     if (result) {
       if (wasDarkMode) {
@@ -9373,6 +8721,7 @@ if (originalProcessImportData) {
 
 window.addEventListener('beforeunload', saveAppData);
 window.addEventListener('pagehide', saveAppData);
+window.addEventListener('resize', updateGreeting);
 document.addEventListener('pause', saveAppData);
 
 document.getElementById('currencySelect').addEventListener('change', saveAppData);
@@ -9396,20 +8745,16 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                     window.addEventListener('load', function() {
                         navigator.serviceWorker.register('./sw.js')
                             .then(function(registration) {
-                                console.log('ServiceWorker registration successful for scope:', registration.scope);
                             })
                             .catch(function(err) {
-                                console.log('ServiceWorker registration failed: ', err);
                             });
                     });
                 }
 
                 window.addEventListener('beforeinstallprompt', (e) => {
-                    console.log('PWA install prompt available');
                 });
 
                 window.addEventListener('appinstalled', () => {
-                    console.log('PWA installed successfully');
                 });
 
                 function showSplashScreen() {
@@ -9502,7 +8847,6 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 				});
 
 				window.addEventListener('popstate', function() {
-				  console.log('Navigation handled by PWA:', location.pathname);
 				});
 
 	function showCustomPrompt(config) {
