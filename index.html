@@ -4067,61 +4067,65 @@ function initCalendarInteractions() {
     const calendarOverlay = document.getElementById('calendarOverlay');
     const billCalendar = document.getElementById('billCalendar');
 
-    if (!billCalendar || billCalendar._calendarDelegated) return;
-    billCalendar._calendarDelegated = true;
+    if (!billCalendar) return;
 
-    billCalendar.addEventListener('click', function(event) {
-        const day = event.target.closest('.calendar-day');
-        if (!day) return;
+    if (!billCalendar._calendarDelegated) {
+        billCalendar._calendarDelegated = true;
 
-        const calendarGrid = billCalendar.querySelector('.calendar-grid');
-        const calendarDays = billCalendar.querySelectorAll('.calendar-day');
+        billCalendar.addEventListener('click', function(event) {
+            if (event.target.classList.contains('calendar-btn') || event.target.closest('.calendar-btn')) return;
+            const day = event.target.closest('.calendar-day');
+            if (!day) return;
 
-        if (day.classList.contains('expanded') || event.target.classList.contains('day-close-btn')) {
-            day.classList.remove('expanded');
-            if (calendarGrid) calendarGrid.classList.remove('has-expanded-day');
-            if (calendarOverlay) calendarOverlay.style.display = 'none';
-            return;
-        }
-
-        calendarDays.forEach(d => d.classList.remove('expanded'));
-        if (calendarGrid) calendarGrid.classList.remove('has-expanded-day');
-
-        const dayIndex = Array.from(day.parentNode.children).indexOf(day) - 7;
-        const dayOfWeek = dayIndex % 7;
-
-        if (dayOfWeek >= 4) {
-            day.style.right = '0';
-            day.style.left = 'auto';
-        } else {
-            day.style.left = '0';
-            day.style.right = 'auto';
-        }
-
-        day.classList.add('expanded');
-        if (calendarGrid) calendarGrid.classList.add('has-expanded-day');
-        if (calendarOverlay) calendarOverlay.style.display = 'block';
-    });
-
-    if (calendarOverlay && !calendarOverlay._delegated) {
-        calendarOverlay._delegated = true;
-        calendarOverlay.addEventListener('click', function() {
             const calendarGrid = billCalendar.querySelector('.calendar-grid');
-            const expandedDay = billCalendar.querySelector('.calendar-day.expanded');
-            if (expandedDay) expandedDay.classList.remove('expanded');
+            const calendarDays = billCalendar.querySelectorAll('.calendar-day');
+
+            if (day.classList.contains('expanded') || event.target.classList.contains('day-close-btn')) {
+                day.classList.remove('expanded');
+                if (calendarGrid) calendarGrid.classList.remove('has-expanded-day');
+                if (calendarOverlay) calendarOverlay.style.display = 'none';
+                return;
+            }
+
+            calendarDays.forEach(d => d.classList.remove('expanded'));
             if (calendarGrid) calendarGrid.classList.remove('has-expanded-day');
-            this.style.display = 'none';
+
+            const dayIndex = Array.from(day.parentNode.children).indexOf(day) - 7;
+            const dayOfWeek = dayIndex % 7;
+
+            if (dayOfWeek >= 4) {
+                day.style.right = '0';
+                day.style.left = 'auto';
+            } else {
+                day.style.left = '0';
+                day.style.right = 'auto';
+            }
+
+            day.classList.add('expanded');
+            if (calendarGrid) calendarGrid.classList.add('has-expanded-day');
+            if (calendarOverlay) calendarOverlay.style.display = 'block';
         });
+
+        if (calendarOverlay && !calendarOverlay._delegated) {
+            calendarOverlay._delegated = true;
+            calendarOverlay.addEventListener('click', function() {
+                const calendarGrid = billCalendar.querySelector('.calendar-grid');
+                const expandedDay = billCalendar.querySelector('.calendar-day.expanded');
+                if (expandedDay) expandedDay.classList.remove('expanded');
+                if (calendarGrid) calendarGrid.classList.remove('has-expanded-day');
+                this.style.display = 'none';
+            });
+        }
     }
-   
+
     const prevMonthBtn = document.getElementById('prevMonthBtn');
     const nextMonthBtn = document.getElementById('nextMonthBtn');
-   
+
     if (prevMonthBtn) {
         prevMonthBtn.removeEventListener('click', handlePrevMonth);
         prevMonthBtn.addEventListener('click', handlePrevMonth);
     }
-   
+
     if (nextMonthBtn) {
         nextMonthBtn.removeEventListener('click', handleNextMonth);
         nextMonthBtn.addEventListener('click', handleNextMonth);
