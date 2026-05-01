@@ -6978,13 +6978,18 @@ function updateOverview() {
         billsTotal += payment.amount;
     });
 
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const paidBillIds = new Set(currentMonthPayments.map(p => p.billId));
+
+    currentMonthPayments.forEach(payment => {
+        billsTotal += payment.amount;
+    });
+
     data.bills.forEach(bill => {
         if (bill.isDeleted || bill.isOneOff) return;
         if (paidBillIds.has(bill.id)) return;
-        for (let d = 1; d <= today.getDate(); d++) {
+        for (let d = 1; d <= daysInMonth; d++) {
             const checkDate = new Date(currentYear, currentMonth, d);
-            if (getDateString(checkDate) > todayStr) break;
             if (isBillDueOnDate(bill, checkDate)) {
                 billsTotal += bill.amount + (bill.overpayment || 0);
                 break;
@@ -6992,23 +6997,17 @@ function updateOverview() {
         }
     });
 
-    const currentMonthPaychecks = data.paycheckHistory.filter(p =>
-        p.date.startsWith(currentMonthStr) && p.date <= todayStr
-    );
-    currentMonthPaychecks.forEach(p => { incomeTotal += p.amount; });
+    data.bills.forEach(bill => {
+        if (bill.isDeleted || !bill.isOneOff) return;
+        const bd = new Date(bill.date);
+        if (bd.getMonth() === currentMonth && bd.getFullYear() === currentYear) {
+            const paid = paidBillIds.has(bill.id);
+            if (!paid) billsTotal += bill.amount;
+        }
+    });
 
     data.people.forEach(person => {
-        if (!person.paymentDate || !person.income || !person.frequency) return;
-        for (let d = 1; d <= today.getDate(); d++) {
-            const checkStr = `${currentMonthStr}-${String(d).padStart(2, '0')}`;
-            if (checkStr > todayStr) break;
-            if (isPaydayOnDate(person, d, currentMonth, currentYear)) {
-                const logged = data.paycheckHistory.some(p =>
-                    p.personId === person.id && p.date === checkStr && p.type === 'salary'
-                );
-                if (!logged) incomeTotal += person.income;
-            }
-        }
+        incomeTotal += calculateMonthlyBudget(person);
     });
 
     const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
