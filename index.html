@@ -4054,47 +4054,52 @@ function resetCalendarToCurrentMonth() {
 
 
 function initCalendarInteractions() {
-    const calendarDays = document.querySelectorAll('.calendar-day');
     const calendarOverlay = document.getElementById('calendarOverlay');
-    const calendarGrid = document.querySelector('.calendar-grid');
-   
-    calendarDays.forEach(day => {
-        day.addEventListener('click', function(event) {
-            if (this.classList.contains('expanded') || event.target.classList.contains('day-close-btn')) {
-                this.classList.remove('expanded');
-                calendarGrid.classList.remove('has-expanded-day');
-                if (calendarOverlay) calendarOverlay.style.display = 'none';
-                return;
-            }
-           
-            calendarDays.forEach(d => d.classList.remove('expanded'));
-            calendarGrid.classList.remove('has-expanded-day');
-           
-            const dayIndex = Array.from(this.parentNode.children).indexOf(this) - 7;
-            const dayOfWeek = dayIndex % 7;
-           
-            if (dayOfWeek >= 4) {
-                this.style.right = '0';
-                this.style.left = 'auto';
-            } else {
-                this.style.left = '0';
-                this.style.right = 'auto';
-            }
-           
-            this.classList.add('expanded');
-            calendarGrid.classList.add('has-expanded-day');
-           
-            if (calendarOverlay) calendarOverlay.style.display = 'block';
-        });
+    const billCalendar = document.getElementById('billCalendar');
+
+    if (!billCalendar || billCalendar._calendarDelegated) return;
+    billCalendar._calendarDelegated = true;
+
+    billCalendar.addEventListener('click', function(event) {
+        const day = event.target.closest('.calendar-day');
+        if (!day) return;
+
+        const calendarGrid = billCalendar.querySelector('.calendar-grid');
+        const calendarDays = billCalendar.querySelectorAll('.calendar-day');
+
+        if (day.classList.contains('expanded') || event.target.classList.contains('day-close-btn')) {
+            day.classList.remove('expanded');
+            if (calendarGrid) calendarGrid.classList.remove('has-expanded-day');
+            if (calendarOverlay) calendarOverlay.style.display = 'none';
+            return;
+        }
+
+        calendarDays.forEach(d => d.classList.remove('expanded'));
+        if (calendarGrid) calendarGrid.classList.remove('has-expanded-day');
+
+        const dayIndex = Array.from(day.parentNode.children).indexOf(day) - 7;
+        const dayOfWeek = dayIndex % 7;
+
+        if (dayOfWeek >= 4) {
+            day.style.right = '0';
+            day.style.left = 'auto';
+        } else {
+            day.style.left = '0';
+            day.style.right = 'auto';
+        }
+
+        day.classList.add('expanded');
+        if (calendarGrid) calendarGrid.classList.add('has-expanded-day');
+        if (calendarOverlay) calendarOverlay.style.display = 'block';
     });
-   
-    if (calendarOverlay) {
+
+    if (calendarOverlay && !calendarOverlay._delegated) {
+        calendarOverlay._delegated = true;
         calendarOverlay.addEventListener('click', function() {
-            const expandedDay = document.querySelector('.calendar-day.expanded');
-            if (expandedDay) {
-                expandedDay.classList.remove('expanded');
-                calendarGrid.classList.remove('has-expanded-day');
-            }
+            const calendarGrid = billCalendar.querySelector('.calendar-grid');
+            const expandedDay = billCalendar.querySelector('.calendar-day.expanded');
+            if (expandedDay) expandedDay.classList.remove('expanded');
+            if (calendarGrid) calendarGrid.classList.remove('has-expanded-day');
             this.style.display = 'none';
         });
     }
@@ -6986,23 +6991,21 @@ function updateOverview() {
     });
 
     data.bills.forEach(bill => {
-        if (bill.isDeleted || bill.isOneOff) return;
+        if (bill.isDeleted) return;
         if (paidBillIds.has(bill.id)) return;
+        if (bill.isOneOff) {
+            const bd = new Date(bill.date);
+            if (bd.getMonth() === currentMonth && bd.getFullYear() === currentYear) {
+                billsTotal += bill.amount;
+            }
+            return;
+        }
         for (let d = 1; d <= daysInMonth; d++) {
             const checkDate = new Date(currentYear, currentMonth, d);
             if (isBillDueOnDate(bill, checkDate)) {
                 billsTotal += bill.amount + (bill.overpayment || 0);
                 break;
             }
-        }
-    });
-
-    data.bills.forEach(bill => {
-        if (bill.isDeleted || !bill.isOneOff) return;
-        const bd = new Date(bill.date);
-        if (bd.getMonth() === currentMonth && bd.getFullYear() === currentYear) {
-            const paid = paidBillIds.has(bill.id);
-            if (!paid) billsTotal += bill.amount;
         }
     });
 
