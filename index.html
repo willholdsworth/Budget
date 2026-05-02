@@ -7185,16 +7185,10 @@ function updatePeopleOverview() {
                     <span class="info-label">${data.people.length === 1 ? 'Monthly Bills' : 'Individual Monthly Bills'}</span>
                     <span class="info-value">${formatCurrency(individualBillsMonthly)}</span>
                 </div>
-                ${totalQuarterlySetAside > 0 ? `
+                ${(totalQuarterlySetAside + totalYearlySetAside) > 0 ? `
                     <div class="info-item">
-                        <span class="info-label">Set aside for Quarterly Bills</span>
-                        <span class="info-value">${formatCurrency(totalQuarterlySetAside)}/month</span>
-                    </div>
-                ` : ''}
-                ${totalYearlySetAside > 0 ? `
-                    <div class="info-item">
-                        <span class="info-label">Set aside for Yearly Bills</span>
-                        <span class="info-value">${formatCurrency(totalYearlySetAside)}/month</span>
+                        <span class="info-label">Set aside for Non-Monthly Bills</span>
+                        <span class="info-value">${formatCurrency(totalQuarterlySetAside + totalYearlySetAside)}/month</span>
                     </div>
                 ` : ''}
                 ${hasJointBills ? `
