@@ -2862,28 +2862,16 @@ function showImportExportModal() {
             saveWithFilePicker();
         } else {
             const blob = new Blob([exportString], { type: 'text/plain' });
-            if (navigator.canShare && navigator.canShare({ files: [new File([blob], exportFilename, { type: 'text/plain' })] })) {
-                const file = new File([blob], exportFilename, { type: 'text/plain' });
-                navigator.share({ files: [file], title: exportFilename }).then(() => {
-                    saveDataToLocalStorage();
-                }).catch(err => {
-                    if (err.name !== 'AbortError') {
-                        console.error('Share error:', err);
-                        alert('Error sharing file. Please try again.');
-                    }
-                });
-            } else {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = exportFilename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                alert('File exported successfully!');
-                saveDataToLocalStorage();
-            }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = exportFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('File exported successfully!');
+            saveDataToLocalStorage();
         }
     });
    
