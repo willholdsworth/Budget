@@ -641,11 +641,41 @@ body.dark-mode .stat-label {
   color: #999;
 }
 
-.person-overview {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
+
+.person-overview.compact {
+  grid-template-columns: 1fr;
+  gap: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid rgba(0,0,0,0.08);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+body.dark-mode .person-overview.compact {
+  border-color: rgba(255,255,255,0.08);
+}
+
+.person-overview.compact .person-card {
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  box-shadow: none;
+  margin-bottom: 0;
+  animation: none;
+}
+
+body.dark-mode .person-overview.compact .person-card {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
+.person-overview.compact .person-card:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 600px) {
+  .person-overview {
+    grid-template-columns: 1fr;
+  }
 }
 
 .person-info {
@@ -767,6 +797,22 @@ body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
 
+.transfer-breakdown-animated {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.transfer-breakdown-animated.open {
+  max-height: 600px;
+}
+
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 3px 0;
+}
+
 body.dark-mode .payment-transfers {
   background: #2a2a2a;
   border-color: rgba(255, 255, 255, 0.08);
@@ -790,9 +836,141 @@ body.dark-mode .transfer-item {
 
 .transfer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.transfer-grid.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.person-overview {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
   margin-bottom: 24px;
+}
+.person-overview.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.transfer-grid.compact {
+  grid-template-columns: 1fr;
+  gap: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid rgba(0,0,0,0.08);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+body.dark-mode .transfer-grid.compact {
+  border-color: rgba(255,255,255,0.08);
+}
+
+.transfer-grid.compact .payment-transfers {
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  box-shadow: none;
+  margin-bottom: 0;
+  animation: none;
+  padding: 0 20px;
+}
+
+body.dark-mode .transfer-grid.compact .payment-transfers {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
+.transfer-grid.compact .payment-transfers:last-child {
+  border-bottom: none;
+}
+
+.transfer-grid.compact .compact-header {
+  padding: 14px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.transfer-grid.compact .compact-body {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transfer-grid.compact .compact-body.open {
+  max-height: 600px;
+}
+
+.transfer-grid .clickable {
+  cursor: pointer;
+}
+
+.chevron-arrow {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+  margin-bottom: 3px;
+}
+
+.chevron-arrow.open {
+  transform: rotate(225deg);
+  margin-bottom: -3px;
+}
+
+@media (max-width: 600px) {
+  .transfer-grid {
+    grid-template-columns: 1fr;
+  }
+  .transfer-grid.three-col {
+    grid-template-columns: 1fr;
+  }
+  .person-overview.three-col {
+    grid-template-columns: 1fr;
+  }
+  .transfer-grid.mobile-compact {
+    grid-template-columns: 1fr;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2px solid rgba(0,0,0,0.08);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+  }
+  body.dark-mode .transfer-grid.mobile-compact {
+    border-color: rgba(255,255,255,0.08);
+  }
+  .transfer-grid.mobile-compact .payment-transfers {
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    box-shadow: none;
+    margin-bottom: 0;
+    animation: none;
+    cursor: pointer;
+  }
+  .transfer-grid.mobile-compact .payment-transfers:last-child {
+    border-bottom: none;
+  }
+  .transfer-grid.mobile-compact .payment-transfers > .transfer-item,
+  .transfer-grid.mobile-compact .payment-transfers > div > .transfer-item,
+  .transfer-grid.mobile-compact .payment-transfers > .transfer-breakdown-animated {
+    display: none;
+  }
+  .transfer-grid.mobile-compact .payment-transfers.mc-expanded > .transfer-item,
+  .transfer-grid.mobile-compact .payment-transfers.mc-expanded > div > .transfer-item,
+  .transfer-grid.mobile-compact .payment-transfers.mc-expanded > .transfer-breakdown-animated {
+    display: flex;
+  }
+  .transfer-grid.mobile-compact .payment-transfers.mc-expanded > .transfer-breakdown-animated {
+    display: block;
+    max-height: 600px !important;
+  }
 }
 
 .debt-overview {
@@ -4020,6 +4198,13 @@ function clearHistoryFilters() {
 }
 
 function showTab(tabId) {
+    document.querySelectorAll('.transfer-breakdown-animated.open').forEach(el => {
+        el.classList.remove('open');
+        const arrowId = el.id.replace('breakdown-', 'arrow-');
+        const arrow = document.getElementById(arrowId);
+        if (arrow) arrow.classList.remove('open');
+    });
+    document.querySelectorAll('.payment-transfers.mc-expanded').forEach(c => c.classList.remove('mc-expanded'));
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.remove('active');
     });
@@ -7026,7 +7211,34 @@ function updateOverview() {
 
     const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
     const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
-    const leftover = incomeTotal - billsTotal - totalMonthlySavings - totalMonthlyExpenses;
+
+    let totalNetMonthly = 0;
+    data.people.forEach(person => {
+        const monthlyIncome = calculateMonthlyBudget(person);
+        const monthlySavings = person.savings || 0;
+        const monthlyExpenses = person.expenses || 0;
+        const currentMonthStr2 = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+        let indBills = 0, jointShare = 0, qSetAside = 0, ySetAside = 0;
+        data.bills.filter(b => !b.isDeleted && b.billType === 'individual' && b.payer === person.id).forEach(bill => {
+            const amt = bill.amount + (bill.overpayment || 0);
+            if (bill.isOneOff) { const bd = new Date(bill.date); if (bd.getMonth()===currentMonth && bd.getFullYear()===currentYear) indBills += amt; }
+            else if (bill.frequency === 'monthly') { const p = data.billPayments.find(p => p.billId===bill.id && p.date.startsWith(currentMonthStr2)); indBills += p ? p.amount : amt; }
+            else if (bill.frequency === 'quarterly') qSetAside += calculateSetAsideAmount(amt, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt);
+            else if (bill.frequency === 'yearly') ySetAside += calculateSetAsideAmount(amt, 'yearly', bill.isDebt, bill.interestRate, bill.totalDebt);
+        });
+        data.bills.filter(b => !b.isDeleted && b.billType === 'joint').forEach(bill => {
+            const amt = bill.amount + (bill.overpayment || 0);
+            const mAmt = frequencyToMonthly(amt, bill.frequency);
+            const share = calculateWeightedShare(mAmt, person.id, data.weightedBills);
+            if (bill.isOneOff) { const bd = new Date(bill.date); if (bd.getMonth()===currentMonth && bd.getFullYear()===currentYear) jointShare += calculateWeightedShare(amt, person.id, data.weightedBills); }
+            else if (bill.frequency === 'monthly') jointShare += share;
+            else if (bill.frequency === 'quarterly') qSetAside += calculateWeightedShare(calculateSetAsideAmount(amt, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt), person.id, data.weightedBills);
+            else if (bill.frequency === 'yearly') ySetAside += calculateWeightedShare(calculateSetAsideAmount(amt, 'yearly', bill.isDebt, bill.interestRate, bill.totalDebt), person.id, data.weightedBills);
+        });
+        totalNetMonthly += monthlyIncome - monthlySavings - monthlyExpenses - indBills - jointShare - qSetAside - ySetAside;
+    });
+
+    const leftover = totalNetMonthly;
 
     $('totalIncome').textContent = formatCurrency(incomeTotal);
     $('totalBills').textContent = formatCurrency(billsTotal);
@@ -7093,6 +7305,7 @@ function getOneOffItemsFromEvents(dayEvents) {
 function updatePeopleOverview() {
     const container = $('peopleOverview');
     container.innerHTML = '';
+    container.classList.toggle('three-col', data.people.length === 3);
     const hasJointBills = data.bills.some(b => b.billType === 'joint' && !b.isDeleted);
    
     const today = new Date();
@@ -7166,9 +7379,12 @@ function updatePeopleOverview() {
        
         const personCard = document.createElement('div');
         personCard.className = 'person-card';
-        personCard.innerHTML = `
-            <h3><span class="person-color-dot" style="background-color: ${person.color || colorPalette[0].value}"></span>${person.name}</h3>
-            <div class="person-info">
+        const isCompact = false;
+        const cardBodyId = `person-card-body-${person.id}`;
+        const cardArrowId = `person-card-arrow-${person.id}`;
+
+        const detailsHTML = `
+            <div class="person-info" id="${cardBodyId}" ${isCompact ? 'style="overflow:hidden;max-height:0;transition:max-height 0.45s cubic-bezier(0.4,0,0.2,1);"' : ''}>
                 <div class="info-item">
                     <span class="info-label">Monthly Income</span>
                     <span class="info-value">${formatCurrency(monthlyIncome)}</span>
@@ -7203,6 +7419,32 @@ function updatePeopleOverview() {
                 </div>
             </div>
         `;
+
+        if (isCompact) {
+            personCard.innerHTML = `
+                <h3 id="${cardArrowId}" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+                    <span style="display:flex;align-items:center;"><span class="person-color-dot" style="background-color:${person.color || colorPalette[0].value}"></span>${person.name}</span>
+                    <span style="display:flex;align-items:center;gap:12px;font-size:13px;font-weight:400;">
+                        <span style="opacity:0.6;">${formatCurrency(netMonthly)}/mo</span>
+                        <span class="chevron-arrow"></span>
+                    </span>
+                </h3>
+                ${detailsHTML}
+            `;
+            const h3 = personCard.querySelector('h3');
+            const body = personCard.querySelector(`#${cardBodyId}`);
+            const arrow = personCard.querySelector('h3 span:last-child span:last-child');
+            h3.addEventListener('click', () => {
+                const open = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
+                body.style.maxHeight = open ? '0' : '600px';
+                if (arrow) arrow.classList.toggle('open', !open);
+            });
+        } else {
+            personCard.innerHTML = `
+                <h3><span class="person-color-dot" style="background-color:${person.color || colorPalette[0].value}"></span>${person.name}</h3>
+                ${detailsHTML}
+            `;
+        }
        
         container.appendChild(personCard);
     });
@@ -7303,6 +7545,20 @@ function createDebtItem(debt) {
     return debtItem;
 }
 
+function getTransferBreakdown(personId) {
+    const monthly = [], quarterly = [], yearly = [];
+    data.bills.filter(b => !b.isDeleted && b.billType === 'joint').forEach(bill => {
+        const amt = bill.amount + (bill.overpayment || 0);
+        const share = calculateWeightedShare(frequencyToMonthly(amt, bill.frequency), personId, data.weightedBills);
+        if (share < 0.01) return;
+        if (bill.isOneOff) return;
+        if (bill.frequency === 'monthly') monthly.push({name: bill.name, share});
+        else if (bill.frequency === 'quarterly') quarterly.push({name: bill.name, share});
+        else if (bill.frequency === 'yearly') yearly.push({name: bill.name, share});
+    });
+    return {monthly, quarterly, yearly};
+}
+
 function updateTransfersOverview() {
     const transfersOverview = $('transfersOverview');
     const transfers = calculateJointBillTransfers();
@@ -7314,38 +7570,84 @@ function updateTransfersOverview() {
    
     transfersOverview.style.display = 'grid';
     transfersOverview.innerHTML = '';
-   
+    const isMobileCompact = data.people.length >= 4;
+    const isThreeCol = data.people.length === 3;
+    transfersOverview.classList.toggle('mobile-compact', isMobileCompact);
+    transfersOverview.classList.toggle('three-col', isThreeCol);
+    if (!transfersOverview._mcDelegated) {
+        transfersOverview._mcDelegated = true;
+        transfersOverview.addEventListener('click', function(e) {
+            if (!this.classList.contains('mobile-compact')) return;
+            const card = e.target.closest('.payment-transfers');
+            if (!card) return;
+            const wasOpen = card.classList.contains('mc-expanded');
+            this.querySelectorAll('.payment-transfers').forEach(c => c.classList.remove('mc-expanded'));
+            if (!wasOpen) card.classList.add('mc-expanded');
+        });
+    }
+       
     if (data.people.length === 2) {
         data.people.forEach(person => {
             const personTransfers = transfers.filter(t => t.from === person.name);
             const card = document.createElement('div');
             card.className = 'payment-transfers';
-            card.innerHTML = `<h3>${person.name}'s Monthly Transfers</h3>`;
            
             if (personTransfers.length === 0) {
-                card.innerHTML += '<p>No transfers required this month.</p>';
+                const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:8px;vertical-align:middle;flex-shrink:0;"></span>`;
+                card.innerHTML = `<div style="padding:4px 0 12px 0;border-bottom:1px solid var(--border);margin-bottom:4px;"><h3 style="display:flex;align-items:center;white-space:nowrap;overflow:hidden;font-size:15px;">${dot}${person.name}'s Monthly Transfers</h3></div><p>No transfers required this month.</p>`;
             } else {
-                let totalAmount = 0;
-               
+                const breakdown = getTransferBreakdown(person.id);
+                const hasNonMonthly = breakdown.quarterly.length > 0 || breakdown.yearly.length > 0;
+                const breakdownId = `breakdown-${person.id}`;
+                const arrowId = `arrow-${person.id}`;
+                const totalAmount = personTransfers.reduce((s, t) => s + t.amount, 0);
+
+                const allRows = [
+                    ...breakdown.monthly.map(b => `<div class="transfer-item"><span>${b.name}</span><span>${formatCurrency(b.share)}/mo</span></div>`),
+                    ...breakdown.quarterly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(quarterly)</span></span><span>${formatCurrency(b.share)}/mo</span></div>`),
+                    ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}/mo</span></div>`)
+                ].join('');
+                const hasBillBreakdown = allRows.length > 0;
+
+                const headerEl = document.createElement('div');
+                headerEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 0 12px 0;margin-bottom:4px;border-bottom:1px solid var(--border);';
+                headerEl.innerHTML = `<h3 style="margin:0;display:flex;align-items:center;flex:1;min-width:0;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:8px;flex-shrink:0;"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${person.name}'s Transfers</span></h3>${hasBillBreakdown ? `<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;"><span id="${arrowId}" class="chevron-arrow"></span></div>` : ''}`;
+                if (hasBillBreakdown) {
+                    card.classList.add('clickable');
+                    card.addEventListener('click', () => {
+                        const el = document.getElementById(breakdownId);
+                        const ar = document.getElementById(arrowId);
+                        const open = el.classList.contains('open');
+                        el.classList.toggle('open');
+                        ar.classList.toggle('open', !open);
+                    });
+                }
+                card.innerHTML = '';
+                card.appendChild(headerEl);
+
+                if (hasBillBreakdown) {
+                    const breakdownDiv = document.createElement('div');
+                    breakdownDiv.id = breakdownId;
+                    breakdownDiv.className = 'transfer-breakdown-animated';
+                    breakdownDiv.style.borderBottom = '1px solid var(--border)';
+                    breakdownDiv.style.marginBottom = '8px';
+                    breakdownDiv.style.paddingBottom = '8px';
+                    breakdownDiv.innerHTML = allRows;
+                    card.appendChild(breakdownDiv);
+                }
+
                 personTransfers.forEach(t => {
                     const transferItem = document.createElement('div');
                     transferItem.className = 'transfer-item';
-                    transferItem.innerHTML = `
-                        <span>Send to ${t.to}</span>
-                        <span>${formatCurrency(t.amount)}</span>
-                    `;
+                    transferItem.innerHTML = `<span>Send to ${t.to}</span><span>${formatCurrency(t.amount)}</span>`;
                     card.appendChild(transferItem);
-                    totalAmount += t.amount;
                 });
                
                 if (personTransfers.length > 1) {
                     const totalItem = document.createElement('div');
                     totalItem.className = 'transfer-item';
                     totalItem.style.fontWeight = '600';
-                    totalItem.innerHTML = `
-                        <span>Total</span>
-                        <span>${formatCurrency(totalAmount)}</span>
-                    `;
+                    totalItem.innerHTML = `<span>Total</span><span>${formatCurrency(totalAmount)}</span>`;
                     card.appendChild(totalItem);
                 }
             }
@@ -7353,53 +7655,112 @@ function updateTransfersOverview() {
             transfersOverview.appendChild(card);
         });
     } else {
-        const card = document.createElement('div');
-        card.className = 'payment-transfers';
-        card.innerHTML = '<h3>Monthly Required Transfers</h3>';
-       
-        const transfersByPerson = {};
-       
-        transfers.forEach(t => {
-            if (!transfersByPerson[t.from]) {
-                transfersByPerson[t.from] = [];
+        transfersOverview.style.display = 'grid';
+
+        data.people.forEach(person => {
+            const personTransfers = transfers.filter(t => t.from === person.name);
+            if (personTransfers.length === 0 && !transfers.some(t => t.to === person.name)) return;
+
+            const card = document.createElement('div');
+            card.className = 'payment-transfers';
+
+            const breakdown = getTransferBreakdown(person.id);
+            const breakdownId = `breakdown-mp-${person.id}`;
+            const arrowId = `arrow-mp-${person.id}`;
+            const bodyId = `body-mp-${person.id}`;
+            const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:4px;vertical-align:middle;flex-shrink:0;"></span>`;
+            const allBillRows = [
+                ...breakdown.monthly.map(b => `<div class="transfer-item"><span>${b.name}</span><span>${formatCurrency(b.share)}/mo</span></div>`),
+                ...breakdown.quarterly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(quarterly)</span></span><span>${formatCurrency(b.share)}/mo</span></div>`),
+                ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}/mo</span></div>`)
+            ].join('');
+            const hasBillBreakdown = allBillRows.length > 0;
+            const totalAmount = personTransfers.reduce((s, t) => s + t.amount, 0);
+
+            if (false) {
+                card.style.cssText = 'background:transparent;border:none;border-radius:0;box-shadow:none;margin:0;animation:none;padding:0 20px;cursor:pointer;';
+
+                const bodyDiv = document.createElement('div');
+                bodyDiv.id = bodyId;
+                bodyDiv.className = 'mobile-compact-body';
+
+                personTransfers.forEach(t => {
+                    const row = document.createElement('div');
+                    row.className = 'transfer-item';
+                    row.style.fontWeight = '600';
+                    row.innerHTML = `<span>Send to ${t.to}</span><span>${formatCurrency(t.amount)}</span>`;
+                    bodyDiv.appendChild(row);
+                });
+
+                if (hasBillBreakdown) {
+                    const sep = document.createElement('div');
+                    sep.style.cssText = 'border-top:1px solid var(--border);margin:8px 0 4px;';
+                    bodyDiv.appendChild(sep);
+                    const billsDiv = document.createElement('div');
+                    billsDiv.innerHTML = allBillRows;
+                    bodyDiv.appendChild(billsDiv);
+                }
+
+                const headerRow = document.createElement('div');
+                headerRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 0;';
+                headerRow.innerHTML = `
+                    <h3 style="margin:0;display:flex;align-items:center;gap:8px;font-size:16px;">
+                        ${dot}${person.name}'s Transfers
+                    </h3>
+                    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                        <span style="font-weight:600;">${formatCurrency(totalAmount)}</span>
+                        <span id="${arrowId}" class="chevron-arrow"></span>
+                    </div>`;
+
+                // mobile-compact handled purely via CSS mc-expanded class
+                card.appendChild(headerRow);
+                card.appendChild(bodyDiv);
+            } else {
+                const breakdownDiv = document.createElement('div');
+                breakdownDiv.id = breakdownId;
+                breakdownDiv.className = 'transfer-breakdown-animated';
+                breakdownDiv.style.cssText = 'border-bottom:1px solid var(--border);margin-bottom:8px;';
+                breakdownDiv.innerHTML = `<div style="padding:8px 0;">${allBillRows}</div>`;
+
+                const header = document.createElement('div');
+                header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0 0 12px 0;margin-bottom:4px;border-bottom:1px solid var(--border);';
+                header.innerHTML = `
+                    <h3 style="margin:0;display:flex;align-items:center;gap:8px;">
+                        ${dot}${person.name}'s Transfers
+                    </h3>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        ${hasBillBreakdown ? `<span id="${arrowId}" class="chevron-arrow"></span>` : ''}
+                    </div>`;
+
+                card.appendChild(header);
+                if (hasBillBreakdown) card.appendChild(breakdownDiv);
+
+                personTransfers.forEach(t => {
+                    const row = document.createElement('div');
+                    row.className = 'transfer-item';
+                    row.innerHTML = `<span>Send to ${t.to}</span><span>${formatCurrency(t.amount)}</span>`;
+                    card.appendChild(row);
+                });
+                if (personTransfers.length > 1) {
+                    const totalRow = document.createElement('div');
+                    totalRow.className = 'transfer-item';
+                    totalRow.style.fontWeight = '600';
+                    totalRow.innerHTML = `<span>Total</span><span>${formatCurrency(totalAmount)}</span>`;
+                    card.appendChild(totalRow);
+                }
+
+                if (hasBillBreakdown) {
+                    card.classList.add('clickable');
+                    card.addEventListener('click', () => {
+                        const ar = document.getElementById(arrowId);
+                        const open = breakdownDiv.classList.contains('open');
+                        breakdownDiv.classList.toggle('open');
+                        ar.classList.toggle('open', !open);
+                    });
+                }
             }
-            transfersByPerson[t.from].push(t);
+            transfersOverview.appendChild(card);
         });
-       
-        Object.keys(transfersByPerson).forEach(fromPerson => {
-            const personTransfers = transfersByPerson[fromPerson];
-            let totalAmount = 0;
-           
-            personTransfers.forEach(t => {
-                const transferItem = document.createElement('div');
-                transferItem.className = 'transfer-item';
-                transferItem.innerHTML = `
-                    <span>${t.from} sends to ${t.to}</span>
-                    <span>${formatCurrency(t.amount)}</span>
-                `;
-                card.appendChild(transferItem);
-                totalAmount += t.amount;
-            });
-           
-            if (personTransfers.length > 1) {
-                const totalItem = document.createElement('div');
-                totalItem.className = 'transfer-item';
-                totalItem.style.fontWeight = '600';
-                totalItem.innerHTML = `
-                    <span>${fromPerson} Total</span>
-                    <span>${formatCurrency(totalAmount)}</span>
-                `;
-                card.appendChild(totalItem);
-            }
-           
-            if (Object.keys(transfersByPerson).length > 1 && fromPerson !== Object.keys(transfersByPerson)[Object.keys(transfersByPerson).length - 1]) {
-                const spacerItem = document.createElement('div');
-                spacerItem.style.height = '16px';
-                card.appendChild(spacerItem);
-            }
-        });
-       
-        transfersOverview.appendChild(card);
     }
 }
 
