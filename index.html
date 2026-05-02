@@ -2455,7 +2455,7 @@ function updateImportButtonHandler() {
     $('importBtn').addEventListener('click', () => {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
-        fileInput.accept = '*/*';
+        
         fileInput.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;z-index:-1;';
         document.body.appendChild(fileInput);
         fileInput.click();
@@ -2745,7 +2745,7 @@ function showImportExportModal() {
     $('importBtn').addEventListener('click', () => {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
-        fileInput.accept = '*/*';
+        
         fileInput.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;z-index:-1;';
         document.body.appendChild(fileInput);
         fileInput.click();
