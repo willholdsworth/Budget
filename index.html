@@ -2859,66 +2859,46 @@ function showImportExportModal() {
 }
 
 function calculateMonthlyBudget(person) {
-   const today = new Date();
-   const currentYear = today.getFullYear();
-   const currentMonth = today.getMonth();
-   const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-   
-   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-   let totalMonthIncome = 0;
-   
-   for (let day = 1; day <= daysInMonth; day++) {
-       const dayDate = new Date(currentYear, currentMonth, day);
-       const dayEvents = getDayEvents(dayDate);
-       
-       const paydayItems = getPaydayItemsFromEvents(dayEvents);
-       
-       const personPayday = paydayItems.find(payday => {
-           return payday.name && payday.name.includes(person.name);
-       });
-       
-       if (personPayday) {
-           totalMonthIncome += personPayday.amount;
-       }
-   }
-   
-   if (totalMonthIncome > 0) {
-       return totalMonthIncome;
-   }
-   
-   const currentMonthIncome = data.paycheckHistory.filter(p =>
-       p.personId === person.id &&
-       p.date.startsWith(currentMonthStr)
-   );
-   
-   const paycheckTotal = currentMonthIncome.reduce((sum, income) => sum + income.amount, 0);
-   
-   if (paycheckTotal > 0) {
-       return paycheckTotal;
-   }
-   
-   if (person.income && person.frequency && person.paymentDate) {
-       if (person.frequency === 'biweekly') {
-           const paymentDate = new Date(getDateString(person.paymentDate));
-           let paydayCount = 0;
-           let checkDate = new Date(paymentDate);
-           
-           while (checkDate.getFullYear() <= currentYear) {
-               if (checkDate.getFullYear() === currentYear && checkDate.getMonth() === currentMonth) {
-                   paydayCount++;
-               } else if (checkDate.getFullYear() === currentYear && checkDate.getMonth() > currentMonth) {
-                   break;
-               }
-               checkDate.setDate(checkDate.getDate() + 14);
-           }
-           
-           return person.income * paydayCount;
-       } else {
-           return frequencyToMonthly(person.income, person.frequency);
-       }
-   }
-   
-   return 0;
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+
+    // 1. Use paycheck history for this month if it exists (captures any edits/overrides)
+    const thisMonthPaychecks = data.paycheckHistory.filter(p =>
+        p.personId === person.id && p.date.startsWith(currentMonthStr)
+    );
+    if (thisMonthPaychecks.length > 0) {
+        return thisMonthPaychecks.reduce((sum, p) => sum + p.amount, 0);
+    }
+
+    // 2. Fall back to person's stored income + frequency
+    if (person.income && person.frequency) {
+        if (person.frequency === 'biweekly' && person.paymentDate) {
+            // Count how many biweekly paydays fall in the current month
+            const anchor = new Date(getDateString(person.paymentDate));
+            let checkDate = new Date(anchor);
+            // Step back to find the first payday on or before start of month
+            const monthStart = new Date(currentYear, currentMonth, 1);
+            while (checkDate > monthStart) {
+                checkDate.setDate(checkDate.getDate() - 14);
+            }
+            // Walk forward counting paydays within the month
+            let paydayCount = 0;
+            while (true) {
+                if (checkDate.getFullYear() === currentYear && checkDate.getMonth() === currentMonth) {
+                    paydayCount++;
+                } else if (checkDate.getFullYear() > currentYear || (checkDate.getFullYear() === currentYear && checkDate.getMonth() > currentMonth)) {
+                    break;
+                }
+                checkDate.setDate(checkDate.getDate() + 14);
+            }
+            return person.income * (paydayCount || 2);
+        }
+        return frequencyToMonthly(person.income, person.frequency);
+    }
+
+    return 0;
 }
 
 function getPaydayItemsFromEvents(dayEvents) {
@@ -3024,19 +3004,28 @@ function isMonthlyBillDue(bill, month, year) {
 }
 
 function calculateIncomeRatio() {
-    const totalIncome = data.people.reduce((sum, p) => sum + calculateMonthlyBudget(p), 0);
-    return data.people.map(p => ({
+    // Calculate each person's monthly income once, then derive ratios
+    const incomes = data.people.map(p => ({ id: p.id, income: calculateMonthlyBudget(p) }));
+    const totalIncome = incomes.reduce((sum, p) => sum + p.income, 0);
+    return incomes.map(p => ({
         id: p.id,
-        ratio: totalIncome ? calculateMonthlyBudget(p) / totalIncome : 1 / data.people.length
+        ratio: totalIncome ? p.income / totalIncome : 1 / data.people.length
     }));
 }
+
+// Cache ratios for the duration of a single render pass, cleared before each update
+let _incomeRatioCache = null;
+function getIncomeRatios() {
+    if (!_incomeRatioCache) _incomeRatioCache = calculateIncomeRatio();
+    return _incomeRatioCache;
+}
+function invalidateIncomeRatioCache() { _incomeRatioCache = null; }
 
 function calculateWeightedShare(billAmount, personId, useWeighted = false) {
     if (!useWeighted || data.people.length <= 1) {
         return billAmount / data.people.length;
     }
-   
-    const incomeRatios = calculateIncomeRatio();
+    const incomeRatios = getIncomeRatios();
     const personRatio = incomeRatios.find(r => r.id === personId)?.ratio || (1 / data.people.length);
     return billAmount * personRatio;
 }
@@ -4105,7 +4094,7 @@ function showEditPaycheckModal(paycheckId) {
         </div>
         <div class="form-group">
             <label for="editPaycheckDate">Date</label>
-            <input type="date" id="editPaycheckDate" value="${paycheck.date}">
+            <input type="date" id="editPaycheckDate" value="${paycheck.date}" max="${getDateString()}">
         </div>
         <div class="form-group">
             <label for="editPaycheckType">Type</label>
@@ -4162,8 +4151,8 @@ function showEditPaycheckModal(paycheckId) {
         const currentMonthStart = getDateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
         if (selectedDate > today) {
-            data.paycheckHistory = data.paycheckHistory.filter(p => p.id !== paycheckId);
-            recordEvent('Income Entry Removed', `${paycheck.personName} income of ${formatCurrency(amount)} moved to future date ${selectedDate} — removed from history`);
+            alert('You cannot set a historical salary entry to a future date. Please choose today or an earlier date.');
+            return;
         } else {
             paycheck.amount = amount;
             paycheck.date = selectedDate;
@@ -7171,6 +7160,7 @@ function createBillItem(bill) {
 }
 
 function updateOverview() {
+    invalidateIncomeRatioCache();
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
