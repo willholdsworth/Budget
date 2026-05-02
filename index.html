@@ -2453,54 +2453,47 @@ function frequencyToMonthly(amount, frequency) {
 
 function updateImportButtonHandler() {
     $('importBtn').addEventListener('click', () => {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.txt';
-        fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
-       
+        const fileInput = document.getElementById('persistentImportInput');
+        fileInput.value = '';
+        fileInput.onchange = null;
         fileInput.click();
-       
-        fileInput.addEventListener('change', (event) => {
+
+        fileInput.addEventListener('change', function handleImport2(event) {
+            fileInput.removeEventListener('change', handleImport2);
             const file = event.target.files[0];
-            if (!file) {
-                document.body.removeChild(fileInput);
-                return;
-            }
-           
+            if (!file) return;
+
             if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
-                document.body.removeChild(fileInput);
                 return;
             }
-           
+
             isImporting = true;
-           
+
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const fileContent = e.target.result;
-                   
+
                     const importSuccess = await processImportData(fileContent);
-                   
+
                     if (!importSuccess) {
                         alert('Failed to import data. The file may be invalid or corrupted.');
-                        document.body.removeChild(fileInput);
                         isImporting = false;
                         return;
                     }
-                   
+
                     document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
                     document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
-                   
+
                     const currentDarkMode = document.body.classList.contains('dark-mode');
                     data.darkMode = currentDarkMode;
-                   
+
                     $('currencySelect').value = data.currency;
                     $('weightedBillsSidebar').checked = data.weightedBills;
-                   
+
                     data.people.forEach(person => createPersonTab(person));
                     attachPersonEventListeners();
-                   
+
                     updateGreeting();
                     updateBillPayerOptions();
                     updateBillsList();
@@ -2510,7 +2503,7 @@ function updateImportButtonHandler() {
                     updateTabsVisibility();
 
                     saveAppData();
-                   
+
                     setTimeout(() => {
                         data.eventHistory.push({
                             id: nextEventId++,
@@ -2519,22 +2512,20 @@ function updateImportButtonHandler() {
                             description: 'Imported data from a budget file'
                         });
                         saveAppData();
-                       
+
                         hideModal();
                         showTab('overview');
-                       
+
                         alert('Data imported successfully!');
                     }, 600);
-                   
+
                 } catch (e) {
                     isImporting = false;
                     console.error('Import error:', e);
                     alert('Failed to import data. The file may be invalid or corrupted.');
                 }
-               
-                document.body.removeChild(fileInput);
             };
-           
+
             reader.readAsText(file);
         });
     });
@@ -2641,7 +2632,8 @@ async function processImportData(fileContent) {
             peopleIncomeSettings: JSON.parse(JSON.stringify(importData.peopleIncomeSettings || {})),
             uiPreferences: JSON.parse(JSON.stringify(importData.uiPreferences || {})),
             dataVersion: importData.dataVersion || "2.0",
-            billHistoryId: importData.billHistoryId || 1
+            billHistoryId: importData.billHistoryId || 1,
+            deletedBillPayments: importData.deletedBillPayments || []
         };
 
         stripBloat();
@@ -2674,7 +2666,7 @@ async function processImportData(fileContent) {
 function createCleanExportData() {
    var exportData = {
        people: JSON.parse(JSON.stringify(data.people)),
-       bills: JSON.parse(JSON.stringify(data.bills)),
+       bills: JSON.parse(JSON.stringify(data.bills.filter(b => !b.isDeleted || b.isOneOff))),
        billPayments: JSON.parse(JSON.stringify(data.billPayments || [])),
        billPaymentId: data.billPaymentId || 1,
        currency: data.currency,
@@ -2689,6 +2681,7 @@ function createCleanExportData() {
        dataVersion: data.dataVersion || "1.0",
        lastExportDate: new Date().toISOString(),
        billHistoryId: data.billHistoryId || 1,
+       deletedBillPayments: JSON.parse(JSON.stringify(data.deletedBillPayments || [])),
        nextPersonId: nextPersonId,
        nextBillId: nextBillId,
        nextIncomeId: nextIncomeId,
@@ -2741,53 +2734,48 @@ function showImportExportModal() {
     `;
    
     $('importBtn').addEventListener('click', () => {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.txt';
-        fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
-       
+        // Use persistent input already in DOM - required for iOS Safari which blocks
+        // programmatically created inputs from showing the file picker
+        const fileInput = document.getElementById('persistentImportInput');
+        fileInput.value = ''; // reset so same file can be re-imported
+        fileInput.onchange = null; // clear previous handler
         fileInput.click();
-       
-        fileInput.addEventListener('change', (event) => {
+
+        fileInput.addEventListener('change', function handleImport(event) {
+            fileInput.removeEventListener('change', handleImport);
             const file = event.target.files[0];
-            if (!file) {
-                document.body.removeChild(fileInput);
-                return;
-            }
-           
+            if (!file) return;
+
             if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
-                document.body.removeChild(fileInput);
                 return;
             }
-           
+
             isImporting = true;
-           
+
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const fileContent = e.target.result;
                     const importSuccess = await processImportData(fileContent);
-                   
+
                     if (!importSuccess) {
                         alert('Failed to import data. The file may be invalid or corrupted.');
-                        document.body.removeChild(fileInput);
                         isImporting = false;
                         return;
                     }
-                   
+
                     document.querySelectorAll('.tab[data-person-id]').forEach(tab => tab.remove());
                     document.querySelectorAll('.tab-content[id^="person-"]').forEach(content => content.remove());
-                   
+
                     const currentDarkMode2 = document.body.classList.contains('dark-mode');
                     data.darkMode = currentDarkMode2;
-                   
+
                     $('currencySelect').value = data.currency;
                     $('weightedBillsSidebar').checked = data.weightedBills;
-                   
+
                     data.people.forEach(person => createPersonTab(person));
                     attachPersonEventListeners();
-                   
+
                     updateGreeting();
                     updateBillPayerOptions();
                     updateBillsList();
@@ -2797,21 +2785,19 @@ function showImportExportModal() {
                     updateTabsVisibility();
 
                     saveAppData();
-                   
+
                     setTimeout(() => {
                         hideModal();
                         showTab('overview');
                     }, 600);
-                   
+
                 } catch (e) {
                     isImporting = false;
                     console.error('Import error:', e);
                     alert('Failed to import data. The file may be invalid or corrupted.');
                 }
-               
-                document.body.removeChild(fileInput);
             };
-           
+
             reader.readAsText(file);
         });
     });
@@ -2840,8 +2826,10 @@ function showImportExportModal() {
                             accept: { 'text/plain': ['.txt'] }
                         }]
                     });
-                    // keepExistingData: false ensures full overwrite, never append
+                    // keepExistingData: false + explicit truncate ensures full overwrite, never append
                     const writable = await handle.createWritable({ keepExistingData: false });
+                    await writable.truncate(0);
+                    await writable.seek(0);
                     await writable.write(exportString);
                     await writable.close();
                     alert('File exported successfully!');
@@ -4451,8 +4439,6 @@ function clearChanges() {
 
 function loadData() {
     try {
-        localStorage.removeItem(STORAGE_KEY);
-        
         const embeddedScript = document.getElementById('embedded-data');
         data = JSON.parse(embeddedScript.textContent);
         originalEmbeddedData = JSON.parse(JSON.stringify(data));
@@ -4652,6 +4638,8 @@ async function saveDataToFile() {
             if (savedFileHandle) {
                 try {
                     const writable = await savedFileHandle.createWritable({ keepExistingData: false });
+                    await writable.truncate(0);
+                    await writable.seek(0);
                     await writable.write(htmlContent);
                     await writable.close();
                     alert('File saved successfully!');
@@ -4683,6 +4671,8 @@ async function saveDataToFile() {
                 });
                
                 const writable = await fileHandle.createWritable({ keepExistingData: false });
+                await writable.truncate(0);
+                await writable.seek(0);
                 await writable.write(htmlContent);
                 await writable.close();
                 savedFileHandle = fileHandle;
@@ -4807,8 +4797,9 @@ function processElapsedBills() {
                    payment.billId === bill.id &&
                    payment.date === paymentDate
                );
+               const paymentDeleted = (data.deletedBillPayments || []).includes(`${bill.id}:${paymentDate}`);
 
-               if (!paymentExists) {
+               if (!paymentExists && !paymentDeleted) {
                    const paymentAmount = bill.amount + (bill.overpayment || 0);
                   
                    if (bill.isDebt) {
@@ -4884,8 +4875,9 @@ function processElapsedBills() {
                    payment.billId === bill.id &&
                    payment.date === getDateString(checkDate)
                );
+               const paymentDeletedQ = (data.deletedBillPayments || []).includes(`${bill.id}:${getDateString(checkDate)}`);
 
-               if (!paymentExists) {
+               if (!paymentExists && !paymentDeletedQ) {
                    const paymentAmount = bill.amount + (bill.overpayment || 0);
                   
                    const paymentRecord = {
@@ -4929,8 +4921,9 @@ function processElapsedBills() {
                    payment.billId === bill.id &&
                    payment.date === getDateString(checkDate)
                );
+               const paymentDeletedY = (data.deletedBillPayments || []).includes(`${bill.id}:${getDateString(checkDate)}`);
 
-               if (!paymentExists) {
+               if (!paymentExists && !paymentDeletedY) {
                    const paymentAmount = bill.amount + (bill.overpayment || 0);
                   
                    const paymentRecord = {
@@ -4981,6 +4974,7 @@ function ensureDataConsistency() {
     if (!data.eventHistory) data.eventHistory = [];
     if (!data.people) data.people = [];
     if (!data.bills) data.bills = [];
+    if (!data.deletedBillPayments) data.deletedBillPayments = [];
    
     if (!data.billPaymentId) data.billPaymentId = 1;
     if (!nextPersonId) nextPersonId = 1;
@@ -8563,6 +8557,8 @@ function exportHistoryReport(reportData, filename = null) {
                 });
                
                 const writable = await handle.createWritable({ keepExistingData: false });
+                await writable.truncate(0);
+                await writable.seek(0);
                 await writable.write(reportString);
                 await writable.close();
                
@@ -9704,6 +9700,12 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	            if (originalBill && originalBill.isOneOff) {
 	                originalBill.isDeleted = true;
 	                originalBill.deletedDate = getDateString();
+	            } else if (originalBill) {
+	                if (!data.deletedBillPayments) data.deletedBillPayments = [];
+	                const key = `${payment.billId}:${payment.date}`;
+	                if (!data.deletedBillPayments.includes(key)) {
+	                    data.deletedBillPayments.push(key);
+	                }
 	            }
 	            
 	            data.eventHistory.push({
@@ -9760,4 +9762,5 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	    }
 	};
             </script>
+<input type="file" id="persistentImportInput" accept=".txt" style="display:none;position:absolute;left:-9999px;">
 </body></html>
