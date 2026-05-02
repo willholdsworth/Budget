@@ -2453,17 +2453,23 @@ function frequencyToMonthly(amount, frequency) {
 
 function updateImportButtonHandler() {
     $('importBtn').addEventListener('click', () => {
-        const fileInput = document.getElementById('persistentImportInput');
-        fileInput.value = '';
-        fileInput.onchange = null;
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.txt';
+        fileInput.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;z-index:-1;';
+        document.body.appendChild(fileInput);
         fileInput.click();
 
         fileInput.addEventListener('change', function handleImport2(event) {
             fileInput.removeEventListener('change', handleImport2);
             const file = event.target.files[0];
-            if (!file) return;
+            if (!file) {
+                document.body.removeChild(fileInput);
+                return;
+            }
 
             if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
+                document.body.removeChild(fileInput);
                 return;
             }
 
@@ -2478,6 +2484,7 @@ function updateImportButtonHandler() {
 
                     if (!importSuccess) {
                         alert('Failed to import data. The file may be invalid or corrupted.');
+                        document.body.removeChild(fileInput);
                         isImporting = false;
                         return;
                     }
@@ -2524,6 +2531,8 @@ function updateImportButtonHandler() {
                     console.error('Import error:', e);
                     alert('Failed to import data. The file may be invalid or corrupted.');
                 }
+
+                document.body.removeChild(fileInput);
             };
 
             reader.readAsText(file);
@@ -2734,19 +2743,23 @@ function showImportExportModal() {
     `;
    
     $('importBtn').addEventListener('click', () => {
-        // Use persistent input already in DOM - required for iOS Safari which blocks
-        // programmatically created inputs from showing the file picker
-        const fileInput = document.getElementById('persistentImportInput');
-        fileInput.value = ''; // reset so same file can be re-imported
-        fileInput.onchange = null; // clear previous handler
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.txt';
+        fileInput.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;z-index:-1;';
+        document.body.appendChild(fileInput);
         fileInput.click();
 
         fileInput.addEventListener('change', function handleImport(event) {
             fileInput.removeEventListener('change', handleImport);
             const file = event.target.files[0];
-            if (!file) return;
+            if (!file) {
+                document.body.removeChild(fileInput);
+                return;
+            }
 
             if (!confirm('Importing will replace all current data with the data from the selected file. Continue?')) {
+                document.body.removeChild(fileInput);
                 return;
             }
 
@@ -2760,6 +2773,7 @@ function showImportExportModal() {
 
                     if (!importSuccess) {
                         alert('Failed to import data. The file may be invalid or corrupted.');
+                        document.body.removeChild(fileInput);
                         isImporting = false;
                         return;
                     }
@@ -2796,6 +2810,8 @@ function showImportExportModal() {
                     console.error('Import error:', e);
                     alert('Failed to import data. The file may be invalid or corrupted.');
                 }
+
+                document.body.removeChild(fileInput);
             };
 
             reader.readAsText(file);
@@ -9762,5 +9778,5 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	    }
 	};
             </script>
-<input type="file" id="persistentImportInput" accept=".txt" style="display:none;position:absolute;left:-9999px;">
+
 </body></html>
