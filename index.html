@@ -7608,9 +7608,9 @@ function updateTransfersOverview() {
                 const totalAmount = personTransfers.reduce((s, t) => s + t.amount, 0);
 
                 const allRows = [
-                    ...breakdown.monthly.map(b => `<div class="transfer-item"><span>${b.name}</span><span>${formatCurrency(b.share)}/mo</span></div>`),
-                    ...breakdown.quarterly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(quarterly)</span></span><span>${formatCurrency(b.share)}/mo</span></div>`),
-                    ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}/mo</span></div>`)
+                    ...breakdown.monthly.map(b => `<div class="transfer-item"><span>${b.name}</span><span>${formatCurrency(b.share)}</span></div>`),
+                    ...breakdown.quarterly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(quarterly)</span></span><span>${formatCurrency(b.share)}</span></div>`),
+                    ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}</span></div>`)
                 ].join('');
                 const hasBillBreakdown = allRows.length > 0;
 
@@ -7675,9 +7675,9 @@ function updateTransfersOverview() {
             const bodyId = `body-mp-${person.id}`;
             const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:4px;vertical-align:middle;flex-shrink:0;"></span>`;
             const allBillRows = [
-                ...breakdown.monthly.map(b => `<div class="transfer-item"><span>${b.name}</span><span>${formatCurrency(b.share)}/mo</span></div>`),
-                ...breakdown.quarterly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(quarterly)</span></span><span>${formatCurrency(b.share)}/mo</span></div>`),
-                ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}/mo</span></div>`)
+                ...breakdown.monthly.map(b => `<div class="transfer-item"><span>${b.name}</span><span>${formatCurrency(b.share)}</span></div>`),
+                ...breakdown.quarterly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(quarterly)</span></span><span>${formatCurrency(b.share)}</span></div>`),
+                ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}</span></div>`)
             ].join('');
             const hasBillBreakdown = allBillRows.length > 0;
             const totalAmount = personTransfers.reduce((s, t) => s + t.amount, 0);
