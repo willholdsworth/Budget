@@ -47,18 +47,25 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+:root {
+  --border: rgba(0, 0, 0, 0.08);
+  --text-secondary: #666666;
+}
+
 body {
   font-family: 'Space Grotesk', sans-serif;
   min-height: 100vh;
   padding: 20px;
   color: #000000;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease;
   background: #ffffff;
 }
 
 body.dark-mode {
   background: #0a0a0a;
   color: #ffffff;
+  --border: rgba(255, 255, 255, 0.08);
+  --text-secondary: #999999;
 }
 
 .fixed-header {
@@ -526,7 +533,7 @@ body.dark-mode .stat-card:hover {
   border-radius: 16px;
   background: #ffffff;
   border: 2px solid rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
@@ -666,6 +673,7 @@ body.dark-mode .person-overview.compact {
 
 body.dark-mode .person-overview.compact .person-card {
   border-bottom-color: rgba(255,255,255,0.08);
+  background: #1a1a1a;
 }
 
 .person-overview.compact .person-card:last-child {
@@ -704,6 +712,7 @@ body.dark-mode .person-overview.compact .person-card {
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  transition: none;
 }
 
 body.dark-mode .info-label {
@@ -715,6 +724,7 @@ body.dark-mode .info-label {
   color: #000000;
   font-size: 14px;
   text-align: right;
+  transition: none;
 }
 
 body.dark-mode .info-value {
@@ -795,6 +805,7 @@ body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
   border: 2px solid rgba(0, 0, 0, 0.08);
   animation: slideInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .transfer-breakdown-animated {
@@ -806,15 +817,8 @@ body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
   max-height: 600px;
 }
 
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-secondary);
-  padding: 3px 0;
-}
-
 body.dark-mode .payment-transfers {
-  background: #2a2a2a;
+  background: #1a1a1a;
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
 }
@@ -983,7 +987,7 @@ body.dark-mode .transfer-grid.compact .payment-transfers {
 }
 
 body.dark-mode .debt-overview {
-  background: #2a2a2a;
+  background: #1a1a1a;
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
@@ -5383,6 +5387,7 @@ function updateGreeting() {
 
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
+    document.documentElement.classList.toggle('dark-mode');
     data.darkMode = document.body.classList.contains('dark-mode');
     saveDataToLocalStorage();
     ensureDataConsistency();
@@ -7594,7 +7599,7 @@ function updateTransfersOverview() {
            
             if (personTransfers.length === 0) {
                 const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:8px;vertical-align:middle;flex-shrink:0;"></span>`;
-                card.innerHTML = `<div style="padding:4px 0 12px 0;border-bottom:1px solid var(--border);margin-bottom:4px;"><h3 style="display:flex;align-items:center;white-space:nowrap;overflow:hidden;font-size:15px;">${dot}${person.name}'s Monthly Transfers</h3></div><p>No transfers required this month.</p>`;
+                card.innerHTML = `<div style="padding:4px 0 8px 0;margin-bottom:4px;"><h3 style="display:flex;align-items:center;white-space:nowrap;overflow:hidden;font-size:15px;">${dot}${person.name}'s Monthly Transfers</h3></div><p>No transfers required this month.</p>`;
             } else {
                 const breakdown = getTransferBreakdown(person.id);
                 const hasNonMonthly = breakdown.quarterly.length > 0 || breakdown.yearly.length > 0;
@@ -7610,7 +7615,7 @@ function updateTransfersOverview() {
                 const hasBillBreakdown = allRows.length > 0;
 
                 const headerEl = document.createElement('div');
-                headerEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 0 12px 0;margin-bottom:4px;border-bottom:1px solid var(--border);';
+                headerEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 0 8px 0;margin-bottom:4px;';
                 headerEl.innerHTML = `<h3 style="margin:0;display:flex;align-items:center;flex:1;min-width:0;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:8px;flex-shrink:0;"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${person.name}'s Transfers</span></h3>${hasBillBreakdown ? `<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;"><span id="${arrowId}" class="chevron-arrow"></span></div>` : ''}`;
                 if (hasBillBreakdown) {
                     card.classList.add('clickable');
@@ -7723,7 +7728,7 @@ function updateTransfersOverview() {
                 breakdownDiv.innerHTML = `<div style="padding:8px 0;">${allBillRows}</div>`;
 
                 const header = document.createElement('div');
-                header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0 0 12px 0;margin-bottom:4px;border-bottom:1px solid var(--border);';
+                header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 0;margin-bottom:4px;';
                 header.innerHTML = `
                     <h3 style="margin:0;display:flex;align-items:center;gap:8px;">
                         ${dot}${person.name}'s Transfers
@@ -8975,9 +8980,11 @@ function loadAppData() {
       
       if (darkMode === 'true') {
         document.body.classList.add('dark-mode');
+        document.documentElement.classList.add('dark-mode');
         data.darkMode = true;
       } else if (darkMode === 'false') {
         document.body.classList.remove('dark-mode');
+        document.documentElement.classList.remove('dark-mode');
         data.darkMode = false;
       }
       
@@ -9745,4 +9752,5 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	        });
 	    }
 	};
-            </script></body></html>
+            </script>
+</body></html>
