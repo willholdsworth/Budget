@@ -45,6 +45,8 @@
   padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 :root {
@@ -1042,6 +1044,13 @@ body.dark-mode .bills-group-header {
   max-width: 100%;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+input[type="date"] {
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .history-table {
@@ -2810,22 +2819,31 @@ function showImportExportModal() {
     $('exportBtn').addEventListener('click', () => {
         const exportData = createCleanExportData();
         const exportString = btoa(JSON.stringify(exportData));
-       
-        if ('showSaveFilePicker' in window) {
+
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const month = months[now.getMonth()];
+        const year = String(now.getFullYear()).slice(-2);
+        const exportFilename = `${day}-${month}-${year}.txt`;
+
+        if (typeof AndroidFileInterface !== 'undefined' && AndroidFileInterface.exportData) {
+            // Android path - handled by Java layer with truncation
+            AndroidFileInterface.exportData(exportString, exportFilename);
+        } else if ('showSaveFilePicker' in window) {
             async function saveWithFilePicker() {
                 try {
                     const handle = await window.showSaveFilePicker({
-                        suggestedName: 'budget_data.txt',
+                        suggestedName: exportFilename,
                         types: [{
                             description: 'Text Files',
                             accept: { 'text/plain': ['.txt'] }
                         }]
                     });
-                   
+                    // keepExistingData: false ensures full overwrite, never append
                     const writable = await handle.createWritable({ keepExistingData: false });
                     await writable.write(exportString);
                     await writable.close();
-                   
                     alert('File exported successfully!');
                     saveDataToLocalStorage();
                 } catch (err) {
@@ -2835,20 +2853,19 @@ function showImportExportModal() {
                     }
                 }
             }
-           
             saveWithFilePicker();
         } else {
+            // Fallback: force full overwrite by creating a fresh Blob each time
             const blob = new Blob([exportString], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'budget_data.txt';
+            a.download = exportFilename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             alert('File exported successfully!');
-           
             saveDataToLocalStorage();
         }
     });
