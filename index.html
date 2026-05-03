@@ -2233,7 +2233,11 @@ function getDayEvents(date) {
    const billIdsWithPayments = new Set(billPaymentsOnThisDay.map(payment => payment.billId));
    const billIdsMovedAwayFromThisDay = new Set(
        data.billPayments
-           .filter(payment => payment.date !== dateStr && payment.status && payment.status.includes('(date changed)') && isBillDueOnDate(data.bills.find(b => b.id === payment.billId), date))
+           .filter(payment => {
+               if (payment.date === dateStr || !payment.status || !payment.status.includes('(date changed)')) return false;
+               const bill = data.bills.find(b => b.id === payment.billId);
+               return bill && isBillDueOnDate(bill, date);
+           })
            .map(payment => payment.billId)
    );
    
