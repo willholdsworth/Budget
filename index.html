@@ -2591,7 +2591,12 @@ async function processImportData(fileContent) {
         
         let decodedContent;
         try {
-            decodedContent = atob(cleanContent);
+            const rawDecoded = atob(cleanContent);
+            try {
+                decodedContent = decodeURIComponent(escape(rawDecoded));
+            } catch (e) {
+                decodedContent = rawDecoded;
+            }
         } catch (e) {
             throw new Error('Failed to decode base64 - file may be corrupted or truncated');
         }
@@ -2827,7 +2832,7 @@ function showImportExportModal() {
    
     $('exportBtn').addEventListener('click', () => {
         const exportData = createCleanExportData();
-        const exportString = btoa(JSON.stringify(exportData));
+        const exportString = btoa(unescape(encodeURIComponent(JSON.stringify(exportData))));
 
         const now = new Date();
         const day = String(now.getDate()).padStart(2, '0');
