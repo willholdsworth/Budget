@@ -2487,10 +2487,11 @@ function updateImportButtonHandler() {
 
             const reader = new FileReader();
             reader.onload = async (e) => {
+                let importSuccess = false;
                 try {
                     const fileContent = e.target.result;
 
-                    const importSuccess = await processImportData(fileContent);
+                    importSuccess = await processImportData(fileContent);
 
                     if (!importSuccess) {
                         alert('Failed to import data. The file may be invalid or corrupted.');
@@ -2785,9 +2786,10 @@ function showImportExportModal() {
 
             const reader = new FileReader();
             reader.onload = async (e) => {
+                let importSuccess = false;
                 try {
                     const fileContent = e.target.result;
-                    const importSuccess = await processImportData(fileContent);
+                    importSuccess = await processImportData(fileContent);
 
                     if (!importSuccess) {
                         alert('Failed to import data. The file may be invalid or corrupted.');
