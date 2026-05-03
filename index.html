@@ -2231,15 +2231,6 @@ function getDayEvents(date) {
    
    const billPaymentsOnThisDay = data.billPayments.filter(payment => payment.date === dateStr);
    const billIdsWithPayments = new Set(billPaymentsOnThisDay.map(payment => payment.billId));
-   const billIdsMovedAwayFromThisDay = new Set(
-       data.billPayments
-           .filter(payment => {
-               if (payment.date === dateStr || !payment.status || !payment.status.includes('(date changed)')) return false;
-               const bill = data.bills.find(b => b.id === payment.billId);
-               return bill && isBillDueOnDate(bill, date);
-           })
-           .map(payment => payment.billId)
-   );
    
    const processedOneOffIds = new Set();
    
@@ -2262,7 +2253,7 @@ function getDayEvents(date) {
            return;
        }
        
-       if (billIdsWithPayments.has(bill.id) || billIdsMovedAwayFromThisDay.has(bill.id)) {
+       if (billIdsWithPayments.has(bill.id)) {
            return;
        }
 
@@ -6333,15 +6324,7 @@ function showEditBillPaymentModal(paymentId) {
         }
 
         if (date > today) {
-            const livePayment = data.billPayments.find(p => p.id === paymentId);
-            if (livePayment) {
-                livePayment.amount = amount;
-                livePayment.date = date;
-                livePayment.billName = billName;
-                livePayment.category = category;
-                livePayment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
-                livePayment.status = (livePayment.status || '').replace(' (edited)', '').replace(' (date changed)', '') + ' (edited) (date changed)';
-            }
+            data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
             if (originalBill && originalBill.isOneOff) {
                 originalBill.name = billName;
                 originalBill.amount = amount;
@@ -6350,6 +6333,19 @@ function showEditBillPaymentModal(paymentId) {
                 originalBill.payer = payer === 'joint' ? 'joint' : parseInt(payer);
                 originalBill.isDeleted = false;
                 delete originalBill.deletedDate;
+            } else {
+                const newPaymentId = data.billPaymentId++;
+                data.billPayments.push({
+                    id: newPaymentId,
+                    billId: originalBill ? originalBill.id : null,
+                    billName: billName,
+                    amount: amount,
+                    date: date,
+                    category: category,
+                    billType: originalBill ? originalBill.billType : 'individual',
+                    payer: payer === 'joint' ? 'joint' : parseInt(payer),
+                    status: 'Manually scheduled'
+                });
             }
             recordEvent('Bill Payment Moved to Future', `${billName} - ${formatCurrency(amount)} moved to ${date}`);
         } else {
@@ -7242,20 +7238,11 @@ function updateOverview() {
     const currentMonthPayments = data.billPayments.filter(p =>
         p.date.startsWith(currentMonthStr) && p.date <= todayStr
     );
-    const futureMovedCurrentMonthPayments = data.billPayments.filter(p =>
-        p.date.startsWith(currentMonthStr) && p.date > todayStr && p.status && p.status.includes('(date changed)')
-    );
 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const paidBillIds = new Set([
-        ...currentMonthPayments.map(p => p.billId),
-        ...futureMovedCurrentMonthPayments.map(p => p.billId)
-    ]);
+    const paidBillIds = new Set(currentMonthPayments.map(p => p.billId));
 
     currentMonthPayments.forEach(payment => {
-        billsTotal += payment.amount;
-    });
-    futureMovedCurrentMonthPayments.forEach(payment => {
         billsTotal += payment.amount;
     });
 
