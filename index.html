@@ -7223,9 +7223,12 @@ function updateOverview() {
         getOneOffItemsFromEvents(dayEvents).forEach(oneOff => { billsTotal += oneOff.amount; });
     }
 
-    data.people.forEach(person => {
-        incomeTotal += calculateMonthlyBudget(person);
-    });
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dayDate = new Date(currentYear, currentMonth, d);
+        const dayEvents = getDayEvents(dayDate);
+        getPaydayItemsFromEvents(dayEvents).forEach(p => { incomeTotal += p.amount || 0; });
+        getBonusItemsFromEvents(dayEvents).forEach(p => { incomeTotal += p.amount || 0; });
+    }
 
     const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
     const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
