@@ -4022,7 +4022,7 @@ function updateHistoryDisplay() {
    }
    
    const today = getDateString();
-   filteredBillHistory = filteredBillHistory.filter(p => p.date <= today);
+   filteredBillHistory = filteredBillHistory.filter(p => p.date <= today || p.status?.includes('(edited)'));
   
    const sortedBillHistory = filteredBillHistory.sort((a, b) => {
        return b.date.localeCompare(a.date);
@@ -4047,9 +4047,10 @@ function updateHistoryDisplay() {
            typeLabel = `Individual - ${payerName}`;
        }
       
+       const isFuture = p.date > today;
        return `
-       <tr>
-           <td>${p.date}</td>
+       <tr${isFuture ? ' style="opacity:0.65;font-style:italic;"' : ''}>
+           <td>${p.date}${isFuture ? ' (scheduled)' : ''}</td>
            <td>${p.billName}</td>
            <td>${formatCurrency(p.amount)}</td>
            <td>${p.category}</td>
@@ -4834,9 +4835,10 @@ function processElapsedBills() {
            while (getDateString(checkDate) <= today) {
                const paymentDate = getDateString(checkDate);
               
+               const monthStr = paymentDate.substring(0, 7);
                const paymentExists = data.billPayments.some(payment =>
                    payment.billId === bill.id &&
-                   payment.date === paymentDate
+                   (payment.date === paymentDate || payment.date.startsWith(monthStr))
                );
                const paymentDeleted = (data.deletedBillPayments || []).includes(`${bill.id}:${paymentDate}`);
 
