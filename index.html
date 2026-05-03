@@ -2335,11 +2335,11 @@ function getDayEvents(date) {
    }).join('');
    
    const paydayText = paydaysForDay.map(person => {
-       return `<span class="payday-name" style="background-color: ${person.color}; color: #000000;">${person.name} Payday: ${formatCurrency(person.amount || person.income || 0)}</span>`;
+       return `<span class="payday-name" style="background-color: ${person.color}; color: ${getContrastColor(person.color)};">${person.name} Payday: ${formatCurrency(person.amount || person.income || 0)}</span>`;
    }).join('');
    
    const bonusText = bonusesForDay.map(bonus => {
-       return `<span class="bonus-name" style="background-color: ${bonus.person.color}; color: #000000;">${bonus.person.name} Bonus: ${formatCurrency(bonus.amount)}</span>`;
+       return `<span class="bonus-name" style="background-color: ${bonus.person.color}; color: ${getContrastColor(bonus.person.color)};">${bonus.person.name} Bonus: ${formatCurrency(bonus.amount)}</span>`;
    }).join('');
    
    const oneOffText = oneOffsForDay.map(oneOff => {
