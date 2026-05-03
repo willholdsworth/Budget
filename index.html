@@ -6324,7 +6324,6 @@ function showEditBillPaymentModal(paymentId) {
         }
 
         if (date > today) {
-            data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
             if (originalBill && originalBill.isOneOff) {
                 originalBill.name = billName;
                 originalBill.amount = amount;
@@ -6333,19 +6332,17 @@ function showEditBillPaymentModal(paymentId) {
                 originalBill.payer = payer === 'joint' ? 'joint' : parseInt(payer);
                 originalBill.isDeleted = false;
                 delete originalBill.deletedDate;
+                data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
             } else {
-                const newPaymentId = data.billPaymentId++;
-                data.billPayments.push({
-                    id: newPaymentId,
-                    billId: originalBill ? originalBill.id : null,
-                    billName: billName,
-                    amount: amount,
-                    date: date,
-                    category: category,
-                    billType: originalBill ? originalBill.billType : 'individual',
-                    payer: payer === 'joint' ? 'joint' : parseInt(payer),
-                    status: 'Manually scheduled'
-                });
+                const livePayment = data.billPayments.find(p => p.id === paymentId);
+                if (livePayment) {
+                    livePayment.amount = amount;
+                    livePayment.date = date;
+                    livePayment.billName = billName;
+                    livePayment.category = category;
+                    livePayment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
+                    livePayment.status = (livePayment.status || '').replace(' (edited)', '') + ' (edited)';
+                }
             }
             recordEvent('Bill Payment Moved to Future', `${billName} - ${formatCurrency(amount)} moved to ${date}`);
         } else {
