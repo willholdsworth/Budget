@@ -5724,7 +5724,7 @@ function showDayEvents(element) {
                 <h4>Paydays</h4>
                 ${eventsData.paydays.map(person => {
                     return `
-                        <div class="day-event-item" style="background-color: ${person.color}; color: #000000; padding: 10px; margin-bottom: 8px; border-radius: 4px;">
+                        <div class="day-event-item" style="background-color: ${person.color}; color: ${getContrastColor(person.color)}; padding: 10px; margin-bottom: 8px; border-radius: 4px;">
                             <div>${person.name} Payday: ${formatCurrency(person.amount || person.income || 0)}</div>
                         </div>
                     `;
@@ -5740,7 +5740,7 @@ function showDayEvents(element) {
                 <h4>Bonuses</h4>
                 ${eventsData.bonuses.map(bonus => {
                     return `
-                        <div class="day-event-item" style="background-color: ${bonus.person.color}; color: #000000; padding: 10px; margin-bottom: 8px; border-radius: 4px;">
+                        <div class="day-event-item" style="background-color: ${bonus.person.color}; color: ${getContrastColor(bonus.person.color)}; padding: 10px; margin-bottom: 8px; border-radius: 4px;">
                             <div>${bonus.person.name} Bonus: ${formatCurrency(bonus.amount)}</div>
                         </div>
                     `;
