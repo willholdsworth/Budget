@@ -2533,9 +2533,11 @@ function updateImportButtonHandler() {
                     }, 600);
 
                 } catch (e) {
-                    isImporting = false;
                     console.error('Import error:', e);
-                    alert('Failed to import data. The file may be invalid or corrupted.');
+                    if (!importSuccess) {
+                        isImporting = false;
+                        alert('Failed to import data. The file may be invalid or corrupted.');
+                    }
                 }
 
                 document.body.removeChild(fileInput);
@@ -2818,9 +2820,11 @@ function showImportExportModal() {
                     }, 600);
 
                 } catch (e) {
-                    isImporting = false;
                     console.error('Import error:', e);
-                    alert('Failed to import data. The file may be invalid or corrupted.');
+                    if (!importSuccess) {
+                        isImporting = false;
+                        alert('Failed to import data. The file may be invalid or corrupted.');
+                    }
                 }
 
                 document.body.removeChild(fileInput);
