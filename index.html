@@ -6323,46 +6323,27 @@ function showEditBillPaymentModal(paymentId) {
             return;
         }
 
-        if (date > today) {
-            if (originalBill && originalBill.isOneOff) {
-                originalBill.name = billName;
-                originalBill.amount = amount;
-                originalBill.date = date;
-                originalBill.category = category;
-                originalBill.payer = payer === 'joint' ? 'joint' : parseInt(payer);
+        const livePayment = data.billPayments.find(p => p.id === paymentId);
+        if (!livePayment) { hideModal(); return; }
+        livePayment.amount = amount;
+        livePayment.date = date;
+        livePayment.billName = billName;
+        livePayment.category = category;
+        livePayment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
+        livePayment.status = (livePayment.status || '').replace(' (edited)', '') + ' (edited)';
+        if (originalBill && originalBill.isOneOff) {
+            originalBill.name = billName;
+            originalBill.amount = amount;
+            originalBill.date = date;
+            originalBill.category = category;
+            originalBill.payer = livePayment.payer;
+            if (date > today) {
+                data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
                 originalBill.isDeleted = false;
                 delete originalBill.deletedDate;
-                data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
-            } else {
-                const livePayment = data.billPayments.find(p => p.id === paymentId);
-                if (livePayment) {
-                    livePayment.amount = amount;
-                    livePayment.date = date;
-                    livePayment.billName = billName;
-                    livePayment.category = category;
-                    livePayment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
-                    livePayment.status = (livePayment.status || '').replace(' (edited)', '') + ' (edited)';
-                }
             }
-            recordEvent('Bill Payment Moved to Future', `${billName} - ${formatCurrency(amount)} moved to ${date}`);
-        } else {
-            const livePayment = data.billPayments.find(p => p.id === paymentId);
-            if (!livePayment) { hideModal(); return; }
-            livePayment.amount = amount;
-            livePayment.date = date;
-            livePayment.billName = billName;
-            livePayment.category = category;
-            livePayment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
-            livePayment.status = (livePayment.status || '').replace(' (edited)', '') + ' (edited)';
-            if (originalBill && originalBill.isOneOff) {
-                originalBill.name = billName;
-                originalBill.amount = amount;
-                originalBill.date = date;
-                originalBill.category = category;
-                originalBill.payer = livePayment.payer;
-            }
-            recordEvent('Bill Payment Edited', `${billName} - ${formatCurrency(amount)} on ${date}`);
         }
+        recordEvent('Bill Payment Edited', `${billName} - ${formatCurrency(amount)} on ${date}`);
        
         saveDataToLocalStorage();
         updateHistoryDisplay();
@@ -7229,34 +7210,16 @@ function updateOverview() {
     const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
     const todayStr = getDateString();
 
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     let billsTotal = 0;
     let incomeTotal = 0;
 
-    const allCurrentMonthPayments = data.billPayments.filter(p => p.date.startsWith(currentMonthStr));
-    const currentMonthPaymentByBillId = {};
-    allCurrentMonthPayments.forEach(p => { currentMonthPaymentByBillId[p.billId] = p; });
-
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-    data.bills.forEach(bill => {
-        if (bill.isDeleted) return;
-        if (bill.isOneOff) {
-            const bd = new Date(bill.date);
-            if (bd.getMonth() === currentMonth && bd.getFullYear() === currentYear) {
-                const payment = currentMonthPaymentByBillId[bill.id];
-                billsTotal += payment ? payment.amount : bill.amount;
-            }
-            return;
-        }
-        for (let d = 1; d <= daysInMonth; d++) {
-            const checkDate = new Date(currentYear, currentMonth, d);
-            if (isBillDueOnDate(bill, checkDate)) {
-                const payment = currentMonthPaymentByBillId[bill.id];
-                billsTotal += payment ? payment.amount : bill.amount + (bill.overpayment || 0);
-                break;
-            }
-        }
-    });
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dayDate = new Date(currentYear, currentMonth, d);
+        const dayEvents = getDayEvents(dayDate);
+        getBillItemsFromEvents(dayEvents).forEach(bill => { billsTotal += bill.amount; });
+        getOneOffItemsFromEvents(dayEvents).forEach(oneOff => { billsTotal += oneOff.amount; });
+    }
 
     data.people.forEach(person => {
         incomeTotal += calculateMonthlyBudget(person);
