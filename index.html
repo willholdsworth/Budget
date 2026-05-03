@@ -7567,17 +7567,27 @@ function createDebtItem(debt) {
 }
 
 function getTransferBreakdown(personId) {
-    const monthly = [], quarterly = [], yearly = [];
+    const monthly = [], quarterly = [], yearly = [], oneOff = [];
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
     data.bills.filter(b => !b.isDeleted && b.billType === 'joint').forEach(bill => {
         const amt = bill.amount + (bill.overpayment || 0);
+        if (bill.isOneOff) {
+            const billDate = new Date(bill.date);
+            if (billDate.getMonth() === currentMonth && billDate.getFullYear() === currentYear) {
+                const share = calculateWeightedShare(amt, personId, data.weightedBills);
+                if (share >= 0.01) oneOff.push({name: bill.name, share});
+            }
+            return;
+        }
         const share = calculateWeightedShare(frequencyToMonthly(amt, bill.frequency), personId, data.weightedBills);
         if (share < 0.01) return;
-        if (bill.isOneOff) return;
         if (bill.frequency === 'monthly') monthly.push({name: bill.name, share});
         else if (bill.frequency === 'quarterly') quarterly.push({name: bill.name, share});
         else if (bill.frequency === 'yearly') yearly.push({name: bill.name, share});
     });
-    return {monthly, quarterly, yearly};
+    return {monthly, quarterly, yearly, oneOff};
 }
 
 function updateTransfersOverview() {
@@ -7626,7 +7636,8 @@ function updateTransfersOverview() {
                 const allRows = [
                     ...breakdown.monthly.map(b => `<div class="transfer-item"><span>${b.name}</span><span>${formatCurrency(b.share)}</span></div>`),
                     ...breakdown.quarterly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(quarterly)</span></span><span>${formatCurrency(b.share)}</span></div>`),
-                    ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}</span></div>`)
+                    ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}</span></div>`),
+                    ...(breakdown.oneOff || []).map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(one-off)</span></span><span>${formatCurrency(b.share)}</span></div>`)
                 ].join('');
                 const hasBillBreakdown = allRows.length > 0;
 
@@ -7693,7 +7704,8 @@ function updateTransfersOverview() {
             const allBillRows = [
                 ...breakdown.monthly.map(b => `<div class="transfer-item"><span>${b.name}</span><span>${formatCurrency(b.share)}</span></div>`),
                 ...breakdown.quarterly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(quarterly)</span></span><span>${formatCurrency(b.share)}</span></div>`),
-                ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}</span></div>`)
+                ...breakdown.yearly.map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(yearly)</span></span><span>${formatCurrency(b.share)}</span></div>`),
+                ...(breakdown.oneOff || []).map(b => `<div class="transfer-item"><span>${b.name} <span style="opacity:0.5;font-size:11px;">(one-off)</span></span><span>${formatCurrency(b.share)}</span></div>`)
             ].join('');
             const hasBillBreakdown = allBillRows.length > 0;
             const totalAmount = personTransfers.reduce((s, t) => s + t.amount, 0);
