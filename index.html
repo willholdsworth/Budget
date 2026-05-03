@@ -7227,11 +7227,20 @@ function updateOverview() {
     const currentMonthPayments = data.billPayments.filter(p =>
         p.date.startsWith(currentMonthStr) && p.date <= todayStr
     );
+    const futureMovedCurrentMonthPayments = data.billPayments.filter(p =>
+        p.date.startsWith(currentMonthStr) && p.date > todayStr && p.status && p.status.includes('(date changed)')
+    );
 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const paidBillIds = new Set(currentMonthPayments.map(p => p.billId));
+    const paidBillIds = new Set([
+        ...currentMonthPayments.map(p => p.billId),
+        ...futureMovedCurrentMonthPayments.map(p => p.billId)
+    ]);
 
     currentMonthPayments.forEach(payment => {
+        billsTotal += payment.amount;
+    });
+    futureMovedCurrentMonthPayments.forEach(payment => {
         billsTotal += payment.amount;
     });
 
