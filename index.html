@@ -2231,6 +2231,11 @@ function getDayEvents(date) {
    
    const billPaymentsOnThisDay = data.billPayments.filter(payment => payment.date === dateStr);
    const billIdsWithPayments = new Set(billPaymentsOnThisDay.map(payment => payment.billId));
+   const billIdsMovedAwayFromThisDay = new Set(
+       data.billPayments
+           .filter(payment => payment.date !== dateStr && payment.status && payment.status.includes('(date changed)') && isBillDueOnDate(data.bills.find(b => b.id === payment.billId), date))
+           .map(payment => payment.billId)
+   );
    
    const processedOneOffIds = new Set();
    
@@ -2253,7 +2258,7 @@ function getDayEvents(date) {
            return;
        }
        
-       if (billIdsWithPayments.has(bill.id)) {
+       if (billIdsWithPayments.has(bill.id) || billIdsMovedAwayFromThisDay.has(bill.id)) {
            return;
        }
 
@@ -6313,7 +6318,15 @@ function showEditBillPaymentModal(paymentId) {
         }
 
         if (date > today) {
-            data.billPayments = data.billPayments.filter(p => p.id !== paymentId);
+            const livePayment = data.billPayments.find(p => p.id === paymentId);
+            if (livePayment) {
+                livePayment.amount = amount;
+                livePayment.date = date;
+                livePayment.billName = billName;
+                livePayment.category = category;
+                livePayment.payer = payer === 'joint' ? 'joint' : parseInt(payer);
+                livePayment.status = (livePayment.status || '').replace(' (edited)', '').replace(' (date changed)', '') + ' (edited) (date changed)';
+            }
             if (originalBill && originalBill.isOneOff) {
                 originalBill.name = billName;
                 originalBill.amount = amount;
@@ -6323,7 +6336,7 @@ function showEditBillPaymentModal(paymentId) {
                 originalBill.isDeleted = false;
                 delete originalBill.deletedDate;
             }
-            recordEvent('Bill Payment Moved to Future', `${billName} - ${formatCurrency(amount)} moved to ${date} — removed from history until due`);
+            recordEvent('Bill Payment Moved to Future', `${billName} - ${formatCurrency(amount)} moved to ${date}`);
         } else {
             const livePayment = data.billPayments.find(p => p.id === paymentId);
             if (!livePayment) { hideModal(); return; }
