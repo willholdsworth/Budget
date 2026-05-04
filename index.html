@@ -393,6 +393,19 @@ body.dark-mode .sidebar-menu .checkbox-group label {
   color: #ffffff;
 }
 
+body.dark-mode .sidebar-menu-btn {
+  background: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+
+
+body.dark-mode .sidebar-menu-btn:hover {
+  background: #333333 !important;
+}
+
 .container {
   max-width: 1000px;
   margin: 70px auto 0;
@@ -2040,7 +2053,15 @@ transition: opacity 0.1s ease;
  <div id="sidebar" class="sidebar">
 <ul class="sidebar-menu">
 <li><button id="addNewPersonBtn">Add New User</button></li>
-<li class="checkbox-group"><input type="checkbox" id="weightedBillsSidebar"><label for="weightedBillsSidebar">Weight Bills By Income</label></li>
+<li id="weightedBillsItem" style="display:none;">
+  <input type="checkbox" id="weightedBillsSidebar" style="display:none;">
+  <button id="weightedBillsBtn" onclick="document.getElementById('weightedBillsSidebar').click();" class="sidebar-menu-btn" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;">
+    <span>Weight Bills By Income</span>
+    <svg id="weightedBillsTick" width="16" height="16" viewBox="0 0 14 14" fill="none" style="opacity:0;transition:opacity 0.2s ease;flex-shrink:0;">
+      <path d="M2 7L5.5 10.5L12 3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</li>
 <li><select id="currencySelect" class="currency-selector"><option value="USD">$USD</option><option value="EUR">€EUR</option><option value="GBP">£GBP</option><option value="JPY">¥JPY</option><option value="CAD">$CAD</option></select></li>
 <li><button id="toggleDarkModeBtn">Dark Mode</button></li>
 </ul>
@@ -2613,6 +2634,7 @@ function updateImportButtonHandler() {
 
                     $('currencySelect').value = data.currency;
                     $('weightedBillsSidebar').checked = data.weightedBills;
+       const wTick = $('weightedBillsTick'); if (wTick) wTick.style.opacity = data.weightedBills ? '1' : '0';
 
                     data.people.forEach(person => createPersonTab(person));
                     attachPersonEventListeners();
@@ -2911,6 +2933,7 @@ function showImportExportModal() {
 
                     $('currencySelect').value = data.currency;
                     $('weightedBillsSidebar').checked = data.weightedBills;
+       const wTick = $('weightedBillsTick'); if (wTick) wTick.style.opacity = data.weightedBills ? '1' : '0';
 
                     data.people.forEach(person => createPersonTab(person));
                     attachPersonEventListeners();
@@ -3214,6 +3237,38 @@ function calculateSetAsideAmount(billAmount, frequency, isDebt, interestRate, cu
     return billAmount / periods;
 }
 
+function flashBtnConfirm(btn) {
+    if (!btn) return;
+    const existing = btn.querySelector('.btn-tick-svg');
+    if (existing) existing.remove();
+    const startWidth = btn.getBoundingClientRect().width;
+    btn.style.minWidth = startWidth + 'px';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '14');
+    svg.setAttribute('height', '14');
+    svg.setAttribute('viewBox', '0 0 14 14');
+    svg.setAttribute('fill', 'none');
+    svg.classList.add('btn-tick-svg');
+    svg.style.cssText = 'display:inline-block;vertical-align:middle;margin-left:6px;opacity:1;transition:opacity 0.3s ease;flex-shrink:0;';
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M2 7L5.5 10.5L12 3');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+    btn.appendChild(svg);
+    setTimeout(() => {
+        svg.style.opacity = '0';
+        setTimeout(() => {
+            svg.remove();
+            btn.style.transition = 'min-width 0.25s ease';
+            btn.style.minWidth = '';
+            setTimeout(() => { btn.style.transition = ''; }, 280);
+        }, 300);
+    }, 1800);
+}
+
 function updatePersonIncome(personId) {
    const person = data.people.find(p => p.id === personId);
    if (!person) return;
@@ -3345,9 +3400,7 @@ function updatePersonIncome(personId) {
    updateOverview();
    updatePersonOverview(personId);
    ensureDataConsistency();
-
-   const dateField = $(`paymentDate-${personId}`);
-   if (dateField) dateField.value = getDateString();
+   flashBtnConfirm($(`updateIncomeBtn${personId}`));
 }
 
 function rebuildScheduleFromDate(personId, newStartDate, income, frequency, employer) {
@@ -3865,6 +3918,7 @@ function updatePersonSavingsExpenses(personId) {
     saveDataToLocalStorage();
     updateOverview();
     updatePersonOverview(personId);
+    flashBtnConfirm($(`updateGoalsBtn${personId}`));
 }
 
 function addPaycheck(personId) {
@@ -3926,6 +3980,7 @@ function addPaycheck(personId) {
     updateOverview();
     updatePersonOverview(personId);
     ensureDataConsistency();
+    flashBtnConfirm($(`addPaycheckBtn${personId}`));
 }
 
 function addBonus(personId) {
@@ -3971,6 +4026,7 @@ function addBonus(personId) {
    updateOverview();
    updatePersonOverview(personId);
    ensureDataConsistency();
+   flashBtnConfirm($(`addBonusBtn${personId}`));
 }
 
 function updatePersonOverview(personId) {
@@ -4615,6 +4671,7 @@ function loadData() {
         if (data.darkMode) document.body.classList.add('dark-mode');
         document.getElementById('currencySelect').value = data.currency || 'USD';
         document.getElementById('weightedBillsSidebar').checked = data.weightedBills || false;
+       const wTick = $('weightedBillsTick'); if (wTick) wTick.style.opacity = data.weightedBills ? '1' : '0';
        
         showTab('overview');
         const sidebar = document.getElementById('sidebar');
@@ -5612,6 +5669,9 @@ function updateTabsVisibility() {
     } else {
         addPersonTab.style.display = 'none';
     }
+
+    const weightedItem = $('weightedBillsItem');
+    if (weightedItem) weightedItem.style.display = data.people.length > 1 ? 'block' : 'none';
 }
 
 function calculateJointBillTransfers() {
@@ -6724,6 +6784,7 @@ function addBill() {
    toggleBillTypeVisibility();
    resetCalendarToCurrentMonth();
    ensureDataConsistency();
+   flashBtnConfirm($('addBillBtn'));
 }
 
 function editBill(billId) {
@@ -7969,7 +8030,7 @@ function createPersonTab(person) {
                 <input type="text" id="name-${person.id}" value="${person.name}">
             </div>
             <div style="display:flex;gap:10px;margin-top:20px;">
-                <button onclick="updatePersonBasic(${person.id})" style="flex:1;">Update Name</button>
+                <button id="updateBasicBtn${person.id}" onclick="updatePersonBasic(${person.id})" style="flex:1;">Update Name</button>
                 <button onclick="showColorModal(${person.id})" style="flex:1; background-color: ${person.color || colorPalette[0].value}; color: #ffffff;">Change Colour</button>
                 <button onclick="deletePerson(${person.id})" class="btn-danger" style="flex:1;">Delete</button>
             </div>
@@ -8001,7 +8062,7 @@ function createPersonTab(person) {
 				<label for="employer-${person.id}">Employer (Optional)</label>
 				<input type="text" id="employer-${person.id}" value="${person.employer || ''}" placeholder="Company name">
 			</div>
-			<button onclick="updatePersonIncome(${person.id})">Update Income</button>
+			<button id="updateIncomeBtn${person.id}" onclick="updatePersonIncome(${person.id})">Update Income</button>
 			<p style="font-size:12px;color:#666;margin-top:10px;">
 				Set a future start date to change your income from that date forward. Past payments will remain unchanged.
 			</p>
@@ -8021,7 +8082,7 @@ function createPersonTab(person) {
                 <div style="height:10px;"></div>
                 <input type="number" id="expenses-${person.id}" value="${person.expenses || 0}" placeholder="0.00" step="0.01">
             </div>
-            <button onclick="updatePersonSavingsExpenses(${person.id})">Update Monthly Goals</button>
+            <button id="updateGoalsBtn${person.id}" onclick="updatePersonSavingsExpenses(${person.id})">Update Monthly Goals</button>
             <p style="font-size:12px;color:#666;margin-top:10px;">These goals will continue each month unless you update them.</p>
         </div>
     `;
@@ -8041,7 +8102,7 @@ function createPersonTab(person) {
                 <label for="paycheckEmployer-${person.id}">Employer (Optional)</label>
                 <input type="text" id="paycheckEmployer-${person.id}" placeholder="Company name">
             </div>
-            <button onclick="addPaycheck(${person.id})" class="add-paycheck-btn">Add Salary Entry</button>
+            <button id="addPaycheckBtn${person.id}" onclick="addPaycheck(${person.id})" class="add-paycheck-btn">Add Salary Entry</button>
             <p style="font-size:12px;color:#666;margin-top:10px;">These are stored in the Income History below and the History tab.</p>
         </div>
     `;
@@ -8061,7 +8122,7 @@ function createPersonTab(person) {
                 <label for="bonusEmployer-${person.id}">Source (Optional)</label>
                 <input type="text" id="bonusEmployer-${person.id}" placeholder="Company or source">
             </div>
-            <button onclick="addBonus(${person.id})" class="add-bonus-btn">Add One-time Bonus</button>
+            <button id="addBonusBtn${person.id}" onclick="addBonus(${person.id})" class="add-bonus-btn">Add One-time Bonus</button>
             <p style="font-size:12px;color:#666;margin-top:10px;">Bonuses are a one-time addition and will affect the total income for the month they were received.</p>
         </div>
     `;
@@ -8124,6 +8185,7 @@ function updatePersonBasic(personId) {
     updateBillPayerOptions();
     updateHistoryDisplay();
     updateOverview();
+    flashBtnConfirm($(`updateBasicBtn${personId}`));
    
     const personalTab = document.querySelector(`button.tab[data-person-id="${personId}"]`);
     if (personalTab) personalTab.textContent = name;
@@ -9050,6 +9112,10 @@ function attachEventListeners() {
    $('toggleDarkModeBtn').addEventListener('click', toggleDarkMode);
    $('currencySelect').addEventListener('change', updateCurrency);
    $('weightedBillsSidebar').addEventListener('change', updateWeightedBills);
+   $('weightedBillsSidebar').addEventListener('change', () => {
+       const tick = $('weightedBillsTick');
+       if (tick) tick.style.opacity = $('weightedBillsSidebar').checked ? '1' : '0';
+   });
    $('addBillBtn').addEventListener('click', addBill);
    $('isDebt').addEventListener('change', toggleDebtFields);
    $('billType').addEventListener('change', toggleBillPayerVisibility);
