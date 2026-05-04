@@ -115,7 +115,7 @@ body.dark-mode .fixed-header {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
-  padding: 0 120px;
+  padding: 0 100px;
 }
 
 .hamburger-btn {
@@ -570,14 +570,19 @@ body.dark-mode .person-card h3 {
 .bill-item {
   background: #ffffff;
   border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   border: 2px solid rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.bill-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 body.dark-mode .bill-item {
@@ -616,7 +621,8 @@ body.dark-mode .bill-info small {
 .bill-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .overview-grid {
@@ -1039,6 +1045,76 @@ body.dark-mode .bills-group-header {
   color: #ffffff;
 }
 
+.bills-group-card {
+  margin-bottom: 20px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+body.dark-mode .bills-group-card {
+  background: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.bills-group-card-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  color: #000000;
+}
+
+body.dark-mode .bills-group-card-header {
+  color: #ffffff;
+}
+
+.bills-group-card-body {
+  padding: 0;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  background: #ffffff;
+  margin-top: -10px;
+  position: relative;
+}
+
+body.dark-mode .bills-group-card-body {
+  background: #1a1a1a;
+}
+
+.bills-group-card .bill-item {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: none;
+  margin-bottom: 0;
+  background: transparent;
+}
+
+body.dark-mode .bills-group-card .bill-item {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  background: transparent;
+  box-shadow: none;
+}
+
+.bills-group-card .bill-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 14px 14px;
+}
+
+body.dark-mode .bills-group-card .bill-row-detail {
+  background: rgba(255,255,255,0.03);
+  border-top-color: rgba(255,255,255,0.06);
+}
+
 .history-table-wrapper {
   width: 100%;
   max-width: 100%;
@@ -1106,6 +1182,8 @@ body.dark-mode .history-table th {
   margin-bottom: 24px;
   border: 2px solid rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
   animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
@@ -1163,6 +1241,8 @@ body.dark-mode .calendar-btn {
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
   position: relative;
+  width: 100%;
+  min-width: 0;
 }
 
 .calendar-header {
@@ -1181,6 +1261,9 @@ body.dark-mode .calendar-header {
 }
 
 .calendar-day {
+  overflow: hidden;
+  min-width: 0;
+  box-sizing: border-box;
     background: #ffffff;
     border: 1px solid rgba(0, 0, 0, 0.08);
     min-height: 80px;
@@ -1288,6 +1371,8 @@ body.dark-mode .day-number {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .expanded .bill-name, .expanded .payday-name, .expanded .bonus-name, .expanded .oneoff-name {
@@ -1754,7 +1839,7 @@ body.dark-mode .pag-showing {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 680px) {
   .tabs {
     flex-wrap: wrap;
     justify-content: center;
@@ -1852,6 +1937,7 @@ transition: opacity 0.1s ease;
   }
   .greeting {
     font-size: 14px;
+    padding: 0 70px;
   }
   .hamburger-btn {
     width: 40px;
@@ -1913,20 +1999,10 @@ transition: opacity 0.1s ease;
   }
 }
 
-@media (max-width: 390px) {
+@media (max-width: 375px) {
   .greeting {
     font-size: 13px;
     padding: 0 90px;
-  }
-  .overview-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-  }
-  .stat-value {
-    font-size: 13px;
-  }
-  .stat-label {
-    font-size: 9px;
   }
   .calendar-day {
     min-height: 44px;
@@ -7151,15 +7227,15 @@ function updateBillsList() {
     const individualBills = activeBills.filter(b => b.billType === 'individual');
    
     if (jointBills.length > 0) {
-        const jointGroup = document.createElement('div');
-        jointGroup.className = 'bills-group';
-        jointGroup.innerHTML = '<div class="bills-group-header">Joint Bills</div>';
-       
-        jointBills.forEach(bill => {
-            jointGroup.appendChild(createBillItem(bill));
-        });
-       
-        billsList.appendChild(jointGroup);
+        const jointCard = document.createElement('div');
+        jointCard.className = 'bills-group-card';
+        jointCard.innerHTML = `<div class="bills-group-card-header" style="background:rgba(0,0,0,0.04);">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#888;margin-right:8px;flex-shrink:0;"></span>
+            Joint Bills
+        </div><div class="bills-group-card-body"></div>`;
+        const jointBody = jointCard.querySelector('.bills-group-card-body');
+        jointBills.forEach(bill => { jointBody.appendChild(createBillItem(bill)); });
+        billsList.appendChild(jointCard);
     }
    
     const peopleWithBills = data.people.filter(person =>
@@ -7170,15 +7246,16 @@ function updateBillsList() {
         const personBills = individualBills.filter(bill => bill.payer === person.id);
        
         if (personBills.length > 0) {
-            const personGroup = document.createElement('div');
-            personGroup.className = 'bills-group';
-            personGroup.innerHTML = `<div class="bills-group-header">${person.name}'s Bills</div>`;
-           
-            personBills.forEach(bill => {
-                personGroup.appendChild(createBillItem(bill));
-            });
-           
-            billsList.appendChild(personGroup);
+            const personCard = document.createElement('div');
+            personCard.className = 'bills-group-card';
+            const textColor = typeof getContrastColor === 'function' ? getContrastColor(person.color || '#888') : '#ffffff';
+            personCard.innerHTML = `<div class="bills-group-card-header" style="background:${person.color}33;">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${person.color || '#888'};margin-right:8px;flex-shrink:0;"></span>
+                ${person.name}'s Bills
+            </div><div class="bills-group-card-body"></div>`;
+            const personBody = personCard.querySelector('.bills-group-card-body');
+            personBills.forEach(bill => { personBody.appendChild(createBillItem(bill)); });
+            billsList.appendChild(personCard);
         }
     });
 }
@@ -7221,24 +7298,56 @@ function createBillItem(bill) {
         dueText = `Day ${bill.day} of month`;
     }
    
+    const freqLabel = bill.isOneOff ? 'one-off' : bill.frequency;
+    const totalAmt = bill.amount + (bill.overpayment || 0);
+
+    billItem.style.cssText = 'padding:0;flex-direction:column;align-items:stretch;gap:0;cursor:pointer;';
     billItem.innerHTML = `
-        <div class="bill-info">
-            <strong>${bill.name}</strong>
-            <div>Amount: ${formatCurrency(bill.amount)}/${bill.frequency}${bill.overpayment > 0 ? ` + ${formatCurrency(bill.overpayment)} overpayment` : ''}</div>
-            <div>Total: ${formatCurrency(bill.amount + (bill.overpayment || 0))}/${bill.frequency}</div>
-            <div>Due: ${dueText}</div>
-            <div>Category: ${bill.category}</div>
-            ${data.people.length > 1 ? `<div>Type: ${bill.billType}</div>` : ''}
-            ${data.people.length > 1 ? `<div>Paid by: ${payerName}</div>` : ''}
-            ${bill.isDebt ? '<div>Type: Debt/Loan</div>' : ''}
-            ${debtInfo}
+        <div class="bill-row-summary" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:12px;">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <div style="min-width:0;">
+                    <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${bill.name}</div>
+                    <div style="font-size:12px;color:#888;margin-top:2px;">${dueText}</div>
+                    <div style="margin-top:4px;display:flex;gap:4px;">
+                        <span style="background:rgba(0,0,0,0.06);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;color:#555;">${bill.category}</span>
+                        ${bill.isDebt ? '<span style="background:rgba(0,0,0,0.06);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;color:#555;">Debt</span>' : ''}
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                <div style="text-align:right;">
+                    <div style="font-weight:700;font-size:15px;">${formatCurrency(totalAmt)}</div>
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.3px;">${freqLabel}</div>
+                </div>
+                <span class="bill-chevron" style="color:#bbb;font-size:12px;transition:transform 0.2s;">▼</span>
+            </div>
         </div>
-        <div class="bill-actions">
-            <button class="btn-small" onclick="editBill(${bill.id})">Edit</button>
-            <button class="btn-danger btn-small" onclick="deleteBill(${bill.id})">Delete</button>
+        <div class="bill-row-detail" style="display:none;border-top:1px solid rgba(0,0,0,0.06);padding:12px 16px 14px;background:rgba(0,0,0,0.02);">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:13px;margin-bottom:12px;">
+
+                ${bill.overpayment > 0 ? `<div><span style="color:#888;">Overpayment</span><br><strong>${formatCurrency(bill.overpayment)}/mo</strong></div>` : ''}
+                ${data.people.length > 1 ? `<div><span style="color:#888;">Type</span><br><strong style="text-transform:capitalize;">${bill.billType}</strong></div>` : ''}
+                ${data.people.length > 1 ? `<div><span style="color:#888;">Paid by</span><br><strong>${payerName}</strong></div>` : ''}
+                ${bill.isDebt && bill.totalDebt > 0 ? `<div><span style="color:#888;">Total Debt</span><br><strong>${formatCurrency(bill.totalDebt)}</strong></div>` : ''}
+                ${bill.isDebt && bill.interestRate > 0 ? `<div><span style="color:#888;">Interest</span><br><strong>${bill.interestRate}%</strong></div>` : ''}
+                ${bill.isDebt && (bill.termYears > 0 || bill.termMonths > 0) ? `<div><span style="color:#888;">Term</span><br><strong>${bill.termYears}y ${bill.termMonths > 0 ? bill.termMonths + 'mo' : ''}</strong></div>` : ''}
+                ${debtInfo ? `<div style="grid-column:1/-1;margin-top:2px;font-size:12px;color:#666;">${debtInfo.replace(/<div>/g,'').replace(/<\/div>/g,' · ').replace(/Est\. Monthly Interest/,'Monthly Interest')}</div>` : ''}
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-small" onclick="event.stopPropagation();editBill(${bill.id})" style="flex:1;">Edit</button>
+                <button class="btn-danger btn-small" onclick="event.stopPropagation();deleteBill(${bill.id})" style="flex:1;">Delete</button>
+            </div>
         </div>
     `;
-   
+
+    billItem.addEventListener('click', () => {
+        const detail = billItem.querySelector('.bill-row-detail');
+        const chevron = billItem.querySelector('.bill-chevron');
+        const open = detail.style.display !== 'none';
+        detail.style.display = open ? 'none' : 'block';
+        chevron.style.transform = open ? '' : 'rotate(180deg)';
+    });
+
     return billItem;
 }
 
