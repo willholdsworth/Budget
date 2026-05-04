@@ -7317,7 +7317,7 @@ function updateBillsList() {
             const personCard = document.createElement('div');
             personCard.className = 'bills-group-card';
             const textColor = typeof getContrastColor === 'function' ? getContrastColor(person.color || '#888') : '#ffffff';
-            personCard.innerHTML = `<div class="bills-group-card-header" style="background:${person.color}33;">
+            personCard.innerHTML = `<div class="bills-group-card-header" style="background:${person.color}80;">
                 <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${person.color || '#888'};margin-right:8px;flex-shrink:0;"></span>
                 ${person.name}'s Bills
             </div><div class="bills-group-card-body"></div>`;
