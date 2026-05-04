@@ -4408,6 +4408,11 @@ function clearHistoryFilters() {
 }
 
 function showTab(tabId) {
+    document.querySelectorAll('.bill-row-detail').forEach(d => {
+        d.style.display = 'none';
+        const c = d.closest('.bill-item')?.querySelector('.bill-chevron');
+        if (c) c.style.transform = '';
+    });
     document.querySelectorAll('.transfer-breakdown-animated.open').forEach(el => {
         el.classList.remove('open');
         const arrowId = el.id.replace('breakdown-', 'arrow-');
@@ -7389,8 +7394,7 @@ function createBillItem(bill) {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:13px;margin-bottom:12px;">
 
                 ${bill.overpayment > 0 ? `<div><span style="color:#888;">Overpayment</span><br><strong>${formatCurrency(bill.overpayment)}/mo</strong></div>` : ''}
-                ${data.people.length > 1 ? `<div><span style="color:#888;">Type</span><br><strong style="text-transform:capitalize;">${bill.billType}</strong></div>` : ''}
-                ${data.people.length > 1 ? `<div><span style="color:#888;">Paid by</span><br><strong>${payerName}</strong></div>` : ''}
+                ${data.people.length > 1 && bill.billType === 'joint' ? `<div><span style="color:#888;">Paid by</span><br><strong>${payerName}</strong></div>` : ''}
                 ${bill.isDebt && bill.totalDebt > 0 ? `<div><span style="color:#888;">Total Debt</span><br><strong>${formatCurrency(bill.totalDebt)}</strong></div>` : ''}
                 ${bill.isDebt && bill.interestRate > 0 ? `<div><span style="color:#888;">Interest</span><br><strong>${bill.interestRate}%</strong></div>` : ''}
                 ${bill.isDebt && (bill.termYears > 0 || bill.termMonths > 0) ? `<div><span style="color:#888;">Term</span><br><strong>${bill.termYears}y ${bill.termMonths > 0 ? bill.termMonths + 'mo' : ''}</strong></div>` : ''}
@@ -7407,6 +7411,13 @@ function createBillItem(bill) {
         const detail = billItem.querySelector('.bill-row-detail');
         const chevron = billItem.querySelector('.bill-chevron');
         const open = detail.style.display !== 'none';
+        if (!open) {
+            document.querySelectorAll('.bill-row-detail').forEach(d => {
+                d.style.display = 'none';
+                const c = d.closest('.bill-item')?.querySelector('.bill-chevron');
+                if (c) c.style.transform = '';
+            });
+        }
         detail.style.display = open ? 'none' : 'block';
         chevron.style.transform = open ? '' : 'rotate(180deg)';
     });
