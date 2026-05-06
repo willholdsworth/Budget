@@ -10413,4 +10413,17 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 	};
             </script>
 
+<script>
+(function() {
+    const metaViewport = document.querySelector('meta[name="viewport"]');
+    document.addEventListener('focusout', function(e) {
+        if (e.target.matches('input, select, textarea')) {
+            metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+            setTimeout(function() {
+                metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+            }, 50);
+        }
+    });
+})();
+</script>
 </body></html>
