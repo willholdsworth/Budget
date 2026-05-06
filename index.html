@@ -864,9 +864,14 @@ body.dark-mode .transfer-item {
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-bottom: 24px;
+  min-width: 0;
 }
 .transfer-grid.three-col {
   grid-template-columns: repeat(3, 1fr);
+}
+.transfer-grid > .payment-transfers {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .person-overview {
@@ -877,6 +882,9 @@ body.dark-mode .transfer-item {
 }
 .person-overview.three-col {
   grid-template-columns: repeat(3, 1fr);
+}
+.person-overview.single-col {
+  grid-template-columns: 1fr;
 }
 
 .transfer-grid.compact {
@@ -949,6 +957,44 @@ body.dark-mode .transfer-grid.compact .payment-transfers {
   margin-bottom: -3px;
 }
 
+@media (max-width: 900px) {
+  .transfer-grid.three-col {
+    grid-template-columns: 1fr;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2px solid rgba(0,0,0,0.08);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+  }
+  body.dark-mode .transfer-grid.three-col {
+    border-color: rgba(255,255,255,0.08);
+  }
+  .transfer-grid.three-col .payment-transfers {
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    box-shadow: none;
+    margin-bottom: 0;
+    animation: none;
+    padding: 0 20px;
+  }
+  body.dark-mode .transfer-grid.three-col .payment-transfers {
+    border-bottom-color: rgba(255,255,255,0.08);
+  }
+  .transfer-grid.three-col .payment-transfers:last-child {
+    border-bottom: none;
+  }
+  /* Make the inner header in stacked 3-col match the 2-person compact list style */
+  .transfer-grid.three-col .payment-transfers > div:first-child {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 0 !important;
+  }
+  .person-overview.three-col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 600px) {
   .transfer-grid {
     grid-template-columns: 1fr;
@@ -959,6 +1005,9 @@ body.dark-mode .transfer-grid.compact .payment-transfers {
   .person-overview.three-col {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 768px) {
   .transfer-grid.mobile-compact {
     grid-template-columns: 1fr;
     gap: 0;
@@ -977,24 +1026,26 @@ body.dark-mode .transfer-grid.compact .payment-transfers {
     box-shadow: none;
     margin-bottom: 0;
     animation: none;
-    cursor: pointer;
+    padding: 0 16px;
   }
   .transfer-grid.mobile-compact .payment-transfers:last-child {
     border-bottom: none;
   }
-  .transfer-grid.mobile-compact .payment-transfers > .transfer-item,
-  .transfer-grid.mobile-compact .payment-transfers > div > .transfer-item,
-  .transfer-grid.mobile-compact .payment-transfers > .transfer-breakdown-animated {
-    display: none;
-  }
-  .transfer-grid.mobile-compact .payment-transfers.mc-expanded > .transfer-item,
-  .transfer-grid.mobile-compact .payment-transfers.mc-expanded > div > .transfer-item,
-  .transfer-grid.mobile-compact .payment-transfers.mc-expanded > .transfer-breakdown-animated {
+  .transfer-grid.mobile-compact .mc-header {
+    padding: 14px 0;
+    cursor: pointer;
     display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
-  .transfer-grid.mobile-compact .payment-transfers.mc-expanded > .transfer-breakdown-animated {
-    display: block;
-    max-height: 600px !important;
+  .transfer-grid.mobile-compact .mc-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .transfer-grid.mobile-compact .mc-body.open {
+    max-height: 800px;
+    padding-bottom: 12px;
   }
 }
 
@@ -1849,6 +1900,13 @@ body.dark-mode .pag-showing {
     justify-content: center;
     align-items: center;
     padding: 4px;
+  }
+}
+
+@media (max-width: 850px) {
+  .tab {
+    padding: 10px 16px;
+    font-size: 12px;
   }
 }
 
@@ -3047,26 +3105,22 @@ function calculateMonthlyBudget(person) {
     const currentMonth = today.getMonth();
     const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
-    // 1. Use paycheck history for this month if it exists (captures any edits/overrides)
     const thisMonthPaychecks = data.paycheckHistory.filter(p =>
         p.personId === person.id && p.date.startsWith(currentMonthStr)
     );
-    if (thisMonthPaychecks.length > 0) {
-        return thisMonthPaychecks.reduce((sum, p) => sum + p.amount, 0);
-    }
 
-    // 2. Fall back to person's stored income + frequency
+    const nonSalaryTotal = thisMonthPaychecks
+        .filter(p => p.type !== 'salary' || (!p.isAutoLogged && p.type === 'salary'))
+        .reduce((sum, p) => sum + p.amount, 0);
+
     if (person.income && person.frequency) {
         if (person.frequency === 'biweekly' && person.paymentDate) {
-            // Count how many biweekly paydays fall in the current month
             const anchor = new Date(getDateString(person.paymentDate));
             let checkDate = new Date(anchor);
-            // Step back to find the first payday on or before start of month
             const monthStart = new Date(currentYear, currentMonth, 1);
             while (checkDate > monthStart) {
                 checkDate.setDate(checkDate.getDate() - 14);
             }
-            // Walk forward counting paydays within the month
             let paydayCount = 0;
             while (true) {
                 if (checkDate.getFullYear() === currentYear && checkDate.getMonth() === currentMonth) {
@@ -3076,12 +3130,12 @@ function calculateMonthlyBudget(person) {
                 }
                 checkDate.setDate(checkDate.getDate() + 14);
             }
-            return person.income * (paydayCount || 2);
+            return person.income * (paydayCount || 2) + nonSalaryTotal;
         }
-        return frequencyToMonthly(person.income, person.frequency);
+        return frequencyToMonthly(person.income, person.frequency) + nonSalaryTotal;
     }
 
-    return 0;
+    return nonSalaryTotal;
 }
 
 function getPaydayItemsFromEvents(dayEvents) {
@@ -3269,7 +3323,7 @@ function flashBtnConfirm(btn) {
     }, 1800);
 }
 
-function updatePersonIncome(personId) {
+function applyPersonIncomeUpdate(personId) {
    const person = data.people.find(p => p.id === personId);
    if (!person) return;
   
@@ -3292,44 +3346,18 @@ function updatePersonIncome(personId) {
    const hasAmountChange = oldIncome !== income && oldIncome && income;
    
    if (hasDateChange && wasInPast && isFutureDate && oldPaymentDate && paymentDate) {
-       const oldDate = new Date(getDateString(oldPaymentDate));
-       const newDate = new Date(getDateString(paymentDate));
-       const currentMonth = today.substring(0, 7);
-       
-       if (oldDate.toISOString().substring(0, 7) === currentMonth && 
-           newDate.toISOString().substring(0, 7) === currentMonth) {
-           
-           if (frequency === 'biweekly') {
-               const currentMonthPaychecks = data.paycheckHistory.filter(p => 
-                   p.personId === personId && 
-                   p.date.startsWith(currentMonth) && 
-                   p.isAutoLogged && 
-                   p.type === 'salary'
-               );
-               
-               currentMonthPaychecks.forEach(paycheck => {
-                   const paycheckDate = new Date(paycheck.date);
-                   const daysDiff = Math.floor((paycheckDate - oldDate) / (1000 * 60 * 60 * 24));
-                   
-                   if (daysDiff >= 0 && daysDiff % 14 === 0) {
-                       data.paycheckHistory = data.paycheckHistory.filter(p => p.id !== paycheck.id);
-                   }
-               });
-               
-           } else {
-               data.paycheckHistory = data.paycheckHistory.filter(p => 
-                   !(p.personId === personId && 
-                     p.date === getDateString(oldPaymentDate) && 
-                     p.isAutoLogged && 
-                     p.type === 'salary')
-               );
-           }
-           
+       const removedCount = data.paycheckHistory.filter(p =>
+           p.personId === personId && p.type === 'salary' && p.isAutoLogged && p.date >= today
+       ).length;
+       data.paycheckHistory = data.paycheckHistory.filter(p =>
+           !(p.personId === personId && p.type === 'salary' && p.isAutoLogged && p.date >= today)
+       );
+       if (removedCount > 0) {
            data.eventHistory.push({
                id: nextEventId++,
                date: today,
                event: 'Paycheck(s) Removed',
-               description: `Removed auto-logged ${frequency} paycheck(s) for ${person.name} due to date change to future date`
+               description: `Removed ${removedCount} future auto-logged ${frequency} paycheck(s) for ${person.name} due to date change`
            });
        }
    }
@@ -3359,12 +3387,13 @@ function updatePersonIncome(personId) {
        generateHistoricalPayments(personId, person, new Date(newStartDate), income, frequency, employer);
       
    } else if (!isFutureDate && hasAmountChange && !hasDateChange && !hasFrequencyChange) {
+       const effectiveFrom = paymentDate ? getDateString(paymentDate) : null;
        const paychecksToUpdate = data.paycheckHistory.filter(p =>
            p.personId === personId &&
            p.type === 'salary' &&
            p.isAutoLogged &&
            !p.isAdditional &&
-           p.date >= today
+           (!effectiveFrom || p.date >= effectiveFrom)
        );
       
        paychecksToUpdate.forEach(paycheck => {
@@ -3389,7 +3418,7 @@ function updatePersonIncome(personId) {
        lastAmount: income,
        lastFrequency: frequency,
        lastPaymentDate: paymentDate,
-       nextPaymentDate: paymentDate ? getDateString(getNextPaymentDate(new Date(getDateString(paymentDate)), frequency)) : null,
+       nextPaymentDate: paymentDate ? (isFutureDate ? getDateString(new Date(getDateString(paymentDate))) : getDateString(getNextPaymentDate(new Date(getDateString(paymentDate)), frequency))) : null,
        currentAmount: income
    };
   
@@ -3401,6 +3430,172 @@ function updatePersonIncome(personId) {
    updatePersonOverview(personId);
    ensureDataConsistency();
    flashBtnConfirm($(`updateIncomeBtn${personId}`));
+}
+
+function updatePersonIncome(personId) {
+    const person = data.people.find(p => p.id === personId);
+    if (!person) return;
+
+    const isFirstTimeSetup = !person.income && !person.paymentDate;
+
+    const paymentDate = $(`paymentDate-${personId}`).value;
+
+    if (isFirstTimeSetup && paymentDate) {
+        const income = parseFloat($(`income-${personId}`).value) || 0;
+        const frequency = $(`frequency-${personId}`).value;
+        const employer = $(`employer-${personId}`).value.trim();
+        const today = getDateString();
+        const isFuture = getDateString(paymentDate) > today;
+        const capF = f => f.charAt(0).toUpperCase() + f.slice(1);
+        const fmtD = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        let modal = $('editModal');
+        let modalContent;
+        if (!modal) { const md = createModal(); modal = md.modal; modalContent = md.modalContent; }
+        else { modalContent = $('modalContent'); }
+        const scheduleNote = isFuture
+            ? `Your first paycheck will be logged on <strong>${fmtD(paymentDate)}</strong> and will continue on a <strong>${capF(frequency)}</strong> basis from there.`
+            : `Paychecks of <strong>${formatCurrency(income)}</strong> will be logged from <strong>${fmtD(paymentDate)}</strong> onwards on a <strong>${capF(frequency)}</strong> basis.`;
+        modalContent.innerHTML = `
+            <h3 style="margin-bottom:16px;">Income Set Up</h3>
+            <p style="margin-bottom:12px;color:#555;font-size:14px;">You are setting up a <strong>${capF(frequency)}</strong> income of <strong>${formatCurrency(income)}</strong>.</p>
+            <p style="margin-bottom:20px;color:#555;font-size:14px;">${scheduleNote} Your earnings will be tracked automatically and will appear in your history and overview each pay period.</p>
+            <div style="display:flex;gap:10px;">
+                <button onclick="applyPersonIncomeUpdate(${personId});hideModal();" style="flex:1;">Confirm</button>
+                <button onclick="hideModal()" style="flex:1;background:#666;">Cancel</button>
+            </div>
+        `;
+        showModal();
+        return;
+    }
+
+    if (!paymentDate) {
+        let modal = $('editModal');
+        let modalContent;
+        if (!modal) { const md = createModal(); modal = md.modal; modalContent = md.modalContent; }
+        else { modalContent = $('modalContent'); }
+        modalContent.innerHTML = `
+            <h3 style="margin-bottom:16px;">Select a Start Date</h3>
+            <p style="margin-bottom:12px;color:#555;font-size:14px;">The date you choose controls how this change is applied:</p>
+            <ul style="margin:0 0 20px 0;padding-left:20px;color:#555;font-size:14px;line-height:1.8;">
+                <li><strong>A past date</strong>: existing paychecks from that date onwards will be updated to reflect the new amount and schedule.</li>
+                <li><strong>Today</strong>: the change takes effect immediately and previous paychecks are left as-is.</li>
+                <li><strong>A future date</strong>: your current income continues as normal until that date, when the new amount and schedule will kick in.</li>
+            </ul>
+            <button onclick="hideModal()" style="width:100%;">Got it</button>
+        `;
+        showModal();
+        return;
+    }
+
+    const today = getDateString();
+    const isFutureDate = getDateString(paymentDate) > today;
+    const income = parseFloat($(`income-${personId}`).value) || 0;
+    const frequency = $(`frequency-${personId}`).value;
+    const oldIncome = person.income || 0;
+    const oldFrequency = person.frequency;
+    const oldPaymentDate = person.paymentDate;
+
+    const hasDateChange = oldPaymentDate !== paymentDate && oldPaymentDate && paymentDate;
+    const hasFrequencyChange = oldFrequency !== frequency && oldFrequency && frequency;
+    const hasAmountChange = oldIncome !== income && oldIncome && income;
+
+    if (isFutureDate) {
+        let modal = $('editModal');
+        let modalContent;
+        if (!modal) { const md = createModal(); modal = md.modal; modalContent = md.modalContent; }
+        else { modalContent = $('modalContent'); }
+        const fmtFuture = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        const paymentDateFormatted = fmtFuture(paymentDate);
+        const capF = f => f.charAt(0).toUpperCase() + f.slice(1);
+        const changeLines = [];
+        if (hasAmountChange && hasFrequencyChange) {
+            changeLines.push(`You are updating your pay from <strong>${formatCurrency(oldIncome)}</strong> to <strong>${formatCurrency(income)}</strong> and changing your frequency from <strong>${capF(oldFrequency)}</strong> to <strong>${capF(frequency)}</strong>.`);
+        } else if (hasAmountChange) {
+            changeLines.push(`You are updating your pay from <strong>${formatCurrency(oldIncome)}</strong> to <strong>${formatCurrency(income)}</strong> on a <strong>${capF(frequency)}</strong> basis.`);
+        } else if (hasFrequencyChange) {
+            changeLines.push(`You are changing your payment frequency from <strong>${capF(oldFrequency)}</strong> to <strong>${capF(frequency)}</strong>.`);
+        }
+        modalContent.innerHTML = `
+            <h3 style="margin-bottom:16px;">Scheduled Income Change</h3>
+            ${changeLines.length > 0 ? `<p style="margin:0 0 14px 0;color:#555;font-size:14px;">${changeLines.join(' ')}</p>` : ''}
+            <p style="margin-bottom:20px;color:#555;font-size:14px;">Your current income continues as normal until <strong>${paymentDateFormatted}</strong>. Nothing in your history changes today and the new schedule will apply from that date onwards.</p>
+            <div style="display:flex;gap:10px;">
+                <button onclick="applyPersonIncomeUpdate(${personId});hideModal();" style="flex:1;">Confirm</button>
+                <button onclick="hideModal()" style="flex:1;background:#666;">Cancel</button>
+            </div>
+        `;
+        showModal();
+        return;
+    }
+
+    if (!isFutureDate && (hasDateChange || hasFrequencyChange || hasAmountChange)) {
+        const selectedDate = getDateString(paymentDate);
+        const existingPaychecks = data.paycheckHistory.filter(p =>
+            p.personId === personId &&
+            p.type === 'salary' &&
+            p.isAutoLogged &&
+            !p.isAdditional &&
+            p.date >= selectedDate
+        );
+        const affectedCount = existingPaychecks.length;
+
+        let modal = $('editModal');
+        let modalContent;
+        if (!modal) { const md = createModal(); modal = md.modal; modalContent = md.modalContent; }
+        else { modalContent = $('modalContent'); }
+
+        const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        let nextPayDate = new Date(selectedDate + 'T00:00:00');
+        const todayDate = new Date(today + 'T00:00:00');
+        while (nextPayDate <= todayDate) {
+            nextPayDate = getNextPaymentDate(nextPayDate, frequency);
+        }
+        const nextPayStr = fmt(getDateString(nextPayDate));
+
+        const willRemove = hasDateChange || hasFrequencyChange;
+        const willUpdate = hasAmountChange && !hasDateChange && !hasFrequencyChange;
+
+        let introLine = '';
+        if (affectedCount > 0) {
+            if (willRemove) {
+                const secondPayDate = getNextPaymentDate(nextPayDate, frequency);
+                const secondPayStr = fmt(getDateString(secondPayDate));
+                const freqLabel = frequency === 'biweekly' ? 'every two weeks' : frequency === 'monthly' ? 'monthly' : frequency === 'weekly' ? 'weekly' : frequency === 'quarterly' ? 'every quarter' : 'yearly';
+                introLine = `This update will remove <strong>${affectedCount}</strong> existing paycheck${affectedCount !== 1 ? 's' : ''} that ${affectedCount !== 1 ? 'were' : 'was'} logged from <strong>${fmt(selectedDate)}</strong> onwards, and replace them with <strong>${formatCurrency(income)}</strong> payments ${freqLabel}, starting <strong>${nextPayStr}</strong>.`;
+            } else if (willUpdate) {
+                introLine = `This update will change the amount on <strong>${affectedCount}</strong> existing paycheck${affectedCount !== 1 ? 's' : ''} logged from <strong>${fmt(selectedDate)}</strong> onwards.`;
+            }
+        } else {
+            introLine = `No existing paychecks will be affected. A new payment schedule will be logged from <strong>${fmt(selectedDate)}</strong> onwards.`;
+        }
+
+        const capP = f => f.charAt(0).toUpperCase() + f.slice(1);
+        const changeDesc = [];
+        if (hasAmountChange && hasFrequencyChange) {
+            changeDesc.push(`You are updating your pay from <strong>${formatCurrency(oldIncome)}</strong> to <strong>${formatCurrency(income)}</strong> and changing your frequency from <strong>${capP(oldFrequency)}</strong> to <strong>${capP(frequency)}</strong>.`);
+        } else if (hasAmountChange) {
+            changeDesc.push(`You are updating your pay from <strong>${formatCurrency(oldIncome)}</strong> to <strong>${formatCurrency(income)}</strong> on a <strong>${capP(frequency)}</strong> basis.`);
+        } else if (hasFrequencyChange) {
+            changeDesc.push(`You are changing your payment frequency from <strong>${capP(oldFrequency)}</strong> to <strong>${capP(frequency)}</strong>.`);
+        }
+        if (hasDateChange && !hasAmountChange && !hasFrequencyChange && affectedCount > 0) changeDesc.push(`Your paychecks will be regenerated on the new schedule from <strong>${fmt(selectedDate)}</strong>.`);
+
+        modalContent.innerHTML = `
+            <h3 style="margin-bottom:16px;">Confirm Income Update</h3>
+            <p style="margin-bottom:14px;color:#555;font-size:14px;">${introLine}</p>
+            ${changeDesc.length > 0 ? `<p style="margin:0 0 14px 0;color:#555;font-size:14px;">${changeDesc.join(' ')}</p>` : ''}
+            <p style="margin-bottom:6px;color:#555;font-size:14px;">Your next scheduled payday will be <strong>${formatCurrency(income)}</strong> on <strong>${nextPayStr}</strong>.</p>
+            ${affectedCount > 0 ? `<p style="margin:12px 0 20px;color:#888;font-size:12px;">Any paychecks before ${fmt(selectedDate)} will remain unchanged.</p>` : '<div style="margin-bottom:20px;"></div>'}
+            <div style="display:flex;gap:10px;">
+                <button onclick="applyPersonIncomeUpdate(${personId});hideModal();" style="flex:1;">Confirm</button>
+                <button onclick="hideModal()" style="flex:1;background:#666;">Cancel</button>
+            </div>
+        `;
+        showModal();
+        return;
+    }
+
+    applyPersonIncomeUpdate(personId);
 }
 
 function rebuildScheduleFromDate(personId, newStartDate, income, frequency, employer) {
@@ -4453,6 +4648,13 @@ function showTab(tabId) {
     if (tabId === 'overview') {
         resetCalendarToCurrentMonth();
     }
+
+    data.people.forEach(person => {
+        const dateInput = $(`paymentDate-${person.id}`);
+        if (dateInput && tabId !== `person-${person.id}`) {
+            dateInput.value = '';
+        }
+    });
 }
 
 function resetCalendarToCurrentMonth() {
@@ -7548,6 +7750,7 @@ function updatePeopleOverview() {
     const container = $('peopleOverview');
     container.innerHTML = '';
     container.classList.toggle('three-col', data.people.length === 3);
+    container.classList.toggle('single-col', data.people.length === 1);
     const hasJointBills = data.bills.some(b => b.billType === 'joint' && !b.isDeleted);
    
     const today = new Date();
@@ -7678,7 +7881,7 @@ function updatePeopleOverview() {
             const arrow = personCard.querySelector('h3 span:last-child span:last-child');
             h3.addEventListener('click', () => {
                 const open = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
-                body.style.maxHeight = open ? '0' : '600px';
+                body.style.maxHeight = open ? '0' : body.scrollHeight + 'px';
                 if (arrow) arrow.classList.toggle('open', !open);
             });
         } else {
@@ -7813,6 +8016,8 @@ function getTransferBreakdown(personId) {
     return items;
 }
 
+var _transferExpandState = {};
+
 function updateTransfersOverview() {
     const transfersOverview = $('transfersOverview');
     const transfers = calculateJointBillTransfers();
@@ -7828,17 +8033,10 @@ function updateTransfersOverview() {
     const isThreeCol = data.people.length === 3;
     transfersOverview.classList.toggle('mobile-compact', isMobileCompact);
     transfersOverview.classList.toggle('three-col', isThreeCol);
-    if (!transfersOverview._mcDelegated) {
-        transfersOverview._mcDelegated = true;
-        transfersOverview.addEventListener('click', function(e) {
-            if (!this.classList.contains('mobile-compact')) return;
-            const card = e.target.closest('.payment-transfers');
-            if (!card) return;
-            const wasOpen = card.classList.contains('mc-expanded');
-            this.querySelectorAll('.payment-transfers').forEach(c => c.classList.remove('mc-expanded'));
-            if (!wasOpen) card.classList.add('mc-expanded');
-        });
-    }
+    transfersOverview._mcDelegated = false;
+    
+    // Helper: is this a mobile viewport?
+    function isMobileView() { return window.innerWidth <= 768; }
        
     if (data.people.length === 2) {
         data.people.forEach(person => {
@@ -7866,13 +8064,24 @@ function updateTransfersOverview() {
                 headerEl.innerHTML = `<h3 style="margin:0;display:flex;align-items:center;flex:1;min-width:0;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:8px;flex-shrink:0;"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${person.name}'s Transfers</span></h3>${hasBillBreakdown ? `<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;"><span id="${arrowId}" class="chevron-arrow"></span></div>` : ''}`;
                 if (hasBillBreakdown) {
                     card.classList.add('clickable');
+                    if (_transferExpandState[person.id]) {
+                        const initArrow = headerEl.querySelector(`#${arrowId}`);
+                        if (initArrow) initArrow.classList.add('open');
+                    }
                     card.addEventListener('click', () => {
                         const el = document.getElementById(breakdownId);
                         const ar = document.getElementById(arrowId);
                         const open = el.classList.contains('open');
                         el.classList.toggle('open');
                         ar.classList.toggle('open', !open);
+                        _transferExpandState[person.id] = !open;
                     });
+                    if (_transferExpandState[person.id]) {
+                        setTimeout(() => {
+                            const el = document.getElementById(breakdownId);
+                            if (el) el.classList.add('open');
+                        }, 0);
+                    }
                 }
                 card.innerHTML = '';
                 card.appendChild(headerEl);
@@ -7919,96 +8128,120 @@ function updateTransfersOverview() {
             const breakdown = getTransferBreakdown(person.id);
             const breakdownId = `breakdown-mp-${person.id}`;
             const arrowId = `arrow-mp-${person.id}`;
-            const bodyId = `body-mp-${person.id}`;
-            const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:4px;vertical-align:middle;flex-shrink:0;"></span>`;
-            const allBillRows = [
-                ...breakdown.map(b => `<div class="transfer-item"><span>${b.name}${b.label ? ` <span style="opacity:0.5;font-size:11px;">(${b.label})</span>` : ''}</span><span>${formatCurrency(b.share)}</span></div>`)
-            ].join('');
+            const allBillRows = breakdown.map(b => `<div class="transfer-item"><span>${b.name}${b.label ? ` <span style="opacity:0.5;font-size:11px;">(${b.label})</span>` : ''}</span><span>${formatCurrency(b.share)}</span></div>`).join('');
             const hasBillBreakdown = allBillRows.length > 0;
             const totalAmount = personTransfers.reduce((s, t) => s + t.amount, 0);
+            const isExpanded = !!_transferExpandState[person.id];
+            const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${person.color || colorPalette[0].value};margin-right:8px;flex-shrink:0;"></span>`;
 
-            if (false) {
-                card.style.cssText = 'background:transparent;border:none;border-radius:0;box-shadow:none;margin:0;animation:none;padding:0 20px;cursor:pointer;';
+            if (isMobileCompact && isMobileView()) {
+                // Mobile 4+ people: collapsible rows, name only visible, expand to show transfers
+                const mcBodyId = `mc-body-${person.id}`;
+                const mcArrowId = `mc-arrow-${person.id}`;
+                const isMcOpen = !!_transferExpandState['mc-' + person.id];
 
-                const bodyDiv = document.createElement('div');
-                bodyDiv.id = bodyId;
-                bodyDiv.className = 'mobile-compact-body';
+                const headerEl = document.createElement('div');
+                headerEl.className = 'mc-header';
+                headerEl.innerHTML = `<h3 style="margin:0;display:flex;align-items:center;flex:1;min-width:0;font-size:15px;">${dot}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${person.name}</span></h3><span id="${mcArrowId}" class="chevron-arrow${isMcOpen ? ' open' : ''}"></span>`;
 
-                personTransfers.forEach(t => {
-                    const row = document.createElement('div');
-                    row.className = 'transfer-item';
-                    row.style.fontWeight = '600';
-                    row.innerHTML = `<span>Send to ${t.to}</span><span>${formatCurrency(t.amount)}</span>`;
-                    bodyDiv.appendChild(row);
-                });
+                const bodyEl = document.createElement('div');
+                bodyEl.id = mcBodyId;
+                bodyEl.className = 'mc-body' + (isMcOpen ? ' open' : '');
 
-                if (hasBillBreakdown) {
-                    const sep = document.createElement('div');
-                    sep.style.cssText = 'border-top:1px solid var(--border);margin:8px 0 4px;';
-                    bodyDiv.appendChild(sep);
-                    const billsDiv = document.createElement('div');
-                    billsDiv.innerHTML = allBillRows;
-                    bodyDiv.appendChild(billsDiv);
+                if (personTransfers.length === 0 && !hasBillBreakdown) {
+                    bodyEl.innerHTML = `<p style="margin:0 0 12px 0;font-size:13px;opacity:0.6;">No transfers required this month.</p>`;
+                } else {
+                    // Bill breakdown rows first (same as desktop)
+                    if (hasBillBreakdown) {
+                        const bDiv = document.createElement('div');
+                        bDiv.style.cssText = 'border-bottom:1px solid rgba(0,0,0,0.08);margin-bottom:8px;padding-bottom:8px;';
+                        bDiv.innerHTML = allBillRows;
+                        bodyEl.appendChild(bDiv);
+                    }
+                    // Send to rows (bold to distinguish from bill breakdown above)
+                    personTransfers.forEach(t => {
+                        const transferItem = document.createElement('div');
+                        transferItem.className = 'transfer-item';
+                        transferItem.style.fontWeight = '600';
+                        transferItem.innerHTML = `<span>Send to ${t.to}</span><span>${formatCurrency(t.amount)}</span>`;
+                        bodyEl.appendChild(transferItem);
+                    });
+                    if (personTransfers.length > 1) {
+                        const totalItem = document.createElement('div');
+                        totalItem.className = 'transfer-item';
+                        totalItem.style.fontWeight = '600';
+                        totalItem.innerHTML = `<span>Total</span><span>${formatCurrency(totalAmount)}</span>`;
+                        bodyEl.appendChild(totalItem);
+                    }
                 }
 
-                const headerRow = document.createElement('div');
-                headerRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 0;';
-                headerRow.innerHTML = `
-                    <h3 style="margin:0;display:flex;align-items:center;gap:8px;font-size:16px;">
-                        ${dot}${person.name}'s Transfers
-                    </h3>
-                    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-                        <span style="font-weight:600;">${formatCurrency(totalAmount)}</span>
-                        <span id="${arrowId}" class="chevron-arrow"></span>
-                    </div>`;
+                headerEl.addEventListener('click', () => {
+                    const open = bodyEl.classList.contains('open');
+                    bodyEl.classList.toggle('open', !open);
+                    const ar = document.getElementById(mcArrowId);
+                    if (ar) ar.classList.toggle('open', !open);
+                    _transferExpandState['mc-' + person.id] = !open;
+                });
 
-                // mobile-compact handled purely via CSS mc-expanded class
-                card.appendChild(headerRow);
-                card.appendChild(bodyDiv);
+                card.appendChild(headerEl);
+                card.appendChild(bodyEl);
             } else {
-                const breakdownDiv = document.createElement('div');
-                breakdownDiv.id = breakdownId;
-                breakdownDiv.className = 'transfer-breakdown-animated';
-                breakdownDiv.style.cssText = 'border-bottom:1px solid var(--border);margin-bottom:8px;';
-                breakdownDiv.innerHTML = `<div style="padding:8px 0;">${allBillRows}</div>`;
+                // Desktop 4+ people (or 3-person): existing expanded card layout
+                const headerEl = document.createElement('div');
+                headerEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 0 8px 0;margin-bottom:4px;';
+                headerEl.innerHTML = `<h3 style="margin:0;display:flex;align-items:center;flex:1;min-width:0;">${dot}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${person.name}'s Transfers</span></h3>${hasBillBreakdown ? `<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;"><span id="${arrowId}" class="chevron-arrow${isExpanded ? ' open' : ''}"></span></div>` : ''}`;
 
-                const header = document.createElement('div');
-                header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0 0 8px 0;margin-bottom:4px;';
-                header.innerHTML = `
-                    <h3 style="margin:0;display:flex;align-items:center;gap:8px;">
-                        ${dot}${person.name}'s Transfers
-                    </h3>
-                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                        ${hasBillBreakdown ? `<span id="${arrowId}" class="chevron-arrow"></span>` : ''}
-                    </div>`;
-
-                card.appendChild(header);
-                if (hasBillBreakdown) card.appendChild(breakdownDiv);
-
-                personTransfers.forEach(t => {
-                    const row = document.createElement('div');
-                    row.className = 'transfer-item';
-                    row.innerHTML = `<span>Send to ${t.to}</span><span>${formatCurrency(t.amount)}</span>`;
-                    card.appendChild(row);
-                });
-                if (personTransfers.length > 1) {
-                    const totalRow = document.createElement('div');
-                    totalRow.className = 'transfer-item';
-                    totalRow.style.fontWeight = '600';
-                    totalRow.innerHTML = `<span>Total</span><span>${formatCurrency(totalAmount)}</span>`;
-                    card.appendChild(totalRow);
-                }
+                card.appendChild(headerEl);
 
                 if (hasBillBreakdown) {
+                    const breakdownDiv = document.createElement('div');
+                    breakdownDiv.id = breakdownId;
+                    breakdownDiv.className = 'transfer-breakdown-animated';
+                    breakdownDiv.style.borderBottom = '1px solid var(--border)';
+                    breakdownDiv.style.marginBottom = '8px';
+                    breakdownDiv.style.paddingBottom = '8px';
+                    breakdownDiv.innerHTML = allBillRows;
+                    card.appendChild(breakdownDiv);
+
+                    if (isExpanded) {
+                        setTimeout(() => {
+                            const el = document.getElementById(breakdownId);
+                            if (el) el.classList.add('open');
+                        }, 0);
+                    }
+
                     card.classList.add('clickable');
                     card.addEventListener('click', () => {
+                        const el = document.getElementById(breakdownId);
                         const ar = document.getElementById(arrowId);
-                        const open = breakdownDiv.classList.contains('open');
-                        breakdownDiv.classList.toggle('open');
-                        ar.classList.toggle('open', !open);
+                        const open = el.classList.contains('open');
+                        el.classList.toggle('open');
+                        if (ar) ar.classList.toggle('open', !open);
+                        _transferExpandState[person.id] = !open;
                     });
                 }
+
+                if (personTransfers.length === 0) {
+                    const noTransfer = document.createElement('p');
+                    noTransfer.textContent = 'No transfers required this month.';
+                    card.appendChild(noTransfer);
+                } else {
+                    personTransfers.forEach(t => {
+                        const transferItem = document.createElement('div');
+                        transferItem.className = 'transfer-item';
+                        transferItem.innerHTML = `<span>Send to ${t.to}</span><span>${formatCurrency(t.amount)}</span>`;
+                        card.appendChild(transferItem);
+                    });
+                    if (personTransfers.length > 1) {
+                        const totalItem = document.createElement('div');
+                        totalItem.className = 'transfer-item';
+                        totalItem.style.fontWeight = '600';
+                        totalItem.innerHTML = `<span>Total</span><span>${formatCurrency(totalAmount)}</span>`;
+                        card.appendChild(totalItem);
+                    }
+                }
             }
+
             transfersOverview.appendChild(card);
         });
     }
@@ -8077,7 +8310,7 @@ function createPersonTab(person) {
 			</div>
 			<button id="updateIncomeBtn${person.id}" onclick="updatePersonIncome(${person.id})">Update Income</button>
 			<p style="font-size:12px;color:#666;margin-top:10px;">
-				Set a future start date to change your income from that date forward. Past payments will remain unchanged.
+				Log your income automatically. If your pay changes, update the amount and pick the date it takes effect from. Individual salary entries can be edited in the 'History' tab.
 			</p>
 		</div>
 	`;
@@ -9384,6 +9617,17 @@ if (originalProcessImportData) {
 window.addEventListener('beforeunload', saveAppData);
 window.addEventListener('pagehide', saveAppData);
 window.addEventListener('resize', updateGreeting);
+// Re-render transfer cards when crossing mobile/desktop threshold (for 4+ people compact mode)
+(function() {
+  let _lastMobile = window.innerWidth <= 768;
+  window.addEventListener('resize', function() {
+    const nowMobile = window.innerWidth <= 768;
+    if (nowMobile !== _lastMobile) {
+      _lastMobile = nowMobile;
+      updateTransfersOverview();
+    }
+  });
+})();
 document.addEventListener('pause', saveAppData);
 
 document.getElementById('currencySelect').addEventListener('change', saveAppData);
