@@ -2514,6 +2514,9 @@ function getDayEvents(date) {
                if (paycheck.type === 'bonus') {
                    bonusesForDay.push({ person, amount: paycheck.amount });
                } else {
+                   const personSettings = data.peopleIncomeSettings && data.peopleIncomeSettings[person.id];
+                   const pending = personSettings && personSettings.pendingIncomeChange;
+                   if (pending && paycheck.isAutoLogged && paycheck.date >= pending.date) return;
                    paydaysForDay.push({ ...person, amount: paycheck.amount });
                }
            }
@@ -2524,9 +2527,30 @@ function getDayEvents(date) {
    
    if (isViewingFutureOrToday) {
        data.people.forEach(person => {
-           if (isPaydayOnDate(person, day, month, year)) {
-               if (!paydaysForDay.some(p => p.id === person.id)) {
-                   paydaysForDay.push(person);
+           const personSettings = data.peopleIncomeSettings && data.peopleIncomeSettings[person.id];
+           const pending = personSettings && personSettings.pendingIncomeChange;
+
+           if (pending && dateStr < pending.date) {
+               if (isPaydayOnDate(person, day, month, year)) {
+                   const nextOldDate = getNextPaymentDate(new Date(dateStr + 'T00:00:00'), person.frequency);
+                   const nextOldStr = getDateString(nextOldDate);
+                   const isLastBeforePending = nextOldStr >= pending.date;
+                   if (!isLastBeforePending && !paydaysForDay.some(p => p.id === person.id)) {
+                       paydaysForDay.push(person);
+                   }
+               }
+           } else if (pending && dateStr >= pending.date) {
+               const pendingPerson = { ...person, paymentDate: pending.paymentDate, frequency: pending.frequency, income: pending.income };
+               if (isPaydayOnDate(pendingPerson, day, month, year)) {
+                   if (!paydaysForDay.some(p => p.id === person.id)) {
+                       paydaysForDay.push({ ...person, income: pending.income });
+                   }
+               }
+           } else {
+               if (isPaydayOnDate(person, day, month, year)) {
+                   if (!paydaysForDay.some(p => p.id === person.id)) {
+                       paydaysForDay.push(person);
+                   }
                }
            }
        });
@@ -3115,6 +3139,8 @@ function calculateMonthlyBudget(person) {
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
     const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+    const monthStart = new Date(currentYear, currentMonth, 1);
+    const monthEnd = new Date(currentYear, currentMonth + 1, 0);
 
     const thisMonthPaychecks = data.paycheckHistory.filter(p =>
         p.personId === person.id && p.date.startsWith(currentMonthStr)
@@ -3124,24 +3150,47 @@ function calculateMonthlyBudget(person) {
         .filter(p => p.type !== 'salary' || (!p.isAutoLogged && p.type === 'salary'))
         .reduce((sum, p) => sum + p.amount, 0);
 
-    if (person.income && person.frequency) {
-        if (person.frequency === 'biweekly' && person.paymentDate) {
-            const anchor = new Date(getDateString(person.paymentDate));
+    const pending = data.peopleIncomeSettings && data.peopleIncomeSettings[person.id] && data.peopleIncomeSettings[person.id].pendingIncomeChange;
+
+    function countPeriodPaydays(income, frequency, paymentDateStr, fromDate, untilDate) {
+        if (!income || !frequency || !paymentDateStr) return 0;
+        if (frequency === 'weekly' || frequency === 'biweekly') {
+            const step = frequency === 'weekly' ? 7 : 14;
+            const anchor = new Date(getDateString(paymentDateStr));
             let checkDate = new Date(anchor);
-            const monthStart = new Date(currentYear, currentMonth, 1);
-            while (checkDate > monthStart) {
-                checkDate.setDate(checkDate.getDate() - 14);
+            while (checkDate > fromDate) checkDate.setDate(checkDate.getDate() - step);
+            while (checkDate < fromDate) checkDate.setDate(checkDate.getDate() + step);
+            let total = 0;
+            while (checkDate <= untilDate) {
+                if (checkDate.getFullYear() === currentYear && checkDate.getMonth() === currentMonth) total += income;
+                checkDate.setDate(checkDate.getDate() + step);
             }
-            let paydayCount = 0;
-            while (true) {
-                if (checkDate.getFullYear() === currentYear && checkDate.getMonth() === currentMonth) {
-                    paydayCount++;
-                } else if (checkDate.getFullYear() > currentYear || (checkDate.getFullYear() === currentYear && checkDate.getMonth() > currentMonth)) {
-                    break;
-                }
-                checkDate.setDate(checkDate.getDate() + 14);
-            }
-            return person.income * (paydayCount || 2) + nonSalaryTotal;
+            return total;
+        }
+        if (frequency === 'monthly') {
+            const payDay = new Date(getDateString(paymentDateStr)).getDate();
+            const payDate = new Date(currentYear, currentMonth, payDay);
+            return (payDate >= fromDate && payDate <= untilDate) ? income : 0;
+        }
+        return frequencyToMonthly(income, frequency);
+    }
+
+    if (pending && pending.date.startsWith(currentMonthStr)) {
+        const pendingStart = new Date(pending.date + 'T00:00:00');
+        const dayBeforePending = new Date(pendingStart);
+        dayBeforePending.setDate(dayBeforePending.getDate() - 1);
+        const oldTotal = person.income && person.frequency && person.paymentDate
+            ? countPeriodPaydays(person.income, person.frequency, person.paymentDate, monthStart, dayBeforePending)
+            : 0;
+        const newTotal = pending.income && pending.frequency && pending.paymentDate
+            ? countPeriodPaydays(pending.income, pending.frequency, pending.paymentDate, pendingStart, monthEnd)
+            : 0;
+        return oldTotal + newTotal + nonSalaryTotal;
+    }
+
+    if (person.income && person.frequency) {
+        if ((person.frequency === 'weekly' || person.frequency === 'biweekly') && person.paymentDate) {
+            return countPeriodPaydays(person.income, person.frequency, person.paymentDate, monthStart, monthEnd) + nonSalaryTotal;
         }
         return frequencyToMonthly(person.income, person.frequency) + nonSalaryTotal;
     }
@@ -3356,21 +3405,34 @@ function applyPersonIncomeUpdate(personId) {
    const hasFrequencyChange = oldFrequency !== frequency && oldFrequency && frequency;
    const hasAmountChange = oldIncome !== income && oldIncome && income;
    
+   const isPeriodicFrequency = frequency === 'monthly' || frequency === 'quarterly' || frequency === 'yearly';
+   const oldIsPeriodicFrequency = oldFrequency === 'monthly' || oldFrequency === 'quarterly' || oldFrequency === 'yearly';
+
    if (hasDateChange && wasInPast && isFutureDate && oldPaymentDate && paymentDate) {
-       const removedCount = data.paycheckHistory.filter(p =>
-           p.personId === personId && p.type === 'salary' && p.isAutoLogged && p.date >= today
-       ).length;
-       data.paycheckHistory = data.paycheckHistory.filter(p =>
-           !(p.personId === personId && p.type === 'salary' && p.isAutoLogged && p.date >= today)
-       );
-       if (removedCount > 0) {
-           data.eventHistory.push({
-               id: nextEventId++,
-               date: today,
-               event: 'Paycheck(s) Removed',
-               description: `Removed ${removedCount} future auto-logged ${frequency} paycheck(s) for ${person.name} due to date change`
-           });
-       }
+       if (!data.peopleIncomeSettings[personId]) data.peopleIncomeSettings[personId] = {};
+       data.peopleIncomeSettings[personId].pendingIncomeChange = {
+           date: getDateString(paymentDate),
+           income: income,
+           frequency: frequency,
+           paymentDate: paymentDate,
+           employer: employer
+       };
+       data.eventHistory.push({
+           id: nextEventId++,
+           date: today,
+           event: 'Income Change Scheduled',
+           description: `Scheduled income change for ${person.name} on ${getDateString(paymentDate)}: ${formatCurrency(income)} ${frequency}`
+       });
+       person.employer = employer;
+       saveDataToLocalStorage();
+       updateGreeting();
+       updateBillPayerOptions();
+       updateHistoryDisplay();
+       updateOverview();
+       updatePersonOverview(personId);
+       ensureDataConsistency();
+       flashBtnConfirm($(`updateIncomeBtn${personId}`));
+       return;
    }
   
    if (!isFutureDate && (hasDateChange || hasFrequencyChange)) {
@@ -3490,7 +3552,7 @@ function updatePersonIncome(personId) {
             <ul style="margin:0 0 20px 0;padding-left:20px;color:#555;font-size:14px;line-height:1.8;">
                 <li><strong>A past date</strong>: existing paychecks from that date onwards will be updated to reflect the new amount and schedule.</li>
                 <li><strong>Today</strong>: the change takes effect immediately and previous paychecks are left as-is.</li>
-                <li><strong>A future date</strong>: your current income continues as normal until that date, when the new amount and schedule will kick in.</li>
+                <li><strong>A future date</strong>: your existing schedule will continue until the new future date you set.</li>
             </ul>
             <button onclick="hideModal()" style="width:100%;">Got it</button>
         `;
@@ -3526,10 +3588,51 @@ function updatePersonIncome(personId) {
         } else if (hasFrequencyChange) {
             changeLines.push(`You are changing your payment frequency from <strong>${capF(oldFrequency)}</strong> to <strong>${capF(frequency)}</strong>.`);
         }
+        let scheduleNote;
+        const oldNextPayDateObj = oldPaymentDate ? (() => {
+            let d = new Date(getDateString(oldPaymentDate) + 'T00:00:00');
+            const todayD = new Date(today + 'T00:00:00');
+            while (d <= todayD) d = getNextPaymentDate(d, oldFrequency);
+            return d;
+        })() : null;
+        if (oldNextPayDateObj) {
+            const oldNextStr = getDateString(oldNextPayDateObj);
+            const nextAfterThat = getNextPaymentDate(oldNextPayDateObj, oldFrequency);
+            const willBeSuppressed = getDateString(nextAfterThat) >= paymentDate;
+            if (willBeSuppressed) {
+                const pendingDateObj = new Date(paymentDate + 'T00:00:00');
+                const pendingMonth = pendingDateObj.getMonth();
+                const pendingYear = pendingDateObj.getFullYear();
+                const freqLabel = frequency === 'biweekly' ? 'biweekly' : frequency === 'weekly' ? 'weekly' : frequency === 'monthly' ? 'monthly' : frequency === 'quarterly' ? 'quarterly' : 'yearly';
+                const isBiweeklyOrWeekly = frequency === 'biweekly' || frequency === 'weekly';
+                const upcomingDates = [];
+                const fmtDayMonth = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+                if (isBiweeklyOrWeekly) {
+                    let check = new Date(paymentDate + 'T00:00:00');
+                    while (check.getMonth() === pendingMonth && check.getFullYear() === pendingYear) {
+                        upcomingDates.push(fmtDayMonth(getDateString(check)));
+                        check = getNextPaymentDate(check, frequency);
+                    }
+                } else {
+                    upcomingDates.push(fmtDayMonth(paymentDate));
+                }
+                const datesStr = upcomingDates.map(d => `<strong>${d}</strong>`).join(', ');
+                const pendingMonthStr = paymentDate.substring(0, 7);
+                const todayMonthStr = today.substring(0, 7);
+                const isThisMonth = pendingMonthStr === todayMonthStr;
+                scheduleNote = isThisMonth
+                    ? `Your income this month is now scheduled for ${datesStr}. Income will be logged on a <strong>${freqLabel}</strong> schedule from the selected date.`
+                    : `Your new income is now scheduled to start on ${datesStr}. Income will be logged on a <strong>${freqLabel}</strong> schedule from the selected date.`;
+            } else {
+                scheduleNote = `Your existing schedule continues as normal. Your next payment of <strong>${formatCurrency(oldIncome)}</strong> will be logged on <strong>${fmtFuture(oldNextStr)}</strong>. From <strong>${paymentDateFormatted}</strong> onwards, the new amount and schedule will apply.`;
+            }
+        } else {
+            scheduleNote = `Your existing schedule continues until <strong>${paymentDateFormatted}</strong>, when the new amount and schedule will take effect.`;
+        }
         modalContent.innerHTML = `
             <h3 style="margin-bottom:16px;">Scheduled Income Change</h3>
             ${changeLines.length > 0 ? `<p style="margin:0 0 14px 0;color:#555;font-size:14px;">${changeLines.join(' ')}</p>` : ''}
-            <p style="margin-bottom:20px;color:#555;font-size:14px;">Your current income continues as normal until <strong>${paymentDateFormatted}</strong>. Nothing in your history changes today and the new schedule will apply from that date onwards.</p>
+            <p style="margin-bottom:20px;color:#555;font-size:14px;">${scheduleNote}</p>
             <div style="display:flex;gap:10px;">
                 <button onclick="applyPersonIncomeUpdate(${personId});hideModal();" style="flex:1;">Confirm</button>
                 <button onclick="hideModal()" style="flex:1;background:#666;">Cancel</button>
@@ -3558,7 +3661,7 @@ function updatePersonIncome(personId) {
         const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
         let nextPayDate = new Date(selectedDate + 'T00:00:00');
         const todayDate = new Date(today + 'T00:00:00');
-        while (nextPayDate <= todayDate) {
+        while (nextPayDate < todayDate) {
             nextPayDate = getNextPaymentDate(nextPayDate, frequency);
         }
         const nextPayStr = fmt(getDateString(nextPayDate));
@@ -3571,13 +3674,12 @@ function updatePersonIncome(personId) {
             if (willRemove) {
                 const secondPayDate = getNextPaymentDate(nextPayDate, frequency);
                 const secondPayStr = fmt(getDateString(secondPayDate));
-                const freqLabel = frequency === 'biweekly' ? 'every two weeks' : frequency === 'monthly' ? 'monthly' : frequency === 'weekly' ? 'weekly' : frequency === 'quarterly' ? 'every quarter' : 'yearly';
-                introLine = `This update will remove <strong>${affectedCount}</strong> existing paycheck${affectedCount !== 1 ? 's' : ''} that ${affectedCount !== 1 ? 'were' : 'was'} logged from <strong>${fmt(selectedDate)}</strong> onwards, and replace them with <strong>${formatCurrency(income)}</strong> payments ${freqLabel}, starting <strong>${nextPayStr}</strong>.`;
+                introLine = `This update will remove <strong>${affectedCount}</strong> existing paycheck${affectedCount !== 1 ? 's' : ''} that ${affectedCount !== 1 ? 'were' : 'was'} logged from <strong>${fmt(selectedDate)}</strong> onwards, and replace with payments of <strong>${formatCurrency(income)}</strong> on a new schedule from <strong>${fmt(selectedDate)}</strong>.`;
             } else if (willUpdate) {
                 introLine = `This update will change the amount on <strong>${affectedCount}</strong> existing paycheck${affectedCount !== 1 ? 's' : ''} logged from <strong>${fmt(selectedDate)}</strong> onwards.`;
             }
         } else {
-            introLine = `No existing paychecks will be affected. A new payment schedule will be logged from <strong>${fmt(selectedDate)}</strong> onwards.`;
+            introLine = '';
         }
 
         const capP = f => f.charAt(0).toUpperCase() + f.slice(1);
@@ -3593,7 +3695,7 @@ function updatePersonIncome(personId) {
 
         modalContent.innerHTML = `
             <h3 style="margin-bottom:16px;">Confirm Income Update</h3>
-            <p style="margin-bottom:14px;color:#555;font-size:14px;">${introLine}</p>
+            ${introLine ? `<p style="margin-bottom:14px;color:#555;font-size:14px;">${introLine}</p>` : ''}
             ${changeDesc.length > 0 ? `<p style="margin:0 0 14px 0;color:#555;font-size:14px;">${changeDesc.join(' ')}</p>` : ''}
             <p style="margin-bottom:6px;color:#555;font-size:14px;">Your next scheduled payday will be <strong>${formatCurrency(income)}</strong> on <strong>${nextPayStr}</strong>.</p>
             ${affectedCount > 0 ? `<p style="margin:12px 0 20px;color:#888;font-size:12px;">Any paychecks before ${fmt(selectedDate)} will remain unchanged.</p>` : '<div style="margin-bottom:20px;"></div>'}
@@ -3921,7 +4023,7 @@ function shouldLogIncomeForCurrentMonth(paymentDate, frequency, today) {
         return monthsDiff >= 0 && monthsDiff % 3 === 0;
     } else if (frequency === 'yearly') {
         return payMonth === currentMonth && payYear <= currentYear;
-    } else if (frequency === 'biweekly') {
+    } else if (frequency === 'weekly' || frequency === 'biweekly') {
         return paymentDate <= today && payMonth === currentMonth && payYear === currentYear;
     }
    
@@ -5645,7 +5747,31 @@ function processElapsedIncome() {
    
     data.people.forEach(person => {
         if (!person.paymentDate || !person.income || !person.frequency) return;
-        
+
+        const settings = data.peopleIncomeSettings && data.peopleIncomeSettings[person.id];
+        if (settings && settings.pendingIncomeChange) {
+            const pending = settings.pendingIncomeChange;
+            if (pending.date <= today) {
+                person.income = pending.income;
+                person.frequency = pending.frequency;
+                person.paymentDate = pending.paymentDate;
+                if (pending.employer !== undefined) person.employer = pending.employer;
+                settings.lastAmount = pending.income;
+                settings.lastFrequency = pending.frequency;
+                settings.lastPaymentDate = pending.paymentDate;
+                settings.nextPaymentDate = pending.date;
+                settings.currentAmount = pending.income;
+                delete settings.pendingIncomeChange;
+                data.eventHistory.push({
+                    id: nextEventId++,
+                    date: today,
+                    event: 'Scheduled Income Change Applied',
+                    description: `Applied scheduled income change for ${person.name}: ${formatCurrency(pending.income)} ${pending.frequency} from ${pending.date}`
+                });
+                incomeUpdated = true;
+            }
+        }
+
         const paymentStartDate = getDateString(person.paymentDate);
         if (paymentStartDate > today) return;
        
@@ -5658,25 +5784,32 @@ function processElapsedIncome() {
             };
         }
        
-        const settings = data.peopleIncomeSettings[person.id];
+        const activeSettings = data.peopleIncomeSettings[person.id];
         let paymentDateObj = new Date(getDateString(person.paymentDate));
        
         let nextPayDate;
        
-        if (settings.nextPaymentDate) {
-            nextPayDate = new Date(getDateString(settings.nextPaymentDate));
+        if (activeSettings.nextPaymentDate) {
+            nextPayDate = new Date(getDateString(activeSettings.nextPaymentDate));
         } else {
             nextPayDate = new Date(paymentDateObj);
            
             if (getDateString(nextPayDate) > today) {
-                settings.nextPaymentDate = getDateString(nextPayDate);
+                activeSettings.nextPaymentDate = getDateString(nextPayDate);
                 return;
             }
         }
        
+        const pendingForThisPerson = data.peopleIncomeSettings[person.id] && data.peopleIncomeSettings[person.id].pendingIncomeChange;
+
         while (getDateString(nextPayDate) <= today) {
             const paymentDate = getDateString(nextPayDate);
             const monthApplied = `${nextPayDate.getFullYear()}-${String(nextPayDate.getMonth() + 1).padStart(2, '0')}`;
+
+            if (pendingForThisPerson && paymentDate >= pendingForThisPerson.date) {
+                nextPayDate = getNextPaymentDate(nextPayDate, person.frequency);
+                continue;
+            }
            
             const existingPaychecks = data.paycheckHistory.filter(p =>
                 p.personId === person.id &&
@@ -5685,7 +5818,7 @@ function processElapsedIncome() {
             );
            
             if (existingPaychecks.length === 0) {
-                const currentAmount = settings.currentAmount || person.income;
+                const currentAmount = activeSettings.currentAmount || person.income;
                
                 data.paycheckHistory.push({
                     id: nextPaycheckId++,
@@ -5715,12 +5848,12 @@ function processElapsedIncome() {
             nextPayDate = getNextPaymentDate(nextPayDate, person.frequency);
         }
        
-        settings.nextPaymentDate = getDateString(nextPayDate);
+        activeSettings.nextPaymentDate = getDateString(nextPayDate);
        
-        if (person.income !== settings.currentAmount) {
-            let nextPayDateObj = new Date(getDateString(settings.nextPaymentDate));
+        if (person.income !== activeSettings.currentAmount) {
+            let nextPayDateObj = new Date(getDateString(activeSettings.nextPaymentDate));
             if (today < getDateString(nextPayDateObj)) {
-                settings.currentAmount = person.income;
+                activeSettings.currentAmount = person.income;
             }
         }
     });
@@ -6038,6 +6171,12 @@ function isPaydayOnDate(person, day, month, year) {
         return payDay === day;
     }
    
+    if (person.frequency === 'weekly') {
+        const timeDiff = checkDate.getTime() - paymentDate.getTime();
+        const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        return daysDiff >= 0 && daysDiff % 7 === 0;
+    }
+
     if (person.frequency === 'biweekly') {
         const timeDiff = checkDate.getTime() - paymentDate.getTime();
         const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
@@ -6444,6 +6583,12 @@ function isPaydayOnDate(person, day, month, year) {
         return payDay === day;
     }
    
+    if (person.frequency === 'weekly') {
+        const timeDiff = checkDate.getTime() - paymentDate.getTime();
+        const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        return daysDiff >= 0 && daysDiff % 7 === 0;
+    }
+
     if (person.frequency === 'biweekly') {
         const timeDiff = checkDate.getTime() - paymentDate.getTime();
         const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
@@ -8304,6 +8449,7 @@ function createPersonTab(person) {
 			<div class="form-group">
 				<label for="frequency-${person.id}">Payment Frequency</label>
 				<select id="frequency-${person.id}">
+					<option value="weekly"${person.frequency === 'weekly' ? ' selected' : ''}>Weekly</option>
 					<option value="biweekly"${person.frequency === 'biweekly' ? ' selected' : ''}>Biweekly</option>
 					<option value="monthly"${person.frequency === 'monthly' ? ' selected' : ''}>Monthly</option>
 					<option value="quarterly"${person.frequency === 'quarterly' ? ' selected' : ''}>Quarterly</option>
