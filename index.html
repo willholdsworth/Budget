@@ -8087,11 +8087,18 @@ function updateInsightsOverview(leftover) {
     
     const currentSavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
     
+    const activeDebts = data.bills.filter(b => b.isDebt && b.totalDebt > 0.01 && !b.isDeleted);
+    const totalMonthlyInterest = activeDebts.reduce((sum, debt) => {
+        const calc = calculateDebtInfo(debt);
+        return sum + (calc && calc.monthlyInterest ? calc.monthlyInterest : 0);
+    }, 0);
+    const hasMultipleDebtInterest = activeDebts.length > 1 && totalMonthlyInterest > 0;
+
     const hasDiscretionary = discretionaryTotal > 0;
     const hasSavings = currentSavings > 0;
     const hasLeftover = leftover > 0;
     
-    if (!hasDiscretionary && !hasSavings) {
+    if (!hasDiscretionary && !hasSavings && !hasMultipleDebtInterest) {
         insightsOverview.style.display = 'none';
         return;
     }
@@ -8099,18 +8106,35 @@ function updateInsightsOverview(leftover) {
     insightsOverview.style.display = 'block';
     insightsList.innerHTML = '';
     
-    if (hasDiscretionary) {
+    if (hasDiscretionary || hasMultipleDebtInterest) {
+        const incomeTotal = parseFloat($('totalIncome').textContent.replace(/[£$€¥,]/g, '')) || 0;
         const billsTotal = parseFloat($('totalBills').textContent.replace(/[£$€¥,]/g, '')) || 0;
-        const discretionaryPercentage = billsTotal > 0 ? ((discretionaryTotal / billsTotal) * 100).toFixed(1) : '0.0';
         
         const discretionaryGroup = document.createElement('div');
         discretionaryGroup.className = 'bills-group';
-        discretionaryGroup.innerHTML = `
-            <div class="info-item" style="padding:4px 0;">
-                <span class="info-label" style="line-height:1.5;">Discretionary Spending (${discretionaryPercentage}% of bills)</span>
-                <span class="info-value">${formatCurrency(discretionaryTotal)}/month</span>
-            </div>
-        `;
+        let discretionaryHTML = '';
+        
+        if (hasDiscretionary) {
+            const discretionaryPercentage = billsTotal > 0 ? ((discretionaryTotal / billsTotal) * 100).toFixed(1) : '0.0';
+            discretionaryHTML += `
+                <div class="info-item" style="padding:4px 0;">
+                    <span class="info-label" style="line-height:1.5;">Discretionary Spending (${discretionaryPercentage}% of bills)</span>
+                    <span class="info-value">${formatCurrency(discretionaryTotal)}/month</span>
+                </div>
+            `;
+        }
+        
+        if (hasMultipleDebtInterest) {
+            const interestPercentage = incomeTotal > 0 ? ((totalMonthlyInterest / incomeTotal) * 100).toFixed(1) : '0.0';
+            discretionaryHTML += `
+                <div class="info-item" style="padding:4px 0;">
+                    <span class="info-label" style="line-height:1.5;">Monthly Debt Interest (${interestPercentage}% of income)</span>
+                    <span class="info-value">${formatCurrency(totalMonthlyInterest)}/month</span>
+                </div>
+            `;
+        }
+        
+        discretionaryGroup.innerHTML = discretionaryHTML;
         insightsList.appendChild(discretionaryGroup);
     }
     
@@ -8188,7 +8212,7 @@ function updateInsightsOverview(leftover) {
                 savingsHTML += `
                     <div style="height: 16px;"></div>
                     <div class="info-item" style="padding:4px 0;">
-                        <span class="info-label" style="font-size: 0.9em; opacity: 0.8; color: #ff6b6b;line-height:1.5;">Consider decreasing savings by ${formatCurrency(roundedDecrease)}/month</span>
+                        <span class="info-label" style="font-size: 0.9em; opacity: 0.8;line-height:1.5;">Consider decreasing savings by ${formatCurrency(roundedDecrease)}/month</span>
                         <span class="info-value"></span>
                     </div>
                 `;
