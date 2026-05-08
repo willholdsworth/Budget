@@ -7812,45 +7812,14 @@ function updateOverview() {
     const totalMonthlySavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
     const totalMonthlyExpenses = data.people.reduce((sum, person) => sum + (person.expenses || 0), 0);
 
-    let totalNetMonthly = 0;
-    data.people.forEach(person => {
-        const monthlyIncome = calculateMonthlyBudget(person);
-        const monthlySavings = person.savings || 0;
-        const monthlyExpenses = person.expenses || 0;
-        const currentMonthStr2 = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-        let indBills = 0, jointShare = 0, qSetAside = 0, ySetAside = 0;
-        data.bills.filter(b => !b.isDeleted && b.billType === 'individual' && b.payer === person.id).forEach(bill => {
-            const amt = bill.amount + (bill.overpayment || 0);
-            if (bill.isOneOff) { const bd = new Date(bill.date); if (bd.getMonth()===currentMonth && bd.getFullYear()===currentYear) indBills += amt; }
-            else if (bill.frequency === 'monthly') { const p = data.billPayments.find(p => p.billId===bill.id && p.date.startsWith(currentMonthStr2)); indBills += p ? p.amount : amt; }
-            else if (bill.frequency === 'quarterly') qSetAside += calculateSetAsideAmount(amt, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt);
-            else if (bill.frequency === 'yearly') ySetAside += calculateSetAsideAmount(amt, 'yearly', bill.isDebt, bill.interestRate, bill.totalDebt);
-        });
-        data.bills.filter(b => !b.isDeleted && b.billType === 'joint').forEach(bill => {
-            const amt = bill.amount + (bill.overpayment || 0);
-            const mAmt = frequencyToMonthly(amt, bill.frequency);
-            const share = calculateWeightedShare(mAmt, person.id, data.weightedBills);
-            if (bill.isOneOff) { const bd = new Date(bill.date); if (bd.getMonth()===currentMonth && bd.getFullYear()===currentYear) jointShare += calculateWeightedShare(amt, person.id, data.weightedBills); }
-            else if (bill.frequency === 'monthly') jointShare += share;
-            else if (bill.frequency === 'quarterly') qSetAside += calculateWeightedShare(calculateSetAsideAmount(amt, 'quarterly', bill.isDebt, bill.interestRate, bill.totalDebt), person.id, data.weightedBills);
-            else if (bill.frequency === 'yearly') ySetAside += calculateWeightedShare(calculateSetAsideAmount(amt, 'yearly', bill.isDebt, bill.interestRate, bill.totalDebt), person.id, data.weightedBills);
-        });
-        totalNetMonthly += monthlyIncome - monthlySavings - monthlyExpenses - indBills - jointShare - qSetAside - ySetAside;
-    });
-
-    const leftover = totalNetMonthly;
-
     $('totalIncome').textContent = formatCurrency(incomeTotal);
     $('totalBills').textContent = formatCurrency(billsTotal);
     $('totalSavings').textContent = formatCurrency(totalMonthlySavings);
-    $('totalLeftover').textContent = formatCurrency(leftover);
 
     $('billsPercentage').textContent = incomeTotal ?
         `${((billsTotal / incomeTotal) * 100).toFixed(1)}%` : '0%';
     $('savingsPercentage').textContent = incomeTotal ?
         `${((totalMonthlySavings / incomeTotal) * 100).toFixed(1)}%` : '0%';
-    $('leftoverPercentage').textContent = incomeTotal ?
-        `${((leftover / incomeTotal) * 100).toFixed(1)}%` : '0%';
 
     updatePeopleOverview();
     updateDebtOverview();
@@ -7912,6 +7881,8 @@ function updatePeopleOverview() {
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
+   
+    let totalNetMonthlyFromPeople = 0;
    
     data.people.forEach(person => {
         const monthlyIncome = calculateMonthlyBudget(person);
@@ -7977,6 +7948,8 @@ function updatePeopleOverview() {
        
         const netMonthly = monthlyIncome - monthlySavings - monthlyExpenses - individualBillsMonthly -
                           jointBillsShare - totalQuarterlySetAside - totalYearlySetAside;
+       
+        totalNetMonthlyFromPeople += netMonthly;
        
         const personCard = document.createElement('div');
         personCard.className = 'person-card';
@@ -8049,6 +8022,11 @@ function updatePeopleOverview() {
        
         container.appendChild(personCard);
     });
+    
+    const incomeTotal = parseFloat($('totalIncome').textContent.replace(/[£$€¥,]/g, '')) || 0;
+    $('totalLeftover').textContent = formatCurrency(totalNetMonthlyFromPeople);
+    $('leftoverPercentage').textContent = incomeTotal ?
+        `${((totalNetMonthlyFromPeople / incomeTotal) * 100).toFixed(1)}%` : '0%';
 }
 
 function updateDebtOverview() {
