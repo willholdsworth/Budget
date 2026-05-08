@@ -492,7 +492,7 @@ body.dark-mode .tab.active {
 
 body.dark-mode .card {
   background: #010101;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -1130,13 +1130,14 @@ body.dark-mode .bills-group-card {
   padding: 12px 16px 20px;
   font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.3px;
-  text-transform: none;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: #000000;
 }
 
 body.dark-mode .bills-group-card-header {
   color: #ffffff;
+  border-bottom-color: rgba(255,255,255,0.08);
 }
 
 .bills-group-card-body {
@@ -2109,6 +2110,29 @@ transition: opacity 0.1s ease;
   }
 }
 
+.category-badge {
+  display: inline-block;
+  background: rgba(0,0,0,0.06);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #555;
+  line-height: 1.4;
+}
+
+body.dark-mode .category-badge {
+  background: rgba(255,255,255,0.15);
+  color: #aaa;
+}
+
+body.dark-mode .bill-item span[style*="rgba(0,0,0,0.06)"] {
+  background: rgba(255,255,255,0.15) !important;
+  color: #aaa !important;
+}
+
 </style>
 <link rel="manifest" href="./manifest.json"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="manifest" href="./manifest.json"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"><link rel="apple-touch-icon" href="./icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head><body>
 <div class="fixed-header">
@@ -2155,6 +2179,7 @@ transition: opacity 0.1s ease;
 <div id="peopleOverview" class="person-overview"></div>
 <div id="oneOffOverview" class="card cascade-item" style="display:none;"><h3>One-off Expenses This Month</h3><div id="oneOffList"></div></div>
 <div id="debtOverview" class="card cascade-item" style="display:none;"><h3>Debt Overview</h3><div id="debtsList"></div></div>
+<div id="insightsOverview" class="card cascade-item" style="display:none;"><h3>Insights</h3><div id="insightsList"></div></div>
 </div>
 <div id="bills" class="tab-content">
 <div class="card cascade-item">
@@ -8027,6 +8052,149 @@ function updatePeopleOverview() {
     $('totalLeftover').textContent = formatCurrency(totalNetMonthlyFromPeople);
     $('leftoverPercentage').textContent = incomeTotal ?
         `${((totalNetMonthlyFromPeople / incomeTotal) * 100).toFixed(1)}%` : '0%';
+    
+    updateInsightsOverview(totalNetMonthlyFromPeople);
+}
+
+function updateInsightsOverview(leftover) {
+    const insightsList = $('insightsList');
+    const insightsOverview = $('insightsOverview');
+    const discretionaryCategories = ['Subscriptions', 'Entertainment', 'Health & Fitness', 'Technology', 'Other'];
+    
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    let discretionaryTotal = 0;
+    data.bills.filter(b => !b.isDeleted && discretionaryCategories.includes(b.category)).forEach(bill => {
+        const amt = bill.amount + (bill.overpayment || 0);
+        if (bill.isOneOff) {
+            const billDate = new Date(bill.date);
+            if (billDate.getMonth() === currentMonth && billDate.getFullYear() === currentYear) {
+                discretionaryTotal += amt;
+            }
+        } else if (bill.frequency === 'monthly') {
+            discretionaryTotal += amt;
+        } else if (bill.frequency === 'quarterly') {
+            discretionaryTotal += amt / 3;
+        } else if (bill.frequency === 'yearly') {
+            discretionaryTotal += amt / 12;
+        }
+    });
+    
+    const currentSavings = data.people.reduce((sum, person) => sum + (person.savings || 0), 0);
+    
+    const hasDiscretionary = discretionaryTotal > 0;
+    const hasSavings = currentSavings > 0;
+    const hasLeftover = leftover > 0;
+    
+    if (!hasDiscretionary && !hasSavings) {
+        insightsOverview.style.display = 'none';
+        return;
+    }
+    
+    insightsOverview.style.display = 'block';
+    insightsList.innerHTML = '';
+    
+    if (hasDiscretionary) {
+        const billsTotal = parseFloat($('totalBills').textContent.replace(/[£$€¥,]/g, '')) || 0;
+        const discretionaryPercentage = billsTotal > 0 ? ((discretionaryTotal / billsTotal) * 100).toFixed(1) : '0.0';
+        
+        const discretionaryGroup = document.createElement('div');
+        discretionaryGroup.className = 'bills-group';
+        discretionaryGroup.innerHTML = `
+            <div class="info-item" style="padding:4px 0;">
+                <span class="info-label" style="line-height:1.5;">Discretionary Spending (${discretionaryPercentage}% of bills)</span>
+                <span class="info-value">${formatCurrency(discretionaryTotal)}/month</span>
+            </div>
+        `;
+        insightsList.appendChild(discretionaryGroup);
+    }
+    
+    if (hasSavings || hasLeftover) {
+        const savingsGroup = document.createElement('div');
+        savingsGroup.className = 'bills-group';
+        let savingsHTML = '';
+        
+        if (hasSavings) {
+            const monthlySavings = currentSavings;
+            savingsHTML += `
+                <div class="info-item" style="margin-bottom: 12px;padding:4px 0;align-items:flex-end;">
+                    <span class="info-label" style="font-weight: 600; font-size: 1.1em; text-transform: uppercase; letter-spacing: 0.5px;">Savings</span>
+                    <span class="info-value">${formatCurrency(monthlySavings)}</span>
+                </div>
+                <div class="info-item" style="padding:4px 0;">
+                    <span class="info-label">After 1 year</span>
+                    <span class="info-value">${formatCurrency(monthlySavings * 12)}</span>
+                </div>
+                <div class="info-item" style="padding:4px 0;">
+                    <span class="info-label">After 5 years</span>
+                    <span class="info-value">${formatCurrency(monthlySavings * 60)}</span>
+                </div>
+                <div class="info-item" style="padding:4px 0;">
+                    <span class="info-label">After 10 years</span>
+                    <span class="info-value">${formatCurrency(monthlySavings * 120)}</span>
+                </div>
+            `;
+        }
+        
+        if (hasLeftover) {
+            const leftoverThreshold = currentSavings > 0 ? currentSavings * 0.5 : 100;
+            const shouldSuggest = leftover > leftoverThreshold;
+            
+            if (hasSavings) {
+                savingsHTML += `<div style="height: 16px;"></div>`;
+            }
+            
+            savingsHTML += `
+                <div class="info-item" style="margin-bottom: 12px;padding:4px 0;align-items:flex-end;">
+                    <span class="info-label" style="font-weight: 600; font-size: 1.1em; text-transform: uppercase; letter-spacing: 0.5px;">Leftover</span>
+                    <span class="info-value">${formatCurrency(leftover)}</span>
+                </div>
+                <div class="info-item" style="padding:4px 0;">
+                    <span class="info-label">After 1 year</span>
+                    <span class="info-value">${formatCurrency(leftover * 12)}</span>
+                </div>
+                <div class="info-item" style="padding:4px 0;">
+                    <span class="info-label">After 5 years</span>
+                    <span class="info-value">${formatCurrency(leftover * 60)}</span>
+                </div>
+                <div class="info-item" style="padding:4px 0;">
+                    <span class="info-label">After 10 years</span>
+                    <span class="info-value">${formatCurrency(leftover * 120)}</span>
+                </div>
+            `;
+            
+            if (shouldSuggest) {
+                const halfLeftover = Math.floor(leftover / 2);
+                const suggestedIncrease = Math.floor(halfLeftover / 50) * 50;
+                savingsHTML += `
+                    <div style="height: 16px;"></div>
+                    <div class="info-item" style="padding:4px 0;">
+                        <span class="info-label" style="font-size: 0.9em; opacity: 0.8;line-height:1.5;">Consider increasing savings by ${formatCurrency(suggestedIncrease)}/month</span>
+                        <span class="info-value"></span>
+                    </div>
+                `;
+            }
+        } else if (leftover < 0 && hasSavings) {
+            const deficit = Math.abs(leftover);
+            const suggestedDecrease = Math.min(deficit, currentSavings);
+            const roundedDecrease = Math.floor(suggestedDecrease / 50) * 50;
+            
+            if (roundedDecrease > 0) {
+                savingsHTML += `
+                    <div style="height: 16px;"></div>
+                    <div class="info-item" style="padding:4px 0;">
+                        <span class="info-label" style="font-size: 0.9em; opacity: 0.8; color: #ff6b6b;line-height:1.5;">Consider decreasing savings by ${formatCurrency(roundedDecrease)}/month</span>
+                        <span class="info-value"></span>
+                    </div>
+                `;
+            }
+        }
+        
+        savingsGroup.innerHTML = savingsHTML;
+        insightsList.appendChild(savingsGroup);
+    }
 }
 
 function updateDebtOverview() {
@@ -8043,9 +8211,14 @@ function updateDebtOverview() {
     debtsList.innerHTML = '';
 
     if (data.people.length <= 1) {
+        const singleCard = document.createElement('div');
+        singleCard.className = 'bills-group-card';
+        singleCard.innerHTML = '<div class="bills-group-card-body"></div>';
+        const cardBody = singleCard.querySelector('.bills-group-card-body');
         debts.forEach(debt => {
-            debtsList.appendChild(createDebtItem(debt));
+            cardBody.appendChild(createDebtItem(debt));
         });
+        debtsList.appendChild(singleCard);
         return;
     }
 
@@ -8053,15 +8226,17 @@ function updateDebtOverview() {
     const individualDebts = debts.filter(d => d.billType === 'individual');
 
     if (jointDebts.length > 0) {
-        const jointGroup = document.createElement('div');
-        jointGroup.className = 'bills-group';
-        jointGroup.innerHTML = '<div class="bills-group-header">Joint Debts</div>';
-       
+        const jointCard = document.createElement('div');
+        jointCard.className = 'bills-group-card';
+        jointCard.innerHTML = `<div class="bills-group-card-header" style="background:transparent;border-bottom:1px solid rgba(0,0,0,0.08);">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#888;margin-right:8px;flex-shrink:0;"></span>
+            Joint Debts
+        </div><div class="bills-group-card-body"></div>`;
+        const jointBody = jointCard.querySelector('.bills-group-card-body');
         jointDebts.forEach(debt => {
-            jointGroup.appendChild(createDebtItem(debt));
+            jointBody.appendChild(createDebtItem(debt));
         });
-       
-        debtsList.appendChild(jointGroup);
+        debtsList.appendChild(jointCard);
     }
 
     const peopleWithDebts = data.people.filter(person =>
@@ -8072,15 +8247,18 @@ function updateDebtOverview() {
         const personDebts = individualDebts.filter(debt => debt.payer === person.id);
        
         if (personDebts.length > 0) {
-            const personGroup = document.createElement('div');
-            personGroup.className = 'bills-group';
-            personGroup.innerHTML = `<div class="bills-group-header">${person.name}'s Debts</div>`;
-           
+            const personCard = document.createElement('div');
+            personCard.className = 'bills-group-card';
+            const textColor = typeof getContrastColor === 'function' ? getContrastColor(person.color || '#888') : '#ffffff';
+            personCard.innerHTML = `<div class="bills-group-card-header" style="background:transparent;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${person.color || '#888'};margin-right:8px;flex-shrink:0;"></span>
+                ${person.name}'s Debts
+            </div><div class="bills-group-card-body"></div>`;
+            const personBody = personCard.querySelector('.bills-group-card-body');
             personDebts.forEach(debt => {
-                personGroup.appendChild(createDebtItem(debt));
+                personBody.appendChild(createDebtItem(debt));
             });
-           
-            debtsList.appendChild(personGroup);
+            debtsList.appendChild(personCard);
         }
     });
 }
@@ -8091,34 +8269,43 @@ function createDebtItem(debt) {
     const debtCalc = calculateDebtInfo(debt);
 
     const debtItem = document.createElement('div');
-    debtItem.className = 'debt-item';
+    debtItem.className = 'bill-item';
+    
+    let detailsHTML = `
+        <div style="font-size:14px;color:#888;margin-top:8px;line-height:1.6;text-transform:uppercase;">
+            <div>Monthly Payment: ${formatCurrency(totalWithOverpayment)}</div>
+    `;
+    
+    if (debtCalc && debtCalc.monthlyInterest) {
+        detailsHTML += `<div>Est. Monthly Interest: ${formatCurrency(debtCalc.monthlyInterest)}</div>`;
+    }
+    
+    if (debtCalc && debtCalc.payoffMonths) {
+        detailsHTML += `<div>Est. Payoff: ${Math.floor(debtCalc.payoffMonths / 12)} years ${debtCalc.payoffMonths % 12} months</div>`;
+    }
+    
+    if (debtCalc && debtCalc.overpaymentSavings > 0 && debtCalc.termReduction > 0) {
+        detailsHTML += `<div>Saves ${Math.floor(debtCalc.termReduction / 12)} years ${debtCalc.termReduction % 12} months, ${formatCurrency(debtCalc.interestSaved)} interest</div>`;
+    }
+    
+    detailsHTML += '</div>';
+    
+    debtItem.style.cssText = 'padding:14px 16px;flex-direction:row;justify-content:space-between;align-items:flex-start;gap:12px;cursor:default;';
     debtItem.innerHTML = `
-        <div class="info-item">
-            <span class="info-label">${debt.name}</span>
-            <span class="info-value">${formatCurrency(debt.totalDebt)}${debt.interestRate > 0 ? ` @ ${debt.interestRate}%` : ''}</span>
+        <div style="display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1;">
+            <div style="min-width:0;flex:1;">
+                <div style="font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;">${debt.name}</div>
+                ${detailsHTML}
+                <div style="margin-top:8px;display:flex;gap:4px;">
+                    <span style="background:rgba(0,0,0,0.06);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;color:#555;">${debt.category}</span>
+                    <span style="background:rgba(0,0,0,0.06);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;color:#555;">DEBT</span>
+                </div>
+            </div>
         </div>
-        <div class="info-item">
-            <span class="info-label">Monthly Payment</span>
-            <span class="info-value">${formatCurrency(totalWithOverpayment)}</span>
+        <div style="text-align:right;flex-shrink:0;">
+            <div style="font-weight:700;font-size:17px;">${formatCurrency(debt.totalDebt)}</div>
+            ${debt.interestRate > 0 ? `<div style="font-size:13px;color:#888;margin-top:4px;text-transform:uppercase;">${debt.interestRate}% APR</div>` : ''}
         </div>
-        ${debtCalc && debtCalc.monthlyInterest ? `
-            <div class="info-item">
-                <span class="info-label">Est. Monthly Interest</span>
-                <span class="info-value">${formatCurrency(debtCalc.monthlyInterest)}</span>
-            </div>
-        ` : ''}
-        ${debtCalc && debtCalc.payoffMonths ? `
-            <div class="info-item">
-                <span class="info-label">Est. Payoff Time</span>
-                <span class="info-value">${Math.floor(debtCalc.payoffMonths / 12)} years ${debtCalc.payoffMonths % 12} months</span>
-            </div>
-        ` : ''}
-        ${debtCalc && debtCalc.overpaymentSavings > 0 && debtCalc.termReduction > 0 ? `
-            <div class="info-item">
-                <span class="info-label">Overpayment Benefit</span>
-                <span class="info-value">Saves ${Math.floor(debtCalc.termReduction / 12)} years ${debtCalc.termReduction % 12} months, ${formatCurrency(debtCalc.interestSaved)} interest</span>
-            </div>
-        ` : ''}
     `;
 
     return debtItem;
@@ -8649,9 +8836,14 @@ function updateOneOffOverview() {
     oneOffList.innerHTML = '';
 
     if (data.people.length <= 1) {
+        const singleCard = document.createElement('div');
+        singleCard.className = 'bills-group-card';
+        singleCard.innerHTML = '<div class="bills-group-card-body"></div>';
+        const cardBody = singleCard.querySelector('.bills-group-card-body');
         oneOffExpenses.forEach(expense => {
-            oneOffList.appendChild(createOneOffItem(expense));
+            cardBody.appendChild(createOneOffItem(expense));
         });
+        oneOffList.appendChild(singleCard);
         return;
     }
 
@@ -8659,15 +8851,17 @@ function updateOneOffOverview() {
     const individualOneOffs = oneOffExpenses.filter(e => e.billType === 'individual');
 
     if (jointOneOffs.length > 0) {
-        const jointGroup = document.createElement('div');
-        jointGroup.className = 'bills-group';
-        jointGroup.innerHTML = '<div class="bills-group-header">Joint One-off Expenses</div>';
-       
+        const jointCard = document.createElement('div');
+        jointCard.className = 'bills-group-card';
+        jointCard.innerHTML = `<div class="bills-group-card-header" style="background:transparent;border-bottom:1px solid rgba(0,0,0,0.08);">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#888;margin-right:8px;flex-shrink:0;"></span>
+            Joint One-off Expenses
+        </div><div class="bills-group-card-body"></div>`;
+        const jointBody = jointCard.querySelector('.bills-group-card-body');
         jointOneOffs.forEach(expense => {
-            jointGroup.appendChild(createOneOffItem(expense));
+            jointBody.appendChild(createOneOffItem(expense));
         });
-       
-        oneOffList.appendChild(jointGroup);
+        oneOffList.appendChild(jointCard);
     }
 
     const peopleWithOneOffs = data.people.filter(person =>
@@ -8678,15 +8872,18 @@ function updateOneOffOverview() {
         const personOneOffs = individualOneOffs.filter(expense => expense.payer === person.id);
        
         if (personOneOffs.length > 0) {
-            const personGroup = document.createElement('div');
-            personGroup.className = 'bills-group';
-            personGroup.innerHTML = `<div class="bills-group-header">${person.name}'s One-off Expenses</div>`;
-           
+            const personCard = document.createElement('div');
+            personCard.className = 'bills-group-card';
+            const textColor = typeof getContrastColor === 'function' ? getContrastColor(person.color || '#888') : '#ffffff';
+            personCard.innerHTML = `<div class="bills-group-card-header" style="background:transparent;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${person.color || '#888'};margin-right:8px;flex-shrink:0;"></span>
+                ${person.name}'s One-off Expenses
+            </div><div class="bills-group-card-body"></div>`;
+            const personBody = personCard.querySelector('.bills-group-card-body');
             personOneOffs.forEach(expense => {
-                personGroup.appendChild(createOneOffItem(expense));
+                personBody.appendChild(createOneOffItem(expense));
             });
-           
-            oneOffList.appendChild(personGroup);
+            oneOffList.appendChild(personCard);
         }
     });
 }
@@ -9453,25 +9650,32 @@ function createOneOffItem(expense) {
                      data.people.find(p => p.id === expense.payer)?.name || 'Unknown';
    
     const oneOffItem = document.createElement('div');
-    oneOffItem.className = 'debt-item';
+    oneOffItem.className = 'bill-item';
    
-    let itemContent = `
-        <div class="info-item">
-            <span class="info-label">${expense.name}</span>
-            <span class="info-value">${formatCurrency(expense.amount)}</span>
+    const billDate = new Date(expense.date);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dueText = `${billDate.getDate()} ${monthNames[billDate.getMonth()]} ${billDate.getFullYear()}`;
+   
+    const showPaidBy = data.people.length > 1 && expense.billType === 'joint';
+   
+    oneOffItem.style.cssText = 'padding:14px 16px;flex-direction:row;justify-content:space-between;align-items:center;gap:12px;cursor:default;';
+    oneOffItem.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <div style="min-width:0;">
+                <div style="font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;">${expense.name}</div>
+                <div style="font-size:14px;color:#888;margin-top:4px;text-transform:uppercase;">${dueText}</div>
+                ${showPaidBy ? `<div style="font-size:13px;color:#888;margin-top:4px;text-transform:uppercase;">Paid by ${payerName}</div>` : ''}
+                <div style="margin-top:6px;display:flex;gap:4px;">
+                    <span style="background:rgba(0,0,0,0.06);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;color:#555;">${expense.category}</span>
+                </div>
+            </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+            <div style="font-weight:700;font-size:17px;">${formatCurrency(expense.amount)}</div>
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.3px;margin-top:2px;">ONE-OFF</div>
         </div>
     `;
    
-    if (data.people.length > 1) {
-        itemContent += `
-            <div class="info-item">
-                <span class="info-label">Paid by</span>
-                <span class="info-value">${payerName}</span>
-            </div>
-        `;
-    }
-   
-    oneOffItem.innerHTML = itemContent;
     return oneOffItem;
 }
 
