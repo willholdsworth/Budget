@@ -58,7 +58,7 @@ body {
   font-family: 'Space Grotesk', sans-serif;
   min-height: 100vh;
   padding: 20px;
-  padding-bottom: calc(20px + var(--nav-bar-height, env(safe-area-inset-bottom, 0px)));
+  padding-bottom: calc(20px + var(--nav-bar-height, 0px));
   color: #000000;
   transition: background 0.3s ease;
   background: #ffffff;
@@ -78,7 +78,7 @@ body.dark-mode {
   right: 0;
   background: #ffffff;
   padding: 20px;
-  padding-top: calc(20px + var(--status-bar-height, env(safe-area-inset-top, 0px)));
+  padding-top: calc(20px + var(--status-bar-height, 0px));
   z-index: 1000;
   transition: all 0.3s ease;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
@@ -410,7 +410,7 @@ body.dark-mode .sidebar-menu-btn:hover {
 
 .container {
   max-width: 1000px;
-  margin: calc(70px + var(--status-bar-height, env(safe-area-inset-top, 0px))) auto 0;
+  margin: calc(70px + var(--status-bar-height, 0px)) auto 0;
   background: transparent;
 }
 
@@ -5988,6 +5988,10 @@ function toggleDarkMode() {
     data.darkMode = document.body.classList.contains('dark-mode');
     saveDataToLocalStorage();
     ensureDataConsistency();
+    // Update Android status bar icon colour to match current theme
+    if (window.AndroidBridge) {
+        AndroidBridge.setStatusBarLight(!data.darkMode);
+    }
 }
 
 function updateCurrency() {
@@ -10636,5 +10640,17 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
         }
     });
 })();
+</script>
+
+<script>
+// Tell Android the correct status bar colour once the app has loaded and dark mode is known
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        if (window.AndroidBridge) {
+            var isDark = document.body.classList.contains('dark-mode');
+            AndroidBridge.setStatusBarLight(!isDark);
+        }
+    }, 500); // slight delay to ensure dark mode class has been restored from storage
+});
 </script>
 </body></html>
