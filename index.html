@@ -58,7 +58,6 @@ body {
   font-family: 'Space Grotesk', sans-serif;
   min-height: 100vh;
   padding: 20px;
-  padding-bottom: calc(20px + var(--nav-bar-height, 0px));
   color: #000000;
   transition: background 0.3s ease;
   background: #ffffff;
@@ -5988,7 +5987,6 @@ function toggleDarkMode() {
     data.darkMode = document.body.classList.contains('dark-mode');
     saveDataToLocalStorage();
     ensureDataConsistency();
-    // Update Android status bar icon colour to match current theme
     if (window.AndroidBridge) {
         AndroidBridge.setStatusBarLight(!data.darkMode);
     }
@@ -10641,16 +10639,26 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 })();
 </script>
-
 <script>
-// Tell Android the correct status bar colour once the app has loaded and dark mode is known
+// Sync status bar icon colour with saved dark mode state after app loads
 window.addEventListener('load', function() {
     setTimeout(function() {
         if (window.AndroidBridge) {
-            var isDark = document.body.classList.contains('dark-mode');
-            AndroidBridge.setStatusBarLight(!isDark);
+            AndroidBridge.setStatusBarLight(!document.body.classList.contains('dark-mode'));
         }
-    }, 500); // slight delay to ensure dark mode class has been restored from storage
+    }, 500);
+});
+
+// When any input/textarea/select is focused, scroll it into view so the
+// keyboard doesn't cover it. WebView doesn't do this automatically in
+// edge-to-edge mode, but scrollIntoView is reliable cross-device.
+document.addEventListener('focusin', function(e) {
+    var el = e.target;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+        setTimeout(function() {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300); // wait for keyboard animation to finish
+    }
 });
 </script>
 </body></html>
