@@ -274,7 +274,8 @@ body.dark-mode button:hover {
   height: 100%;
   background: #ffffff;
   border-right: 2px solid rgba(0, 0, 0, 0.08);
-  padding: 80px 20px 20px;
+  padding: 20px 20px 20px;
+  padding-top: calc(80px + var(--status-bar-height, 0px));
   z-index: 1001;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
@@ -717,7 +718,7 @@ body.dark-mode .person-overview.compact .person-card {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
   padding: 8px 0;
   transition: all 0.2s ease;
 }
@@ -737,6 +738,9 @@ body.dark-mode .person-overview.compact .person-card {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: none;
+  min-width: 0;
+  flex: 1;
+  word-break: break-word;
 }
 
 body.dark-mode .info-label {
@@ -749,6 +753,7 @@ body.dark-mode .info-label {
   font-size: 14px;
   text-align: right;
   flex-shrink: 0;
+  white-space: nowrap;
   transition: none;
 }
 
@@ -1317,10 +1322,10 @@ body.dark-mode .calendar-btn {
 .calendar-header {
   background: #000000;
   color: #ffffff;
-  padding: 8px;
+  padding: clamp(4px, 1.5vw, 8px);
   text-align: center;
   font-weight: 600;
-  font-size: 12px;
+  font-size: clamp(8px, 2.5vw, 12px);
   text-transform: uppercase;
 }
 
@@ -1335,8 +1340,8 @@ body.dark-mode .calendar-header {
   box-sizing: border-box;
     background: #ffffff;
     border: 1px solid rgba(0, 0, 0, 0.08);
-    min-height: 80px;
-    padding: 4px;
+    min-height: clamp(44px, 11vw, 80px);
+    padding: clamp(2px, 1vw, 4px);
     position: relative;
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -10658,6 +10663,23 @@ document.addEventListener('focusin', function(e) {
         setTimeout(function() {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 300); // wait for keyboard animation to finish
+    }
+});
+</script>
+<script>
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        if (window.AndroidBridge) {
+            AndroidBridge.setStatusBarLight(!document.body.classList.contains('dark-mode'));
+        }
+    }, 500);
+});
+document.addEventListener('focusin', function(e) {
+    var el = e.target;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+        setTimeout(function() {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
     }
 });
 </script>
